@@ -11,6 +11,7 @@
  */
 
 import { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: '대시보드 - Legal Evidence Hub',
@@ -61,11 +62,13 @@ function StatsCard({
 
 // Recent Case Item
 function RecentCaseItem({
+  caseId,
   title,
   clientName,
   status,
   updatedAt,
 }: {
+  caseId: string;
   title: string;
   clientName: string;
   status: 'active' | 'review' | 'closed';
@@ -84,7 +87,10 @@ function RecentCaseItem({
   };
 
   return (
-    <div className="flex items-center gap-4 p-4 hover:bg-[var(--color-bg-secondary)] rounded-lg transition-colors cursor-pointer">
+    <Link
+      href={`/cases/${caseId}`}
+      className="flex items-center gap-4 p-4 hover:bg-[var(--color-bg-secondary)] rounded-lg transition-colors cursor-pointer"
+    >
       <div className="flex-1 min-w-0">
         <p className="font-medium text-[var(--color-text-primary)] truncate">{title}</p>
         <p className="text-sm text-[var(--color-text-secondary)]">{clientName}</p>
@@ -95,7 +101,7 @@ function RecentCaseItem({
         </span>
         <span className="text-xs text-[var(--color-text-tertiary)]">{updatedAt}</span>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -217,7 +223,14 @@ export default function LawyerDashboardPage() {
           </div>
           <div className="divide-y divide-[var(--color-border-default)]">
             {recentCases.map((caseItem) => (
-              <RecentCaseItem key={caseItem.id} {...caseItem} />
+              <RecentCaseItem
+                key={caseItem.id}
+                caseId={caseItem.id}
+                title={caseItem.title}
+                clientName={caseItem.clientName}
+                status={caseItem.status}
+                updatedAt={caseItem.updatedAt}
+              />
             ))}
           </div>
         </div>

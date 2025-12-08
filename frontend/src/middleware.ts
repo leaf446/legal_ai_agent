@@ -37,6 +37,8 @@ const PUBLIC_ROUTES = [
   '/terms',
 ];
 
+
+
 // API routes (should be handled by API, not middleware)
 const API_PREFIX = '/api';
 
@@ -187,14 +189,15 @@ export function middleware(request: NextRequest) {
   }
 
   // Handle legacy /cases route - redirect to role-appropriate portal
-  if (pathname === '/cases' || pathname.startsWith('/cases/')) {
-    // App Router에 직접 정의된 라우트는 리디렉션하지 않음
-    if (pathname.includes('/relationship')) {
-      return NextResponse.next();
-    }
+  // 케이스 목록 페이지만 리다이렉트, 케이스 상세(/cases/[id])는 그대로 유지
+  if (pathname === '/cases') {
     const portalPath = ROLE_PORTALS[user.role] || '/lawyer';
-    const newPath = pathname.replace('/cases', `${portalPath}/cases`);
-    return NextResponse.redirect(new URL(newPath, request.url));
+    return NextResponse.redirect(new URL(`${portalPath}/cases`, request.url));
+  }
+
+  // /cases/[id] 및 하위 경로는 리다이렉트하지 않음 (기존 라우트 사용)
+  if (pathname.startsWith('/cases/')) {
+    return NextResponse.next();
   }
 
   // Handle /dashboard redirect to role-appropriate dashboard

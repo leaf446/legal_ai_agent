@@ -337,6 +337,23 @@ export default function CaseDetailClient({ id }: CaseDetailClientProps) {
                             <p className="text-xs text-gray-500">Case ID: {id}</p>
                         </div>
                     </div>
+                    {/* Quick Action Buttons */}
+                    <div className="flex items-center gap-2">
+                        <Link
+                            href={`/cases/${id}/relationship`}
+                            className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-hover transition-colors shadow-sm"
+                        >
+                            <Users className="w-4 h-4" />
+                            인물관계도
+                        </Link>
+                        <button
+                            onClick={() => setActiveTab('property')}
+                            className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                        >
+                            <Scale className="w-4 h-4" />
+                            재산분할
+                        </button>
+                    </div>
                 </div>
             </header>
 

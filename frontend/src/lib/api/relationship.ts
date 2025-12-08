@@ -29,6 +29,7 @@ interface AnalyzeRelationshipsResponse {
  * }
  * ```
  */
+// MOCK IMPLEMENTATION FOR VERIFICATION - REVERTED
 export async function analyzeRelationships(
   text: string
 ): Promise<ApiResponse<RelationshipGraph>> {
@@ -54,3 +55,5 @@ export async function analyzeRelationships(
     status: response.status,
   };
 }
+
+

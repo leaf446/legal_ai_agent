@@ -3,7 +3,6 @@
 import { useCallback, useMemo } from 'react';
 import ReactFlow, {
   Background,
-  Controls,
   MiniMap,
   Node,
   Edge,
@@ -11,6 +10,7 @@ import ReactFlow, {
   useEdgesState,
   MarkerType,
   ConnectionMode,
+  BackgroundVariant,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -25,8 +25,9 @@ import {
 } from '@/types/relationship';
 import PersonNode from './PersonNode';
 import RelationshipEdge from './RelationshipEdge';
+import FlowControls from './FlowControls';
 
-// 커스텀 노드/엣지 타입 등록
+// Register custom types
 const nodeTypes = {
   person: PersonNode,
 };
@@ -39,10 +40,11 @@ interface RelationshipFlowProps {
   graph: RelationshipGraph;
   onNodeClick?: (node: PersonNodeType) => void;
   onEdgeClick?: (edge: RelationshipEdgeType) => void;
+  onPaneClick?: () => void;
 }
 
 /**
- * 원형 레이아웃으로 노드 배치
+ * Circular Layout Calculation
  */
 function calculateCircularLayout(
   nodes: PersonNodeType[],
@@ -53,7 +55,7 @@ function calculateCircularLayout(
   const angleStep = (2 * Math.PI) / nodes.length;
 
   return nodes.map((node, index) => {
-    const angle = index * angleStep - Math.PI / 2; // 12시 방향부터 시작
+    const angle = index * angleStep - Math.PI / 2; // Start from 12 o'clock
     const x = centerX + radius * Math.cos(angle);
     const y = centerY + radius * Math.sin(angle);
 
@@ -70,7 +72,7 @@ function calculateCircularLayout(
 }
 
 /**
- * 엣지 데이터를 React Flow 형식으로 변환
+ * Edge Conversion
  */
 function convertEdges(edges: RelationshipEdgeType[]): Edge[] {
   return edges.map((edge, index) => ({
@@ -78,34 +80,21 @@ function convertEdges(edges: RelationshipEdgeType[]): Edge[] {
     source: edge.source,
     target: edge.target,
     type: 'relationship',
-    label: edge.label,
     data: {
       ...edge,
-      color:
-        RELATIONSHIP_COLORS[edge.relationship as RelationshipType] ||
-        '#9E9E9E',
+      relationship: edge.relationship,
+      confidence: edge.confidence,
+    },
+    // Styles are handled in the custom Edge component, 
+    // but we set some defaults here for fallback/interaction
+    style: {
+      strokeWidth: 2,
     },
     markerEnd: {
       type: MarkerType.ArrowClosed,
-      width: 15,
-      height: 15,
-      color:
-        RELATIONSHIP_COLORS[edge.relationship as RelationshipType] ||
-        '#9E9E9E',
-    },
-    style: {
-      stroke:
-        RELATIONSHIP_COLORS[edge.relationship as RelationshipType] ||
-        '#9E9E9E',
-      strokeWidth: 2,
-    },
-    labelStyle: {
-      fontSize: 12,
-      fontWeight: 500,
-    },
-    labelBgStyle: {
-      fill: 'white',
-      fillOpacity: 0.9,
+      width: 20,
+      height: 20,
+      color: RELATIONSHIP_COLORS[edge.relationship as RelationshipType] || '#CBD5E1',
     },
   }));
 }
@@ -114,20 +103,21 @@ export default function RelationshipFlow({
   graph,
   onNodeClick,
   onEdgeClick,
+  onPaneClick,
 }: RelationshipFlowProps) {
-  // 노드/엣지 계산 (메모이제이션)
+  // Memoize layout calculation
   const initialNodes = useMemo(
-    () => calculateCircularLayout(graph.nodes, 300, 250, 200),
+    () => calculateCircularLayout(graph.nodes, 400, 300, 250),
     [graph.nodes]
   );
 
   const initialEdges = useMemo(() => convertEdges(graph.edges), [graph.edges]);
 
-  // React Flow 상태
+  // React Flow State
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  // 노드 클릭 핸들러
+  // Handlers
   const handleNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
       if (onNodeClick) {
@@ -140,7 +130,6 @@ export default function RelationshipFlow({
     [graph.nodes, onNodeClick]
   );
 
-  // 엣지 클릭 핸들러
   const handleEdgeClick = useCallback(
     (_: React.MouseEvent, edge: Edge) => {
       if (onEdgeClick) {
@@ -156,37 +145,48 @@ export default function RelationshipFlow({
   );
 
   return (
-    <ReactFlow
-      nodes={nodes}
-      edges={edges}
-      onNodesChange={onNodesChange}
-      onEdgesChange={onEdgesChange}
-      onNodeClick={handleNodeClick}
-      onEdgeClick={handleEdgeClick}
-      nodeTypes={nodeTypes}
-      edgeTypes={edgeTypes}
-      connectionMode={ConnectionMode.Loose}
-      fitView
-      fitViewOptions={{
-        padding: 0.2,
-        minZoom: 0.5,
-        maxZoom: 2,
-      }}
-      minZoom={0.3}
-      maxZoom={3}
-      defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-    >
-      <Background color="#f0f0f0" gap={16} />
-      <Controls showInteractive={false} />
-      <MiniMap
-        nodeColor={(node) => node.data?.color || '#9E9E9E'}
-        maskColor="rgba(0, 0, 0, 0.1)"
-        style={{
-          backgroundColor: 'white',
-          border: '1px solid #e0e0e0',
-          borderRadius: '8px',
-        }}
-      />
-    </ReactFlow>
+    <div className="w-full h-full bg-neutral-50/50">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onNodeClick={handleNodeClick}
+        onEdgeClick={handleEdgeClick}
+        onPaneClick={onPaneClick}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        connectionMode={ConnectionMode.Loose}
+        nodesConnectable={false}
+        nodesDraggable={true}
+        fitView
+        minZoom={0.2}
+        maxZoom={4}
+        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+        proOptions={{ hideAttribution: true }}
+      >
+        <Background 
+          variant={BackgroundVariant.Dots} 
+          gap={24} 
+          size={2} 
+          color="#E2E8F0" // neutral-200 
+        />
+        
+        <FlowControls />
+        
+        <MiniMap
+          nodeColor={(node) => node.data?.color || '#94A3B8'}
+          maskColor="rgba(248, 249, 250, 0.7)" // neutral-50 with opacity
+          style={{
+            backgroundColor: 'white',
+            border: '1px solid #E2E8F0',
+            borderRadius: '0.5rem',
+            margin: '1.5rem',
+          }}
+          zoomable
+          pannable
+        />
+      </ReactFlow>
+    </div>
   );
 }
