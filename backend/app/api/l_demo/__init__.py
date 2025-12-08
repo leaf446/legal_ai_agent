@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import List, Optional
 from pydantic import BaseModel
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 # ai_worker 경로 추가
 AI_WORKER_PATH = Path(__file__).parent.parent.parent.parent.parent / "ai_worker"
@@ -147,8 +147,8 @@ async def analyze_dates(input_data: TextInput):
             "result": {
                 "dates": [
                     {
-                        "original": d.original,
-                        "datetime": d.datetime.isoformat() if d.datetime else None,
+                        "original": d.original_text,
+                        "datetime": d.datetime_obj.isoformat() if d.datetime_obj else None,
                         "confidence": d.confidence
                     }
                     for d in dates
@@ -166,7 +166,7 @@ async def analyze_dates(input_data: TextInput):
 # =============================================================================
 
 @router.post("/analyze/summarize")
-async def analyze_summarize(input_data: TextInput, fault_types: Optional[List[str]] = None):
+async def analyze_summarize(input_data: TextInput, fault_types: Optional[List[str]] = Query(default=None)):
     """
     이벤트 한 줄 요약 생성
 
