@@ -9,6 +9,7 @@ Updated: 2025-11-19
 # .env 파일 로드 (다른 import 전에 실행)
 from pathlib import Path
 from dotenv import load_dotenv
+
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 import logging  # noqa: E402
@@ -102,13 +103,13 @@ app = FastAPI(
 # ============================================
 
 # 1. HTTPS Redirect (Production only)
-app.add_middleware(HTTPSRedirectMiddleware)
+# app.add_middleware(HTTPSRedirectMiddleware)
 
 # 2. Security Headers
-app.add_middleware(SecurityHeadersMiddleware)
+# app.add_middleware(SecurityHeadersMiddleware)
 
 # 3. Audit Log Middleware (Must be before CORS to log all requests)
-app.add_middleware(AuditLogMiddleware)
+# app.add_middleware(AuditLogMiddleware)
 
 # 4. CORS (Must be after security headers and audit log)
 # Note: For cross-origin cookie authentication, allow_credentials=True is required
@@ -199,8 +200,7 @@ app.include_router(lawyer_portal.router, prefix="/lawyer", tags=["Lawyer Portal"
 # 재산분할 라우터 (케이스별 재산 CRUD)
 app.include_router(properties.router, prefix="/cases/{case_id}/properties", tags=["Properties"])
 
-# L-Demo 라우터 (테스트용)
-print("DEBUG: Including l_demo router...")
+# L-Demo 라우터 (AI 분석 테스트용)
 app.include_router(l_demo.router)
 
 # Note: Draft preview endpoint (POST /cases/{case_id}/draft-preview) remains in cases router
