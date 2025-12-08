@@ -4,7 +4,6 @@ L-work Demo API
 테스트용 API 엔드포인트 - 실제 AI Worker 연동
 - 인물 추출 (PersonExtractor)
 - 관계 추론 (RelationshipInferrer)
-- 재산분할 예측 (ImpactAnalyzer)
 
 이 파일은 L-work 테스트 전용입니다.
 P-work/H-work와 독립적으로 작동합니다.
@@ -32,10 +31,6 @@ router = APIRouter(prefix="/l-demo", tags=["L-Demo"])
 class TextInput(BaseModel):
     text: str
 
-class EvidenceInput(BaseModel):
-    evidences: List[dict]
-    case_id: Optional[str] = "demo-case"
-
 
 # =============================================================================
 # Health Check
@@ -58,12 +53,6 @@ async def health_check():
         modules_status["relationship_inferrer"] = "ok"
     except Exception as e:
         modules_status["relationship_inferrer"] = str(e)
-
-    try:
-        from src.analysis.impact_analyzer import ImpactAnalyzer
-        modules_status["impact_analyzer"] = "ok"
-    except Exception as e:
-        modules_status["impact_analyzer"] = str(e)
 
     all_ok = all(v == "ok" for v in modules_status.values())
 
@@ -129,78 +118,6 @@ async def analyze_relationships(input_data: TextInput):
             "status": "success",
             "input_length": len(input_data.text),
             "result": graph.to_dict()
-        }
-    except ImportError as e:
-        raise HTTPException(status_code=500, detail=f"AI Worker import error: {e}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Analysis error: {e}")
-
-
-# =============================================================================
-# 재산분할 영향도 분석 API
-# =============================================================================
-
-@router.post("/analyze/impact")
-async def analyze_impact(input_data: EvidenceInput):
-    """
-    재산분할 영향도 분석
-
-    실제 ImpactAnalyzer 사용
-
-    예시 입력:
-    {
-        "evidences": [
-            {"evidence_id": "ev1", "evidence_type": "chat_log", "fault_types": ["adultery"]},
-            {"evidence_id": "ev2", "evidence_type": "photo", "fault_types": ["violence"]}
-        ],
-        "case_id": "test-001"
-    }
-    """
-    try:
-        from src.analysis.impact_analyzer import ImpactAnalyzer
-
-        analyzer = ImpactAnalyzer(case_id=input_data.case_id)
-
-        # 입력 형식 변환: fault_types → legal_categories
-        converted_evidences = []
-        for ev in input_data.evidences:
-            converted = {
-                "evidence_id": ev.get("evidence_id", "unknown"),
-                "evidence_type": ev.get("evidence_type", "document"),
-                "legal_categories": ev.get("fault_types", ev.get("legal_categories", [])),
-                "confidence_score": ev.get("confidence_score", 0.5)
-            }
-            converted_evidences.append(converted)
-
-        prediction = analyzer.calculate_prediction(converted_evidences)
-
-        return {
-            "status": "success",
-            "case_id": input_data.case_id,
-            "result": {
-                "plaintiff_ratio": prediction.plaintiff_ratio,
-                "defendant_ratio": prediction.defendant_ratio,
-                "confidence_level": prediction.confidence_level,
-                "evidence_impacts": [
-                    {
-                        "evidence_id": ei.evidence_id,
-                        "evidence_type": ei.evidence_type,
-                        "fault_type": ei.fault_type,
-                        "impact_percent": ei.impact_percent,
-                        "direction": ei.direction.value,
-                        "reason": ei.reason
-                    }
-                    for ei in prediction.evidence_impacts
-                ],
-                "similar_cases": [
-                    {
-                        "case_ref": sc.case_ref,
-                        "similarity_score": sc.similarity_score,
-                        "division_ratio": sc.division_ratio
-                    }
-                    for sc in prediction.similar_cases
-                ]
-            }
         }
     except ImportError as e:
         raise HTTPException(status_code=500, detail=f"AI Worker import error: {e}")

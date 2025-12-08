@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Filter, Shield, Sparkles, Loader2, AlertCircle, RefreshCw, Users, Scale } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Filter, Shield, Sparkles, Loader2, AlertCircle, RefreshCw, Users } from 'lucide-react';
 import Link from 'next/link';
 import EvidenceUpload from '@/components/evidence/EvidenceUpload';
 import EvidenceTable from '@/components/evidence/EvidenceTable';
@@ -20,7 +20,6 @@ import {
 import { getCase, Case } from '@/lib/api/cases';
 import { generateDraftPreview, DraftCitation as ApiDraftCitation } from '@/lib/api/draft';
 import { mapApiEvidenceToEvidence, mapApiEvidenceListToEvidence } from '@/lib/utils/evidenceMapper';
-import { PropertyDivisionDashboard } from '@/components/property-division';
 
 /**
  * Convert API draft citation to component DraftCitation type
@@ -34,7 +33,7 @@ function mapApiCitationToCitation(apiCitation: ApiDraftCitation, evidenceList: E
     quote: apiCitation.snippet,
   };
 }
-type CaseDetailTab = 'evidence' | 'opponent' | 'timeline' | 'draft' | 'relationship' | 'property';
+type CaseDetailTab = 'evidence' | 'opponent' | 'timeline' | 'draft' | 'relationship';
 type UploadFeedback = { message: string; tone: 'info' | 'success' | 'error' };
 type UploadStatus = {
   isUploading: boolean;
@@ -314,7 +313,6 @@ export default function CaseDetailClient({ id }: CaseDetailClientProps) {
         () => [
             { id: 'evidence', label: '증거', description: '업로드 · 상태 · 요약' },
             { id: 'relationship', label: '관계도', description: '인물 관계 시각화', icon: <Users className="w-4 h-4" /> },
-            { id: 'property', label: '재산분할', description: 'AI 예측 분석', icon: <Scale className="w-4 h-4" /> },
             { id: 'opponent', label: '상대방 주장', description: '주장 정리 & AI 추천' },
             { id: 'timeline', label: '타임라인', description: '사건 맥락 · 흐름' },
             { id: 'draft', label: 'Draft', description: 'AI 초안 검토/다운로드' },
@@ -346,13 +344,6 @@ export default function CaseDetailClient({ id }: CaseDetailClientProps) {
                             <Users className="w-4 h-4" />
                             인물관계도
                         </Link>
-                        <button
-                            onClick={() => setActiveTab('property')}
-                            className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-                        >
-                            <Scale className="w-4 h-4" />
-                            재산분할
-                        </button>
                     </div>
                 </div>
             </header>
@@ -618,18 +609,6 @@ export default function CaseDetailClient({ id }: CaseDetailClientProps) {
                     </section>
                 )}
 
-                {activeTab === 'property' && (
-                    <section className="space-y-4" role="tabpanel" aria-label="재산분할 탭">
-                        <PropertyDivisionDashboard
-                            caseId={caseId}
-                            evidences={evidenceList.map(e => ({
-                                id: e.id,
-                                type: e.type,
-                                content: e.summary || '',
-                            }))}
-                        />
-                    </section>
-                )}
             </main>
 
             <DraftGenerationModal
