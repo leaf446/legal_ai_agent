@@ -25,6 +25,7 @@ from app.api import (  # noqa: E402
     cases,
     evidence,
     lawyer_portal,
+    lawyer_clients,
     properties,
     settings as settings_router,
 )
@@ -191,6 +192,9 @@ app.include_router(evidence.router, prefix="/evidence", tags=["Evidence"])
 
 # 변호사/스태프 포털 라우터
 app.include_router(lawyer_portal.router, prefix="/lawyer", tags=["Lawyer Portal"])
+
+# 변호사 고객 관리 라우터 (005-lawyer-portal-pages US2)
+app.include_router(lawyer_clients.router, tags=["Lawyer Clients"])
 
 # 재산분할 라우터 (Phase 1: Property Division)
 app.include_router(properties.router, tags=["Properties"])
