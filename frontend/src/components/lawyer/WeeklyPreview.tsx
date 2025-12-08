@@ -61,7 +61,7 @@ function WeekItem({ item }: { item: WeekItemType }) {
   const dayColor = getDayColor(item.days_remaining);
 
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group">
+    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-[var(--color-bg-secondary)] transition-colors group">
       {/* D-N Badge */}
       <div className={`flex-shrink-0 w-12 h-12 rounded-lg flex flex-col items-center justify-center ${dayColor}`}>
         <span className="text-xs font-medium">{dayLabel}</span>
@@ -73,14 +73,14 @@ function WeekItem({ item }: { item: WeekItemType }) {
           <span className={`text-xs font-medium px-2 py-0.5 rounded ${colors.text} ${colors.bg}`}>
             {label}
           </span>
-          <span className="text-xs text-gray-400">{formatDate(item.start_date)}</span>
+          <span className="text-xs text-[var(--color-text-tertiary)]">{formatDate(item.start_date)}</span>
           {item.start_time && (
-            <span className="text-xs text-gray-400">{item.start_time}</span>
+            <span className="text-xs text-[var(--color-text-tertiary)]">{item.start_time}</span>
           )}
         </div>
-        <p className="mt-1 font-medium text-gray-900 truncate">{item.title}</p>
+        <p className="mt-1 font-medium text-[var(--color-text-primary)] truncate">{item.title}</p>
         {item.case_title && (
-          <p className="text-xs text-gray-500 truncate">{item.case_title}</p>
+          <p className="text-xs text-[var(--color-text-secondary)] truncate">{item.case_title}</p>
         )}
       </div>
 
@@ -88,7 +88,7 @@ function WeekItem({ item }: { item: WeekItemType }) {
       {item.case_id && (
         <Link
           href={`/lawyer/cases/${item.case_id}`}
-          className="flex-shrink-0 text-gray-400 group-hover:text-blue-600 transition-colors"
+          className="flex-shrink-0 text-[var(--color-text-tertiary)] group-hover:text-[var(--color-primary)] transition-colors"
         >
           <ChevronRightIcon />
         </Link>
@@ -100,10 +100,10 @@ function WeekItem({ item }: { item: WeekItemType }) {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-8 text-center">
-      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+      <div className="w-12 h-12 rounded-full bg-[var(--color-bg-secondary)] flex items-center justify-center mb-3">
         <CalendarIcon />
       </div>
-      <p className="text-gray-500">이번 주 예정된 일정이 없습니다.</p>
+      <p className="text-[var(--color-text-secondary)]">이번 주 예정된 일정이 없습니다.</p>
     </div>
   );
 }
@@ -113,10 +113,10 @@ function LoadingSkeleton() {
     <div className="space-y-3 animate-pulse">
       {[1, 2, 3].map((i) => (
         <div key={i} className="flex items-center gap-3 p-3">
-          <div className="w-12 h-12 bg-gray-200 rounded-lg" />
+          <div className="w-12 h-12 bg-[var(--color-bg-tertiary)] rounded-lg" />
           <div className="flex-1">
-            <div className="h-4 w-20 bg-gray-200 rounded mb-2" />
-            <div className="h-5 w-3/4 bg-gray-200 rounded" />
+            <div className="h-4 w-20 bg-[var(--color-bg-tertiary)] rounded mb-2" />
+            <div className="h-5 w-3/4 bg-[var(--color-bg-tertiary)] rounded" />
           </div>
         </div>
       ))}
@@ -126,16 +126,16 @@ function LoadingSkeleton() {
 
 export function WeeklyPreview({ items, isLoading }: WeeklyPreviewProps) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-[var(--shadow-sm)] border border-[var(--color-border-default)] overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+      <div className="px-4 py-3 border-b border-[var(--color-border-default)] flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-blue-600"><CalendarIcon /></span>
-          <h2 className="font-semibold text-gray-900">이번 주 일정</h2>
+          <span className="text-[var(--color-primary)]"><CalendarIcon /></span>
+          <h2 className="font-semibold text-[var(--color-text-primary)]">이번 주 일정</h2>
         </div>
         <Link
           href="/lawyer/calendar"
-          className="text-sm text-blue-600 hover:underline"
+          className="text-sm text-[var(--color-primary)] hover:underline"
         >
           캘린더
         </Link>
