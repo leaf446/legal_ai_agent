@@ -11,6 +11,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import Footer from '@/components/common/Footer';
+import { AppProviders } from './providers';
 
 const APP_BASE_URL =
   process.env.NEXT_PUBLIC_APP_BASE_URL ||
@@ -147,10 +148,12 @@ export default function RootLayout({
         />
       </head>
       <body className="font-pretendard antialiased">
-        <div className="flex flex-col min-h-screen">
-          <main className="flex-grow">{children}</main>
-          <Footer />
-        </div>
+        <AppProviders>
+          <div className="flex flex-col min-h-screen">
+            <main className="flex-grow">{children}</main>
+            <Footer />
+          </div>
+        </AppProviders>
       </body>
     </html>
   );
