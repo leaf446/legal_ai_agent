@@ -8,10 +8,10 @@
 'use client';
 
 import Link from 'next/link';
-import { WeekItem, EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from '@/lib/api/dashboard';
+import { WeekItem as WeekItemType, EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from '@/lib/api/dashboard';
 
 interface WeeklyPreviewProps {
-  items: WeekItem[];
+  items: WeekItemType[];
   isLoading?: boolean;
 }
 
@@ -54,7 +54,7 @@ function formatDate(dateString: string): string {
   });
 }
 
-function WeekItem({ item }: { item: WeekItem }) {
+function WeekItem({ item }: { item: WeekItemType }) {
   const colors = EVENT_TYPE_COLORS[item.event_type] || EVENT_TYPE_COLORS.other;
   const label = EVENT_TYPE_LABELS[item.event_type] || item.event_type;
   const dayLabel = getDayLabel(item.days_remaining);
