@@ -23,6 +23,7 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { usePartyGraph, type SaveStatus } from '@/hooks/usePartyGraph';
+import { useEvidenceLinks } from '@/hooks/useEvidenceLinks';
 import type {
   PartyNode as PartyNodeData,
   PartyRelationship,
@@ -30,11 +31,14 @@ import type {
   PartyNodeUpdate,
   RelationshipCreate,
   RelationshipUpdate,
+  EvidenceLinkCreate,
 } from '@/types/party';
 import { PartyNode, type PartyNodeType, type PartyNodeData as FlowNodeData } from './PartyNode';
 import { PartyEdge, type PartyEdgeType, type PartyEdgeData } from './PartyEdge';
 import { PartyModal } from './PartyModal';
 import { RelationshipModal } from './RelationshipModal';
+import { EvidenceLinkModal } from './EvidenceLinkModal';
+import { EvidenceLinkPopover } from './EvidenceLinkPopover';
 
 interface PartyGraphProps {
   caseId: string;
@@ -158,6 +162,15 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
   );
 }
 
+// Mock evidence list for linking - in production, this would come from a prop or context
+interface EvidenceItem {
+  id: string;
+  summary?: string;
+  type: string;
+  timestamp: string;
+  labels?: string[];
+}
+
 export function PartyGraph({ caseId }: PartyGraphProps) {
   const {
     nodes: partyNodes,
@@ -175,6 +188,20 @@ export function PartyGraph({ caseId }: PartyGraphProps) {
     refresh,
   } = usePartyGraph(caseId);
 
+  // Evidence links hook
+  const {
+    links: evidenceLinks,
+    isLoading: isLoadingLinks,
+    addLink,
+    removeLink,
+  } = useEvidenceLinks({ caseId });
+
+  // Helper to get links for a specific party
+  const getLinksForParty = useCallback(
+    (partyId: string) => evidenceLinks.filter((link) => link.party_id === partyId),
+    [evidenceLinks]
+  );
+
   // React Flow state
   const initialNodes = useMemo(() => toFlowNodes(partyNodes), [partyNodes]);
   const initialEdges = useMemo(() => toFlowEdges(relationships), [relationships]);
@@ -191,12 +218,20 @@ export function PartyGraph({ caseId }: PartyGraphProps) {
   // Modal state
   const [partyModalOpen, setPartyModalOpen] = useState(false);
   const [relationshipModalOpen, setRelationshipModalOpen] = useState(false);
+  const [evidenceLinkModalOpen, setEvidenceLinkModalOpen] = useState(false);
   const [selectedParty, setSelectedParty] = useState<PartyNodeData | null>(null);
   const [selectedRelationship, setSelectedRelationship] = useState<PartyRelationship | null>(null);
   const [pendingConnection, setPendingConnection] = useState<{
     source: string;
     target: string;
   } | null>(null);
+
+  // Evidence popover state
+  const [popoverParty, setPopoverParty] = useState<PartyNodeData | null>(null);
+  const [popoverPosition, setPopoverPosition] = useState<{ x: number; y: number } | null>(null);
+
+  // Mock evidence list - in production, this would come from props or a context
+  const [evidenceList] = useState<EvidenceItem[]>([]);
 
   // Handle node position change (drag)
   const handleNodesChange: OnNodesChange<PartyNodeType> = useCallback(
@@ -321,6 +356,47 @@ export function PartyGraph({ caseId }: PartyGraphProps) {
     setPendingConnection(null);
   }, []);
 
+  // Evidence link handlers
+  const handleOpenEvidenceLinkModal = useCallback(() => {
+    setPopoverParty(null);
+    setPopoverPosition(null);
+    setEvidenceLinkModalOpen(true);
+  }, []);
+
+  const handleCloseEvidenceLinkModal = useCallback(() => {
+    setEvidenceLinkModalOpen(false);
+  }, []);
+
+  const handleSaveEvidenceLink = useCallback(
+    async (data: EvidenceLinkCreate) => {
+      await addLink(data);
+    },
+    [addLink]
+  );
+
+  // Handle right-click on node for evidence popover
+  const handleNodeContextMenu = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      event.preventDefault();
+      const party = partyNodes.find((p) => p.id === node.id);
+      if (party) {
+        setPopoverParty(party);
+        setPopoverPosition({ x: event.clientX, y: event.clientY });
+      }
+    },
+    [partyNodes]
+  );
+
+  const handleClosePopover = useCallback(() => {
+    setPopoverParty(null);
+    setPopoverPosition(null);
+  }, []);
+
+  const handleViewEvidence = useCallback((evidenceId: string) => {
+    // In production, this would navigate to evidence detail or open a viewer
+    console.log('View evidence:', evidenceId);
+  }, []);
+
   // Render states
   if (isLoading) {
     return (
@@ -362,6 +438,12 @@ export function PartyGraph({ caseId }: PartyGraphProps) {
         >
           + 당사자 추가
         </button>
+        <button
+          onClick={handleOpenEvidenceLinkModal}
+          className="px-4 py-2 bg-white text-gray-700 rounded-lg shadow hover:bg-gray-50 transition-colors text-sm font-medium"
+        >
+          📎 증거 연결
+        </button>
       </div>
 
       {/* Save status */}
@@ -376,6 +458,7 @@ export function PartyGraph({ caseId }: PartyGraphProps) {
         onConnect={handleConnect}
         onNodeClick={handleNodeClick}
         onEdgeClick={handleEdgeClick}
+        onNodeContextMenu={handleNodeContextMenu}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
@@ -427,6 +510,40 @@ export function PartyGraph({ caseId }: PartyGraphProps) {
         sourcePartyId={pendingConnection?.source}
         targetPartyId={pendingConnection?.target}
       />
+
+      {/* Evidence Link Modal */}
+      <EvidenceLinkModal
+        isOpen={evidenceLinkModalOpen}
+        onClose={handleCloseEvidenceLinkModal}
+        onSave={handleSaveEvidenceLink}
+        parties={partyNodes}
+        relationships={relationships}
+        evidenceList={evidenceList}
+        isLoadingEvidence={false}
+        preSelectedPartyId={popoverParty?.id}
+      />
+
+      {/* Evidence Link Popover */}
+      {popoverParty && popoverPosition && (
+        <div
+          style={{
+            position: 'fixed',
+            left: popoverPosition.x,
+            top: popoverPosition.y,
+            zIndex: 100,
+          }}
+        >
+          <EvidenceLinkPopover
+            party={popoverParty}
+            links={getLinksForParty(popoverParty.id)}
+            isLoading={isLoadingLinks}
+            onClose={handleClosePopover}
+            onLinkEvidence={handleOpenEvidenceLinkModal}
+            onRemoveLink={async (linkId) => { await removeLink(linkId); }}
+            onViewEvidence={handleViewEvidence}
+          />
+        </div>
+      )}
     </div>
   );
 }
