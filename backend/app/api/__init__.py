@@ -22,10 +22,11 @@ from . import relationships
 from . import evidence_links
 from . import search
 from . import dashboard
+from . import calendar
 
 __all__ = [
     "auth", "admin", "cases", "evidence", "lawyer_portal",
     "lawyer_clients", "lawyer_investigators", "properties",
     "settings", "party", "relationships", "evidence_links", "search",
-    "dashboard"
+    "dashboard", "calendar"
 ]
