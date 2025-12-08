@@ -160,7 +160,19 @@ async def analyze_impact(input_data: EvidenceInput):
         from src.analysis.impact_analyzer import ImpactAnalyzer
 
         analyzer = ImpactAnalyzer(case_id=input_data.case_id)
-        prediction = analyzer.analyze(input_data.evidences)
+
+        # 입력 형식 변환: fault_types → legal_categories
+        converted_evidences = []
+        for ev in input_data.evidences:
+            converted = {
+                "evidence_id": ev.get("evidence_id", "unknown"),
+                "evidence_type": ev.get("evidence_type", "document"),
+                "legal_categories": ev.get("fault_types", ev.get("legal_categories", [])),
+                "confidence_score": ev.get("confidence_score", 0.5)
+            }
+            converted_evidences.append(converted)
+
+        prediction = analyzer.calculate_prediction(converted_evidences)
 
         return {
             "status": "success",
@@ -173,7 +185,7 @@ async def analyze_impact(input_data: EvidenceInput):
                     {
                         "evidence_id": ei.evidence_id,
                         "evidence_type": ei.evidence_type,
-                        "impact_type": ei.impact_type,
+                        "fault_type": ei.fault_type,
                         "impact_percent": ei.impact_percent,
                         "direction": ei.direction.value,
                         "reason": ei.reason
