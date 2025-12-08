@@ -32,6 +32,8 @@ from app.api import (  # noqa: E402
     party,
     relationships,
     evidence_links,
+    search,
+    dashboard,
 )
 from app.middleware import (  # noqa: E402
     register_exception_handlers,
@@ -216,6 +218,12 @@ app.include_router(relationships.router, tags=["Party Relationships"])
 
 # 007-lawyer-portal-v1: Evidence Links 라우터 (US4)
 app.include_router(evidence_links.router, tags=["Evidence Links"])
+
+# 007-lawyer-portal-v1: Global Search 라우터 (US6)
+app.include_router(search.router, tags=["Search"])
+
+# 007-lawyer-portal-v1: Dashboard (Today View - US7)
+app.include_router(dashboard.router, tags=["Dashboard"])
 
 # L-work Demo API (테스트 후 제거 가능)
 try:
