@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Filter, Shield, Sparkles, Loader2, AlertCircle, RefreshCw, Users } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Filter, Shield, Sparkles, Loader2, AlertCircle, RefreshCw, Users, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import EvidenceUpload from '@/components/evidence/EvidenceUpload';
 import EvidenceTable from '@/components/evidence/EvidenceTable';
@@ -20,6 +20,10 @@ import {
 import { getCase, Case } from '@/lib/api/cases';
 import { generateDraftPreview, DraftCitation as ApiDraftCitation } from '@/lib/api/draft';
 import { mapApiEvidenceToEvidence, mapApiEvidenceListToEvidence } from '@/lib/utils/evidenceMapper';
+import { getTimeline } from '@/lib/api/timeline';
+import { TimelineResult, TimelineEvent, TimelineEventType } from '@/types/timeline';
+import TimelineView from '@/components/timeline/TimelineView';
+import { PrecedentPanel } from '@/components/precedent';
 
 /**
  * Convert API draft citation to component DraftCitation type
@@ -69,6 +73,14 @@ export default function CaseDetailClient({ id }: CaseDetailClientProps) {
         total: 0,
     });
 
+    // Timeline states
+    const [timelineData, setTimelineData] = useState<TimelineResult | null>(null);
+    const [isLoadingTimeline, setIsLoadingTimeline] = useState(false);
+    const [timelineError, setTimelineError] = useState<string | null>(null);
+
+    // Precedent panel state
+    const [isPrecedentPanelOpen, setIsPrecedentPanelOpen] = useState(false);
+
     const caseId = id || '';
 
     // Fetch evidence list from API
@@ -100,6 +112,106 @@ export default function CaseDetailClient({ id }: CaseDetailClientProps) {
     useEffect(() => {
         fetchEvidence();
     }, [fetchEvidence]);
+
+    // Generate mock timeline from evidence list (fallback when API not ready)
+    const generateMockTimeline = useCallback((evidenceItems: Evidence[]): TimelineResult => {
+        const events: TimelineEvent[] = evidenceItems
+            .filter(e => e.uploadDate)
+            .map((e, index) => {
+                const date = new Date(e.uploadDate);
+                const dateStr = date.toISOString().split('T')[0];
+                const timeStr = date.toTimeString().slice(0, 5);
+
+                return {
+                    event_id: `evt_${e.id}`,
+                    evidence_id: e.id,
+                    case_id: caseId,
+                    timestamp: date.toISOString(),
+                    date: dateStr,
+                    time: timeStr,
+                    description: e.summary || `${e.filename} 업로드`,
+                    content_preview: e.summary,
+                    event_type: getEventTypeFromFilename(e.filename),
+                    labels: e.labels || [],
+                    source_file: e.filename,
+                    significance: e.labels && e.labels.length > 0 ? Math.min(5, e.labels.length + 2) : 2,
+                    is_pinned: false,
+                    is_key_evidence: Boolean(e.labels && e.labels.length >= 2),
+                };
+            })
+            .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+        const dates = events.map(e => e.date);
+        const eventsByType: Record<string, number> = {};
+        const eventsByLabel: Record<string, number> = {};
+
+        events.forEach(e => {
+            eventsByType[e.event_type] = (eventsByType[e.event_type] || 0) + 1;
+            e.labels.forEach(label => {
+                eventsByLabel[label] = (eventsByLabel[label] || 0) + 1;
+            });
+        });
+
+        return {
+            case_id: caseId,
+            events,
+            total_events: events.length,
+            date_range: {
+                start: dates.length > 0 ? dates[0] : null,
+                end: dates.length > 0 ? dates[dates.length - 1] : null,
+            },
+            events_by_type: eventsByType,
+            events_by_label: eventsByLabel,
+            key_events_count: events.filter(e => e.is_key_evidence).length,
+            generated_at: new Date().toISOString(),
+        };
+    }, [caseId]);
+
+    // Helper: Get event type from filename
+    function getEventTypeFromFilename(filename: string): TimelineEventType {
+        const ext = filename.split('.').pop()?.toLowerCase() || '';
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return TimelineEventType.IMAGE;
+        if (['mp3', 'wav', 'm4a', 'ogg'].includes(ext)) return TimelineEventType.AUDIO;
+        if (['mp4', 'mov', 'avi', 'webm'].includes(ext)) return TimelineEventType.VIDEO;
+        if (['pdf', 'doc', 'docx', 'hwp', 'txt'].includes(ext)) return TimelineEventType.DOCUMENT;
+        return TimelineEventType.MESSAGE;
+    }
+
+    // Fetch timeline from API
+    const fetchTimeline = useCallback(async () => {
+        if (!caseId) return;
+
+        setIsLoadingTimeline(true);
+        setTimelineError(null);
+
+        try {
+            const response = await getTimeline(caseId);
+            if (response.error) {
+                // API not ready - use mock data from evidence
+                console.log('Timeline API not available, using mock data');
+                if (evidenceList.length > 0) {
+                    setTimelineData(generateMockTimeline(evidenceList));
+                }
+            } else if (response.data) {
+                setTimelineData(response.data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch timeline:', err);
+            // Fallback to mock data
+            if (evidenceList.length > 0) {
+                setTimelineData(generateMockTimeline(evidenceList));
+            }
+        } finally {
+            setIsLoadingTimeline(false);
+        }
+    }, [caseId, evidenceList, generateMockTimeline]);
+
+    // Load timeline when tab is active and evidence is loaded
+    useEffect(() => {
+        if (activeTab === 'timeline' && !isLoadingEvidence && evidenceList.length > 0 && !timelineData) {
+            fetchTimeline();
+        }
+    }, [activeTab, isLoadingEvidence, evidenceList, timelineData, fetchTimeline]);
 
     // Fetch case data
     useEffect(() => {
@@ -520,29 +632,100 @@ export default function CaseDetailClient({ id }: CaseDetailClientProps) {
 
                 {activeTab === 'timeline' && (
                     <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4" role="tabpanel" aria-label="타임라인 탭">
-                        <h2 className="text-lg font-bold text-gray-900">사건 타임라인</h2>
-                        <p className="text-sm text-gray-500">AI가 추출한 주요 사건들을 시간순으로 정리합니다. 증거 탭에서 "AI 요약"이 쌓일수록 타임라인의 정확도가 향상됩니다.</p>
-                        {isLoadingEvidence ? (
-                            <div className="flex items-center justify-center py-8">
+                        <div className="flex items-center justify-between mb-2">
+                            <div>
+                                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                    <Calendar className="w-5 h-5 text-accent" />
+                                    사건 타임라인
+                                </h2>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    AI가 추출한 주요 사건들을 시간순으로 정리합니다.
+                                </p>
+                            </div>
+                            <button
+                                onClick={fetchTimeline}
+                                disabled={isLoadingTimeline}
+                                className="flex items-center text-sm text-neutral-600 hover:text-gray-900 bg-white border border-gray-300 px-3 py-1.5 rounded-md shadow-sm disabled:opacity-50"
+                            >
+                                <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingTimeline ? 'animate-spin' : ''}`} />
+                                새로고침
+                            </button>
+                        </div>
+
+                        {/* Loading State */}
+                        {(isLoadingEvidence || isLoadingTimeline) && (
+                            <div className="flex items-center justify-center py-12">
                                 <Loader2 className="w-6 h-6 text-accent animate-spin" />
                                 <span className="ml-2 text-gray-500">타임라인을 불러오는 중...</span>
                             </div>
-                        ) : evidenceList.length === 0 ? (
-                            <div className="text-center py-8 text-gray-500">
+                        )}
+
+                        {/* Empty State - No Evidence */}
+                        {!isLoadingEvidence && !isLoadingTimeline && evidenceList.length === 0 && (
+                            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                                <Calendar className="w-12 h-12 mb-4 opacity-50" />
                                 <p>아직 등록된 증거가 없어 타임라인을 표시할 수 없습니다.</p>
+                                <p className="text-sm mt-1">증거를 업로드하면 타임라인이 자동으로 생성됩니다.</p>
                             </div>
-                        ) : (
-                            <ul className="space-y-3">
-                                {evidenceList.map((item) => (
-                                    <li key={item.id} className="flex items-start space-x-3 border-l-2 border-accent pl-3">
-                                        <div className="text-xs text-gray-400">{new Date(item.uploadDate).toLocaleDateString()}</div>
-                                        <div>
-                                            <p className="text-sm font-semibold text-gray-800">{item.filename}</p>
-                                            <p className="text-xs text-gray-500">{item.summary ? item.summary : '요약이 곧 제공됩니다. 증거를 검토 중입니다.'}</p>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
+                        )}
+
+                        {/* Timeline Error */}
+                        {timelineError && (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start space-x-3">
+                                <AlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
+                                <div>
+                                    <p className="text-sm font-medium text-red-700">{timelineError}</p>
+                                    <button
+                                        onClick={fetchTimeline}
+                                        className="text-sm text-red-600 hover:text-red-800 underline mt-1"
+                                    >
+                                        다시 시도
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Timeline View */}
+                        {!isLoadingEvidence && !isLoadingTimeline && timelineData && (
+                            <TimelineView
+                                timeline={timelineData}
+                                isLoading={false}
+                                onEventClick={(event) => {
+                                    console.log('Event clicked:', event);
+                                    // TODO: Navigate to evidence detail or show modal
+                                }}
+                                onEventPin={async (event) => {
+                                    // Toggle pin locally (API not implemented yet)
+                                    setTimelineData(prev => {
+                                        if (!prev) return prev;
+                                        return {
+                                            ...prev,
+                                            events: prev.events.map(e =>
+                                                e.event_id === event.event_id
+                                                    ? { ...e, is_pinned: !e.is_pinned }
+                                                    : e
+                                            ),
+                                        };
+                                    });
+                                }}
+                                onRefresh={fetchTimeline}
+                            />
+                        )}
+
+                        {/* Generate Timeline Button - when evidence exists but no timeline */}
+                        {!isLoadingEvidence && !isLoadingTimeline && evidenceList.length > 0 && !timelineData && (
+                            <div className="flex flex-col items-center justify-center py-8">
+                                <button
+                                    onClick={fetchTimeline}
+                                    className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
+                                >
+                                    <Calendar className="w-4 h-4" />
+                                    타임라인 생성하기
+                                </button>
+                                <p className="text-sm text-gray-500 mt-2">
+                                    {evidenceList.length}개의 증거에서 타임라인을 추출합니다.
+                                </p>
+                            </div>
                         )}
                     </section>
                 )}
@@ -550,12 +733,21 @@ export default function CaseDetailClient({ id }: CaseDetailClientProps) {
                 {activeTab === 'draft' && (
                     <section className="space-y-4" role="tabpanel" aria-label="Draft 탭">
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-3">
-                            <div className="flex items-start space-x-3">
-                                <CheckCircle2 className="w-5 h-5 text-accent mt-0.5" />
-                                <div>
-                                    <p className="text-sm font-semibold text-gray-900">이 문서는 AI가 생성한 초안이며, 최종 법적 책임은 검토한 변호사에게 있습니다.</p>
-                                    <p className="text-xs text-gray-500">중요한 문장은 증거 탭에서 원본을 다시 확인하고, 필요한 경우 직접 수정하세요.</p>
+                            <div className="flex items-start justify-between">
+                                <div className="flex items-start space-x-3">
+                                    <CheckCircle2 className="w-5 h-5 text-accent mt-0.5" />
+                                    <div>
+                                        <p className="text-sm font-semibold text-gray-900">이 문서는 AI가 생성한 초안이며, 최종 법적 책임은 검토한 변호사에게 있습니다.</p>
+                                        <p className="text-xs text-gray-500">중요한 문장은 증거 탭에서 원본을 다시 확인하고, 필요한 경우 직접 수정하세요.</p>
+                                    </div>
                                 </div>
+                                <button
+                                    onClick={() => setIsPrecedentPanelOpen(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium whitespace-nowrap"
+                                >
+                                    <Sparkles className="w-4 h-4" />
+                                    유사 판례 보기
+                                </button>
                             </div>
                         </div>
                         {draftError && (
@@ -616,6 +808,13 @@ export default function CaseDetailClient({ id }: CaseDetailClientProps) {
                 onClose={() => setIsDraftModalOpen(false)}
                 onGenerate={handleGenerateDraft}
                 evidenceList={evidenceList}
+            />
+
+            {/* Precedent Panel - Sidebar */}
+            <PrecedentPanel
+                caseId={caseId}
+                isOpen={isPrecedentPanelOpen}
+                onToggle={() => setIsPrecedentPanelOpen(!isPrecedentPanelOpen)}
             />
         </div>
     );
