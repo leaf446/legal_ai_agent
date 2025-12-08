@@ -63,6 +63,7 @@ export default function LoginForm() {
         type="email"
         label="이메일"
         required
+        autoComplete="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         error={error && email === '' ? '이메일을 입력해주세요' : undefined}
@@ -74,6 +75,7 @@ export default function LoginForm() {
           type="password"
           label="비밀번호"
           required
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           error={error && password === '' ? '비밀번호를 입력해주세요' : undefined}
