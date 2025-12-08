@@ -46,6 +46,9 @@ export interface TodayViewResponse {
  */
 export async function getTodayItems(): Promise<TodayViewResponse> {
   const response = await apiClient.get<TodayViewResponse>('/dashboard/today');
+  if (!response.data) {
+    throw new Error(response.error || '오늘의 일정을 불러오는데 실패했습니다.');
+  }
   return response.data;
 }
 
