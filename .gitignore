@@ -211,4 +211,6 @@ docs/guides/claude.md
 # Note: .claude/commands/ is tracked for speckit sharing
 .specify/
 .agent/
+# Note: .claude/commands/ is tracked for speckit sharing
+.specify/
 *.pdf
