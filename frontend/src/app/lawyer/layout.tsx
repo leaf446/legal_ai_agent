@@ -9,10 +9,13 @@
  * Uses design system tokens.
  */
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import PortalSidebar, { NavIcons, NavItem, HamburgerIcon } from '@/components/shared/PortalSidebar';
-import { logout } from '@/lib/api/auth';
+import RoleGuard from '@/components/auth/RoleGuard';
+import { ThemeToggle } from '@/components/shared/ThemeToggle';
+import { useAuth } from '@/hooks/useAuth';
+import { useRole } from '@/hooks/useRole';
+import { UserRole } from '@/types/user';
 
 // Lawyer navigation items
 const lawyerNavItems: NavItem[] = [
@@ -69,76 +72,36 @@ const lawyerNavItems: NavItem[] = [
   },
 ];
 
-interface UserData {
-  name: string;
-  email: string;
-  role: 'lawyer' | 'staff' | 'admin';
-}
+const ALLOWED_ROLES: UserRole[] = ['lawyer', 'staff', 'admin'];
 
 export default function LawyerLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
-  const [user, setUser] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, logout } = useAuth();
+  const { role } = useRole();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  useEffect(() => {
-    // Get user data from cookie
-    const getUserData = () => {
-      try {
-        const userCookie = document.cookie
-          .split('; ')
-          .find(row => row.startsWith('user_data='));
-
-        if (userCookie) {
-          const userData = JSON.parse(decodeURIComponent(userCookie.split('=')[1]));
-          if (userData && ['lawyer', 'staff', 'admin'].includes(userData.role)) {
-            setUser(userData);
-          } else {
-            // Invalid role for lawyer portal
-            router.push('/login');
-          }
-        } else {
-          router.push('/login');
-        }
-      } catch {
-        router.push('/login');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    getUserData();
-  }, [router]);
 
   const handleLogout = async () => {
     try {
       await logout();
-    } finally {
-      // Clear cookies and redirect
-      document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-      document.cookie = 'user_data=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-      router.push('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
     }
   };
 
-  if (loading) {
+  const renderContent = () => {
+    if (!user || !role) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary)]" />
+        </div>
+      );
+    }
+
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary)]"></div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
-
-  return (
-    <div className="flex min-h-screen bg-[var(--color-bg-secondary)]">
+      <div className="flex min-h-screen bg-[var(--color-bg-secondary)]">
       {/* Sidebar */}
       <PortalSidebar
         role={user.role}
@@ -155,7 +118,7 @@ export default function LawyerLayout({
         className="flex-1 lg:ml-64 min-h-screen"
       >
         {/* Top Header */}
-        <header className="sticky top-0 z-10 h-16 bg-white border-b border-[var(--color-border-default)] flex items-center px-4 lg:px-6">
+        <header className="sticky top-0 z-10 h-16 bg-[var(--color-bg-primary)] border-b border-[var(--color-border-default)] flex items-center px-4 lg:px-6">
           {/* Mobile menu button */}
           <button
             onClick={() => setSidebarOpen(true)}
@@ -169,6 +132,9 @@ export default function LawyerLayout({
             {/* Breadcrumb or page title can go here */}
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
+            {/* Theme toggle */}
+            <ThemeToggle size="md" />
+
             {/* Notification bell */}
             <button
               className="relative p-2 rounded-lg hover:bg-[var(--color-bg-secondary)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
@@ -183,7 +149,7 @@ export default function LawyerLayout({
 
             {/* User menu */}
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-white font-semibold text-sm">
+              <div className="w-8 h-8 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-[var(--color-primary-contrast)] font-semibold text-sm">
                 {user.name.slice(0, 2).toUpperCase()}
               </div>
             </div>
@@ -196,5 +162,12 @@ export default function LawyerLayout({
         </div>
       </main>
     </div>
+    );
+  };
+
+  return (
+    <RoleGuard allowedRoles={ALLOWED_ROLES}>
+      {renderContent()}
+    </RoleGuard>
   );
 }

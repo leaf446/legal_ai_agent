@@ -6,11 +6,6 @@ Version: 0.2.0
 Updated: 2025-11-19
 """
 
-# .env 파일 로드 (다른 import 전에 실행)
-from pathlib import Path
-from dotenv import load_dotenv
-load_dotenv(Path(__file__).parent.parent / ".env")
-
 import logging  # noqa: E402
 from contextlib import asynccontextmanager  # noqa: E402
 from datetime import datetime, timezone  # noqa: E402
@@ -25,20 +20,29 @@ from app.core.config import settings  # noqa: E402
 
 # Import API routers
 from app.api import (  # noqa: E402
+    auth,
     admin,
     assets,
-    auth,
     billing,
     calendar,
     cases,
     client_portal,
+    dashboard,
     detective_portal,
     drafts,
     evidence,
+    evidence_links,
     jobs,
     lawyer_portal,
+    lawyer_clients,
+    lawyer_investigators,
     messages,
+    party,
     procedure,
+    properties,
+    relationships,
+    search,
+    settings as settings_router,
     staff_progress,
 )
 from app.middleware import (  # noqa: E402
@@ -196,9 +200,6 @@ async def health_check():
 # 인증 라우터
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 
-# 관리자 라우터
-app.include_router(admin.router, tags=["Admin"])
-
 # 사건 라우터
 app.include_router(cases.router, prefix="/cases", tags=["Cases"])
 
@@ -219,12 +220,35 @@ app.include_router(drafts.router, prefix="/cases/{case_id}/drafts", tags=["Draft
 app.include_router(lawyer_portal.router, prefix="/lawyer", tags=["Lawyer Portal"])
 app.include_router(staff_progress.router, tags=["Staff Progress"])
 
+# 변호사 고객 관리 라우터 (005-lawyer-portal-pages US2)
+app.include_router(lawyer_clients.router, tags=["Lawyer Clients"])
+
+# 변호사 탐정 관리 라우터 (005-lawyer-portal-pages US3)
+app.include_router(lawyer_investigators.router, tags=["Lawyer Investigators"])
+
 # 의뢰인/탐정 포털 라우터
 app.include_router(client_portal.router, tags=["Client Portal"])
 app.include_router(detective_portal.router, tags=["Detective Portal"])
 
-# Job Queue 라우터 (비동기 작업 추적)
-app.include_router(jobs.router, prefix="/jobs", tags=["Jobs"])
+# 재산분할 라우터 (Phase 1: Property Division)
+app.include_router(properties.router, tags=["Properties"])
+
+# 사용자 설정 라우터
+app.include_router(settings_router.router, tags=["Settings"])
+
+# 007-lawyer-portal-v1: Party Graph 라우터
+app.include_router(party.router, tags=["Party Graph"])
+app.include_router(party.graph_router, tags=["Party Graph"])
+app.include_router(relationships.router, tags=["Party Relationships"])
+
+# 007-lawyer-portal-v1: Evidence Links 라우터 (US4)
+app.include_router(evidence_links.router, tags=["Evidence Links"])
+
+# 007-lawyer-portal-v1: Global Search 라우터 (US6)
+app.include_router(search.router, tags=["Search"])
+
+# 007-lawyer-portal-v1: Dashboard (Today View - US7)
+app.include_router(dashboard.router, tags=["Dashboard"])
 
 # 메시지 라우터
 app.include_router(messages.router, prefix="/messages", tags=["Messages"])
@@ -233,8 +257,15 @@ app.include_router(messages.router, prefix="/messages", tags=["Messages"])
 app.include_router(billing.router, tags=["Billing"])
 app.include_router(billing.client_router, tags=["Client Billing"])
 
-# 캘린더 라우터
+# Calendar 라우터
 app.include_router(calendar.router, tags=["Calendar"])
+
+# L-work Demo API (테스트 후 제거 가능)
+try:
+    from app.api.l_demo import router as l_demo_router
+    app.include_router(l_demo_router)
+except ImportError:
+    pass  # l_demo 모듈 없으면 무시
 
 # Note: Timeline router removed (002-evidence-timeline feature incomplete)
 # Draft preview endpoint (POST /cases/{case_id}/draft-preview) remains in cases router

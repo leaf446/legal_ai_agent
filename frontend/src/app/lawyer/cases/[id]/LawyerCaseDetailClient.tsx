@@ -5,15 +5,12 @@
  * 003-role-based-ui Feature - US3
  *
  * Client-side component for case detail view with evidence list and AI summary.
- * Updated for US3 (007-lawyer-portal-v1) - Added procedure timeline tab
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useProcedure } from '@/hooks/useProcedure';
-import { ProcedureTimeline, StageModal } from '@/components/lawyer/procedure';
-import type { ProcedureStage, NextStageOption } from '@/types/procedure';
+import { apiClient } from '@/lib/api/client';
 
 interface CaseDetail {
   id: string;
@@ -48,7 +45,24 @@ const statusLabels: Record<string, string> = {
   closed: '종료',
 };
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+interface CaseDetailResponse {
+  id: string;
+  title: string;
+  client_name?: string;
+  description?: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  owner_id: string;
+  owner_name?: string;
+  owner_email?: string;
+  evidence_count?: number;
+  evidence_summary?: { type: string; count: number }[];
+  ai_summary?: string;
+  ai_labels?: string[];
+  recent_activities?: { action: string; timestamp: string; user: string }[];
+  members?: { userId: string; userName?: string; role: string }[];
+}
 
 interface LawyerCaseDetailClientProps {
   id: string;
@@ -61,52 +75,7 @@ export default function LawyerCaseDetailClient({ id }: LawyerCaseDetailClientPro
   const [caseDetail, setCaseDetail] = useState<CaseDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'evidence' | 'timeline' | 'members' | 'procedure'>('evidence');
-  const [selectedStage, setSelectedStage] = useState<ProcedureStage | null>(null);
-  const [isStageModalOpen, setIsStageModalOpen] = useState(false);
-
-  // Procedure state
-  const {
-    stages,
-    currentStage,
-    progressPercent,
-    validNextStages,
-    loading: procedureLoading,
-    transitioning,
-    error: procedureError,
-    initializeTimeline,
-    updateStage,
-    completeStage,
-    skipStage,
-    transition,
-    isInitialized,
-    clearError: clearProcedureError,
-  } = useProcedure(caseId);
-
-  // Procedure handlers
-  const handleStageClick = useCallback((stage: ProcedureStage) => {
-    setSelectedStage(stage);
-    setIsStageModalOpen(true);
-  }, []);
-
-  const handleCompleteStage = useCallback(async (stage: ProcedureStage) => {
-    await completeStage(stage.id);
-  }, [completeStage]);
-
-  const handleSkipStage = useCallback(async (stage: ProcedureStage) => {
-    await skipStage(stage.id);
-  }, [skipStage]);
-
-  const handleTransition = useCallback(async (nextStage: NextStageOption) => {
-    await transition({
-      next_stage: nextStage.stage,
-      complete_current: true,
-    });
-  }, [transition]);
-
-  const handleInitializeTimeline = useCallback(async () => {
-    await initializeTimeline(true);
-  }, [initializeTimeline]);
+  const [activeTab, setActiveTab] = useState<'evidence' | 'timeline' | 'members'>('evidence');
 
   useEffect(() => {
     const fetchCaseDetail = async () => {
@@ -114,27 +83,13 @@ export default function LawyerCaseDetailClient({ id }: LawyerCaseDetailClientPro
       setError(null);
 
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          router.push('/login');
-          return;
+        const response = await apiClient.get<CaseDetailResponse>(`/lawyer/cases/${caseId}`);
+
+        if (response.error || !response.data) {
+          throw new Error(response.error || '케이스 정보를 불러오는데 실패했습니다.');
         }
 
-        const response = await fetch(`${API_BASE_URL}/lawyer/cases/${caseId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('케이스를 찾을 수 없습니다.');
-          }
-          throw new Error('케이스 정보를 불러오는데 실패했습니다.');
-        }
-
-        const data = await response.json();
+        const data = response.data;
         setCaseDetail({
           id: data.id,
           title: data.title,
@@ -232,15 +187,6 @@ export default function LawyerCaseDetailClient({ id }: LawyerCaseDetailClientPro
             )}
           </div>
           <div className="flex gap-2">
-            <Link
-              href={`/lawyer/cases/${caseId}/assets`}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 flex items-center gap-1"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
-              재산분할표
-            </Link>
             <button
               type="button"
               className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
@@ -319,7 +265,6 @@ export default function LawyerCaseDetailClient({ id }: LawyerCaseDetailClientPro
         <nav className="flex gap-6">
           {[
             { id: 'evidence', label: '증거 자료', count: caseDetail.evidenceCount },
-            { id: 'procedure', label: '절차 진행', count: stages.length },
             { id: 'timeline', label: '타임라인', count: caseDetail.recentActivities.length },
             { id: 'members', label: '팀원', count: caseDetail.members.length },
           ].map((tab) => (
@@ -376,84 +321,6 @@ export default function LawyerCaseDetailClient({ id }: LawyerCaseDetailClientPro
                 등록된 증거 자료가 없습니다.
               </p>
             )}
-          </div>
-        )}
-
-        {activeTab === 'procedure' && (
-          <div>
-            {/* Procedure Error */}
-            {procedureError && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
-                <span className="text-red-700">{procedureError}</span>
-                <button
-                  onClick={clearProcedureError}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  ✕
-                </button>
-              </div>
-            )}
-
-            {/* Initialize Button */}
-            {!isInitialized && !procedureLoading && (
-              <div className="text-center py-8">
-                <svg
-                  className="mx-auto h-12 w-12 text-gray-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                  />
-                </svg>
-                <h3 className="mt-4 text-lg font-medium text-[var(--color-text-primary)]">
-                  절차 타임라인 초기화
-                </h3>
-                <p className="mt-2 text-[var(--color-text-secondary)]">
-                  한국 가사소송법에 따른 9단계 절차 타임라인을 생성합니다.
-                </p>
-                <button
-                  onClick={handleInitializeTimeline}
-                  disabled={procedureLoading}
-                  className="mt-4 px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
-                >
-                  {procedureLoading ? '초기화 중...' : '타임라인 초기화'}
-                </button>
-              </div>
-            )}
-
-            {/* Procedure Timeline */}
-            {isInitialized && (
-              <ProcedureTimeline
-                stages={stages}
-                currentStage={currentStage}
-                progressPercent={progressPercent}
-                validNextStages={validNextStages}
-                onStageClick={handleStageClick}
-                onCompleteStage={handleCompleteStage}
-                onSkipStage={handleSkipStage}
-                onTransition={handleTransition}
-                loading={procedureLoading || transitioning}
-              />
-            )}
-
-            {/* Stage Modal */}
-            <StageModal
-              stage={selectedStage}
-              isOpen={isStageModalOpen}
-              onClose={() => {
-                setIsStageModalOpen(false);
-                setSelectedStage(null);
-              }}
-              onUpdate={updateStage}
-              onComplete={completeStage}
-              onSkip={skipStage}
-              loading={procedureLoading}
-            />
           </div>
         )}
 

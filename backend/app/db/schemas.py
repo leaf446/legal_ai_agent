@@ -15,11 +15,16 @@ from app.db.models import (
     CalendarEventType,
     InvestigationRecordType,
     InvoiceStatus,
+    PropertyType,
+    PropertyOwner,
+    ConfidenceLevel,
     JobStatus,
     JobType,
-    AssetCategory,
-    AssetOwnership,
-    AssetNature,
+    NotificationFrequency,
+    ProfileVisibility,
+    PartyType,
+    RelationshipType,
+    LinkType,
 )
 
 
@@ -787,6 +792,119 @@ ROLE_PORTAL_CONFIG = {
         restricted_features=["admin", "billing", "draft", "clients"]
     )
 }
+
+
+# ============================================
+# Property Division Schemas (재산분할)
+# ============================================
+class PropertyCreate(BaseModel):
+    """Property creation request schema"""
+    property_type: PropertyType
+    description: Optional[str] = Field(None, max_length=255)
+    estimated_value: int = Field(..., ge=0, description="Estimated value in KRW")
+    owner: PropertyOwner = PropertyOwner.JOINT
+    is_premarital: bool = False
+    acquisition_date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+class PropertyUpdate(BaseModel):
+    """Property update request schema"""
+    property_type: Optional[PropertyType] = None
+    description: Optional[str] = Field(None, max_length=255)
+    estimated_value: Optional[int] = Field(None, ge=0)
+    owner: Optional[PropertyOwner] = None
+    is_premarital: Optional[bool] = None
+    acquisition_date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+class PropertyOut(BaseModel):
+    """Property output schema"""
+    id: str
+    case_id: str
+    property_type: PropertyType
+    description: Optional[str] = None
+    estimated_value: int
+    owner: PropertyOwner
+    is_premarital: bool
+    acquisition_date: Optional[datetime] = None
+    notes: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PropertyListResponse(BaseModel):
+    """Property list response schema"""
+    properties: List[PropertyOut]
+    total: int
+    total_assets: int = 0  # Sum of all positive values
+    total_debts: int = 0   # Sum of all debt values
+    net_value: int = 0     # Assets - Debts
+
+
+class PropertySummary(BaseModel):
+    """Property summary for dashboard"""
+    total_assets: int
+    total_debts: int
+    net_value: int
+    by_type: dict  # {property_type: total_value}
+    by_owner: dict  # {owner: total_value}
+
+
+# ============================================
+# Division Prediction Schemas (재산분할 예측)
+# ============================================
+class EvidenceImpact(BaseModel):
+    """Single evidence impact on division"""
+    evidence_id: str
+    evidence_type: str  # 'chat_log', 'photo', etc.
+    impact_type: str    # 'adultery', 'violence', etc.
+    impact_percent: float
+    direction: str      # 'plaintiff_favor', 'defendant_favor', 'neutral'
+    reason: str
+    confidence: float = 0.8
+
+
+class SimilarCase(BaseModel):
+    """Similar precedent case"""
+    case_ref: str       # e.g., "서울가정법원 2023드합1234"
+    similarity_score: float
+    division_ratio: str  # e.g., "60:40"
+    key_factors: List[str] = Field(default_factory=list)
+
+
+class DivisionPredictionOut(BaseModel):
+    """Division prediction output schema"""
+    id: str
+    case_id: str
+    total_property_value: int
+    total_debt_value: int
+    net_value: int
+    plaintiff_ratio: int  # 0-100
+    defendant_ratio: int  # 0-100
+    plaintiff_amount: int
+    defendant_amount: int
+    evidence_impacts: List[EvidenceImpact] = Field(default_factory=list)
+    similar_cases: List[SimilarCase] = Field(default_factory=list)
+    confidence_level: ConfidenceLevel
+    version: int
+    created_at: datetime
+    updated_at: datetime
+    disclaimer: str = "본 예측은 참고용이며 실제 판결과 다를 수 있습니다."
+
+    class Config:
+        from_attributes = True
+
+
+class DivisionPredictionRequest(BaseModel):
+    """Request to trigger new prediction calculation"""
+    force_recalculate: bool = False  # Force recalculation even if recent prediction exists
+
+
 # ============================================
 # Job Queue Schemas
 # ============================================
@@ -862,123 +980,196 @@ class JobProgressUpdate(BaseModel):
 
 
 # ============================================
-# Asset Division Schemas (US2 - 재산분할표)
+# User Settings Schemas
 # ============================================
-class AssetCreate(BaseModel):
-    """Asset creation request schema"""
-    category: AssetCategory
-    ownership: AssetOwnership
-    nature: AssetNature = AssetNature.MARITAL
-    name: str = Field(..., min_length=1, max_length=200)
-    description: Optional[str] = None
-    acquisition_date: Optional[datetime] = None
-    acquisition_value: Optional[int] = None
-    current_value: int = Field(..., ge=0)
-    valuation_date: Optional[datetime] = None
-    valuation_source: Optional[str] = Field(None, max_length=200)
-    division_ratio_plaintiff: int = Field(default=50, ge=0, le=100)
-    division_ratio_defendant: int = Field(default=50, ge=0, le=100)
-    proposed_allocation: Optional[AssetOwnership] = None
-    evidence_id: Optional[str] = Field(None, max_length=100)
-    notes: Optional[str] = None
+class ProfileSettingsUpdate(BaseModel):
+    """Profile settings update request"""
+    display_name: Optional[str] = Field(None, max_length=100)
+    avatar_url: Optional[str] = Field(None, max_length=500)
+    timezone: Optional[str] = Field(None, max_length=50)
+    language: Optional[str] = Field(None, max_length=10)
 
 
-class AssetUpdate(BaseModel):
-    """Asset update request schema"""
-    category: Optional[AssetCategory] = None
-    ownership: Optional[AssetOwnership] = None
-    nature: Optional[AssetNature] = None
-    name: Optional[str] = Field(None, min_length=1, max_length=200)
-    description: Optional[str] = None
-    acquisition_date: Optional[datetime] = None
-    acquisition_value: Optional[int] = None
-    current_value: Optional[int] = Field(None, ge=0)
-    valuation_date: Optional[datetime] = None
-    valuation_source: Optional[str] = Field(None, max_length=200)
-    division_ratio_plaintiff: Optional[int] = Field(None, ge=0, le=100)
-    division_ratio_defendant: Optional[int] = Field(None, ge=0, le=100)
-    proposed_allocation: Optional[AssetOwnership] = None
-    evidence_id: Optional[str] = Field(None, max_length=100)
-    notes: Optional[str] = None
+class NotificationSettingsUpdate(BaseModel):
+    """Notification settings update request"""
+    email_notifications: Optional[bool] = None
+    push_notifications: Optional[bool] = None
+    notification_frequency: Optional[NotificationFrequency] = None
 
 
-class AssetResponse(BaseModel):
-    """Asset response schema"""
+class PrivacySettingsUpdate(BaseModel):
+    """Privacy settings update request"""
+    profile_visibility: Optional[ProfileVisibility] = None
+
+
+class SecuritySettingsUpdate(BaseModel):
+    """Security settings update request"""
+    two_factor_enabled: Optional[bool] = None
+
+
+class ProfileSettingsOut(BaseModel):
+    """Profile settings output schema"""
+    display_name: Optional[str] = None
+    email: str
+    name: str
+    phone: Optional[str] = None
+    avatar_url: Optional[str] = None
+    timezone: str = "Asia/Seoul"
+    language: str = "ko"
+
+    class Config:
+        from_attributes = True
+
+
+class NotificationSettingsOut(BaseModel):
+    """Notification settings output schema"""
+    email_enabled: bool = True
+    push_enabled: bool = True
+    frequency: NotificationFrequency = NotificationFrequency.IMMEDIATE
+
+    class Config:
+        from_attributes = True
+
+
+class SecuritySettingsOut(BaseModel):
+    """Security settings output schema"""
+    two_factor_enabled: bool = False
+    last_password_change: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class UserSettingsResponse(BaseModel):
+    """Complete user settings response"""
+    profile: ProfileSettingsOut
+    notifications: NotificationSettingsOut
+    security: SecuritySettingsOut
+
+    class Config:
+        from_attributes = True
+
+
+class SettingsUpdateRequest(BaseModel):
+    """Combined settings update request"""
+    profile: Optional[ProfileSettingsUpdate] = None
+    notifications: Optional[NotificationSettingsUpdate] = None
+    privacy: Optional[PrivacySettingsUpdate] = None
+    security: Optional[SecuritySettingsUpdate] = None
+
+
+# ============================================
+# Party Graph Schemas (v1 Lawyer Portal)
+# ============================================
+class Position(BaseModel):
+    """Position schema for React Flow coordinates"""
+    x: float = 0
+    y: float = 0
+
+
+class PartyNodeCreate(BaseModel):
+    """Create party node request schema"""
+    type: PartyType
+    name: str = Field(..., min_length=1, max_length=100)
+    alias: Optional[str] = Field(None, max_length=50)
+    birth_year: Optional[int] = Field(None, ge=1900, le=2100)
+    occupation: Optional[str] = Field(None, max_length=100)
+    position: Position = Position()
+    extra_data: Optional[dict] = None
+
+
+class PartyNodeUpdate(BaseModel):
+    """Update party node request schema"""
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    alias: Optional[str] = Field(None, max_length=50)
+    birth_year: Optional[int] = Field(None, ge=1900, le=2100)
+    occupation: Optional[str] = Field(None, max_length=100)
+    position: Optional[Position] = None
+    extra_data: Optional[dict] = None
+
+
+class PartyNodeResponse(BaseModel):
+    """Party node response schema"""
     id: str
     case_id: str
-    category: AssetCategory
-    ownership: AssetOwnership
-    nature: AssetNature
+    type: PartyType
     name: str
-    description: Optional[str] = None
-    acquisition_date: Optional[datetime] = None
-    acquisition_value: Optional[int] = None
-    current_value: int
-    valuation_date: Optional[datetime] = None
-    valuation_source: Optional[str] = None
-    division_ratio_plaintiff: Optional[int] = None
-    division_ratio_defendant: Optional[int] = None
-    proposed_allocation: Optional[AssetOwnership] = None
-    evidence_id: Optional[str] = None
+    alias: Optional[str] = None
+    birth_year: Optional[int] = None
+    occupation: Optional[str] = None
+    position: Position
+    extra_data: Optional[dict] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class RelationshipCreate(BaseModel):
+    """Create relationship request schema"""
+    source_party_id: str
+    target_party_id: str
+    type: RelationshipType
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+class RelationshipUpdate(BaseModel):
+    """Update relationship request schema"""
+    type: Optional[RelationshipType] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+class RelationshipResponse(BaseModel):
+    """Relationship response schema"""
+    id: str
+    case_id: str
+    source_party_id: str
+    target_party_id: str
+    type: RelationshipType
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
     notes: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-    created_by: Optional[str] = None
 
     class Config:
         from_attributes = True
 
 
-class AssetListResponse(BaseModel):
-    """Asset list response schema"""
-    assets: List[AssetResponse]
-    total: int
+class PartyGraphResponse(BaseModel):
+    """Combined party graph data response"""
+    nodes: List[PartyNodeResponse]
+    relationships: List[RelationshipResponse]
 
 
-class DivisionCalculateRequest(BaseModel):
-    """Division calculation request schema"""
-    plaintiff_ratio: int = Field(default=50, ge=0, le=100)
-    defendant_ratio: int = Field(default=50, ge=0, le=100)
-    include_separate: bool = False
-    notes: Optional[str] = None
+class EvidenceLinkCreate(BaseModel):
+    """Create evidence-party link request schema"""
+    evidence_id: str = Field(..., max_length=100)
+    party_id: Optional[str] = None
+    relationship_id: Optional[str] = None
+    link_type: LinkType = LinkType.MENTIONS
 
 
-class AssetCategorySummary(BaseModel):
-    """Summary for a single asset category"""
-    category: AssetCategory
-    total_value: int
-    count: int
-    plaintiff_value: int
-    defendant_value: int
-    joint_value: int
-
-
-class DivisionSummaryResponse(BaseModel):
-    """Division calculation result schema"""
+class EvidenceLinkResponse(BaseModel):
+    """Evidence-party link response schema"""
     id: str
     case_id: str
-    total_marital_assets: int
-    total_separate_plaintiff: int
-    total_separate_defendant: int
-    total_debts: int
-    net_marital_value: int
-    plaintiff_share: int
-    defendant_share: int
-    settlement_amount: int
-    plaintiff_ratio: int
-    defendant_ratio: int
-    plaintiff_holdings: int
-    defendant_holdings: int
-    notes: Optional[str] = None
-    calculated_at: datetime
-    calculated_by: Optional[str] = None
+    evidence_id: str
+    party_id: Optional[str] = None
+    relationship_id: Optional[str] = None
+    link_type: LinkType
+    created_at: datetime
 
     class Config:
         from_attributes = True
 
 
-class AssetSheetSummary(BaseModel):
-    """Full asset sheet summary with category breakdown"""
-    division_summary: DivisionSummaryResponse
-    category_summaries: List[AssetCategorySummary]
-    total_assets: int
+class EvidenceLinksResponse(BaseModel):
+    """List of evidence links response"""
+    links: List[EvidenceLinkResponse]
+    total: int

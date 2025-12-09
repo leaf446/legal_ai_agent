@@ -70,7 +70,7 @@ As a supervising lawyer, I want to filter progress by "blocked" status (missing 
 ### Edge Cases
 
 - What happens when the backend endpoint returns partial data (e.g., checklist missing)? → UI must fallback to "No feedback data yet" and log warning.
-- How does system handle API failure/timeouts? → Display non-blocking toast + retry button; do not leave spinners forever.
+- How does system handle API failure/timeouts? → Display non-blocking toast immediately (0 retries, fail fast) + manual retry button; do not leave spinners forever.
 - What if a paralegal has 50+ cases? → Pagination or lazy loading ensures performance (<500ms render per page).
 - How to handle stale AI status? → Show last-updated timestamp and highlight if >24h old.
 
@@ -90,7 +90,7 @@ As a supervising lawyer, I want to filter progress by "blocked" status (missing 
 - **FR-005**: UI MUST provide a collapsible list of the 16 mid-demo feedback items per case, showing completion state and owner.
 - **FR-006**: System MUST handle empty states gracefully (no cases, missing feedback data, API errors) with actionable messaging.
 - **FR-007**: Page MUST refresh data on demand (manual refresh button) without full page reload.
-- **FR-008**: Observability: log API latency + UI load duration to diagnose delays (NEEDS CLARIFICATION: which logging sink?).
+- **FR-008**: Observability: log API latency + UI load duration to CloudWatch Logs (structured JSON format) for delay diagnosis.
 
 ### Key Entities
 
@@ -107,7 +107,16 @@ As a supervising lawyer, I want to filter progress by "blocked" status (missing 
 
 ### Measurable Outcomes
 
-- **SC-001**: Paralegal can identify their next blocked case within 30 seconds of opening `/staff/progress` (measured via usability testing).
+- **SC-001**: Paralegal can identify their next blocked case within 30 seconds of opening `/staff/progress` (verified via manual QA checklist in T603).
 - **SC-002**: API latency for `/staff/progress` stays under 400ms P95 for up to 200 cases.
 - **SC-003**: 100% of the 16 mid-demo feedback tasks are surfaced with completion status per case.
 - **SC-004**: After launch, at least 80% of weekly stand-up updates reference data pulled directly from this dashboard (self-reported survey).
+
+---
+
+## Clarifications
+
+### Session 2025-12-08
+- Q: Which logging sink should capture API latency and UI load metrics? → A: CloudWatch Logs (AWS native, structured JSON)
+- Q: How should the 30-second usability metric (SC-001) be verified? → A: Manual QA checklist item in T603
+- Q: How many automatic retry attempts for API failures before showing error toast? → A: 0 (fail fast, show error immediately with retry button)
