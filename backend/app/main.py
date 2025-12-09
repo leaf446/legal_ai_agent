@@ -22,19 +22,29 @@ from app.core.config import settings  # noqa: E402
 from app.api import (  # noqa: E402
     auth,
     admin,
+    assets,
+    billing,
+    calendar,
     cases,
+    client_portal,
+    dashboard,
+    detective_portal,
+    drafts,
     evidence,
+    evidence_links,
+    jobs,
     lawyer_portal,
     lawyer_clients,
     lawyer_investigators,
-    properties,
-    settings as settings_router,
+    messages,
     party,
+    procedure,
+    properties,
     relationships,
-    evidence_links,
     search,
-    dashboard,
-    calendar,
+    settings as settings_router,
+    staff_progress,
+    summary,
 )
 from app.middleware import (  # noqa: E402
     register_exception_handlers,
@@ -194,17 +204,32 @@ app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 # 사건 라우터
 app.include_router(cases.router, prefix="/cases", tags=["Cases"])
 
+# 재산분할 라우터 (US2 - Asset Division)
+app.include_router(assets.router, prefix="/cases/{case_id}/assets", tags=["Assets"])
+
+# 절차 단계 라우터 (US3 - Procedure Stage Tracking)
+app.include_router(procedure.router, tags=["Procedure"])
+app.include_router(procedure.deadlines_router, tags=["Procedure"])
+
 # 증거 라우터
 app.include_router(evidence.router, prefix="/evidence", tags=["Evidence"])
 
+# 초안 라우터 (케이스별 초안 CRUD)
+app.include_router(drafts.router, prefix="/cases/{case_id}/drafts", tags=["Drafts"])
+
 # 변호사/스태프 포털 라우터
 app.include_router(lawyer_portal.router, prefix="/lawyer", tags=["Lawyer Portal"])
+app.include_router(staff_progress.router, tags=["Staff Progress"])
 
 # 변호사 고객 관리 라우터 (005-lawyer-portal-pages US2)
 app.include_router(lawyer_clients.router, tags=["Lawyer Clients"])
 
 # 변호사 탐정 관리 라우터 (005-lawyer-portal-pages US3)
 app.include_router(lawyer_investigators.router, tags=["Lawyer Investigators"])
+
+# 의뢰인/탐정 포털 라우터
+app.include_router(client_portal.router, tags=["Client Portal"])
+app.include_router(detective_portal.router, tags=["Detective Portal"])
 
 # 재산분할 라우터 (Phase 1: Property Division)
 app.include_router(properties.router, tags=["Properties"])
@@ -226,15 +251,117 @@ app.include_router(search.router, tags=["Search"])
 # 007-lawyer-portal-v1: Dashboard (Today View - US7)
 app.include_router(dashboard.router, tags=["Dashboard"])
 
+# 메시지 라우터
+app.include_router(messages.router, prefix="/messages", tags=["Messages"])
+
+# 청구/결제 라우터
+app.include_router(billing.router, tags=["Billing"])
+app.include_router(billing.client_router, tags=["Client Billing"])
+
 # Calendar 라우터
 app.include_router(calendar.router, tags=["Calendar"])
 
+# Summary 라우터 (US8 - Progress Summary Cards)
+app.include_router(summary.router, tags=["Summary"])
+
+# Admin 라우터 (User Management & Audit Log)
+app.include_router(admin.router, tags=["Admin"])
 # L-work Demo API (테스트 후 제거 가능)
 try:
     from app.api.l_demo import router as l_demo_router
     app.include_router(l_demo_router)
 except ImportError:
     pass  # l_demo 모듈 없으면 무시
+
+
+# ============================================
+# TEMPORARY: Database Debug Endpoints
+# Remove after migration is complete
+# ============================================
+@app.get("/admin/check-roles", tags=["Admin"])
+async def check_roles():
+    """Check current role values in database and enum type definition."""
+    from app.db.session import get_db
+    from sqlalchemy import text
+
+    db = next(get_db())
+    try:
+        # Check users
+        result = db.execute(text("SELECT id, email, role::text as role FROM users"))
+        users = [{"id": r[0], "email": r[1], "role": r[2]} for r in result.fetchall()]
+
+        # Check enum type definition
+        enum_result = db.execute(text("""
+            SELECT e.enumlabel
+            FROM pg_type t
+            JOIN pg_enum e ON t.oid = e.enumtypid
+            WHERE t.typname = 'userrole'
+            ORDER BY e.enumsortorder
+        """))
+        enum_values = [r[0] for r in enum_result.fetchall()]
+
+        return {
+            "users": users,
+            "enum_values": enum_values
+        }
+    finally:
+        db.close()
+
+
+@app.post("/admin/migrate-roles", tags=["Admin"])
+async def migrate_roles_to_lowercase():
+    """
+    Migrate role enum from uppercase to lowercase.
+    Steps:
+    1. Add lowercase values to enum if not exist
+    2. Update users to use lowercase values
+    3. Remove uppercase values from enum
+    """
+    from app.db.session import get_db
+    from sqlalchemy import text
+
+    db = next(get_db())
+    try:
+        steps = []
+
+        # Step 1: Add lowercase values to enum (if not exists)
+        lowercase_roles = ['lawyer', 'staff', 'admin', 'client', 'detective']
+        for role in lowercase_roles:
+            try:
+                db.execute(text(f"ALTER TYPE userrole ADD VALUE IF NOT EXISTS '{role}'"))
+                steps.append(f"Added enum value: {role}")
+            except Exception as e:
+                steps.append(f"Skipped {role}: {str(e)}")
+
+        db.commit()
+
+        # Step 2: Update users from UPPERCASE to lowercase
+        for role in lowercase_roles:
+            upper_role = role.upper()
+            try:
+                result = db.execute(
+                    text(f"UPDATE users SET role = '{role}' WHERE role::text = '{upper_role}'")
+                )
+                db.commit()
+                steps.append(f"Updated {result.rowcount} users from {upper_role} to {role}")
+            except Exception as e:
+                db.rollback()
+                steps.append(f"Error updating {upper_role}: {str(e)}")
+
+        # Verify
+        check_result = db.execute(text("SELECT DISTINCT role::text FROM users"))
+        final_roles = [r[0] for r in check_result.fetchall()]
+
+        return {
+            "status": "success",
+            "steps": steps,
+            "final_roles": final_roles
+        }
+    except Exception as e:
+        db.rollback()
+        return {"status": "error", "message": str(e)}
+    finally:
+        db.close()
 
 # Note: Timeline router removed (002-evidence-timeline feature incomplete)
 # Draft preview endpoint (POST /cases/{case_id}/draft-preview) remains in cases router
