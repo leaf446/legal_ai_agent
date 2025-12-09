@@ -6,11 +6,6 @@ Version: 0.2.0
 Updated: 2025-11-19
 """
 
-# .env 파일 로드 (다른 import 전에 실행)
-from pathlib import Path
-from dotenv import load_dotenv
-load_dotenv(Path(__file__).parent.parent / ".env")
-
 import logging  # noqa: E402
 from contextlib import asynccontextmanager  # noqa: E402
 from datetime import datetime, timezone  # noqa: E402
@@ -24,7 +19,23 @@ from mangum import Mangum  # noqa: E402 - AWS Lambda handler
 from app.core.config import settings  # noqa: E402
 
 # Import API routers
-from app.api import auth, admin, cases, evidence, drafts, lawyer_portal  # noqa: E402
+from app.api import (  # noqa: E402
+    auth,
+    admin,
+    cases,
+    evidence,
+    lawyer_portal,
+    lawyer_clients,
+    lawyer_investigators,
+    properties,
+    settings as settings_router,
+    party,
+    relationships,
+    evidence_links,
+    search,
+    dashboard,
+    calendar,
+)
 from app.middleware import (  # noqa: E402
     register_exception_handlers,
     SecurityHeadersMiddleware,
@@ -180,23 +191,53 @@ async def health_check():
 # 인증 라우터
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 
-# 관리자 라우터
-app.include_router(admin.router, tags=["Admin"])
-
 # 사건 라우터
 app.include_router(cases.router, prefix="/cases", tags=["Cases"])
 
 # 증거 라우터
 app.include_router(evidence.router, prefix="/evidence", tags=["Evidence"])
 
-# 초안 라우터 (케이스별 초안 CRUD)
-# Note: Nested under /cases/{case_id}/drafts for case-scoped operations
-app.include_router(drafts.router, prefix="/cases/{case_id}/drafts", tags=["Drafts"])
-
-# 변호사 포털 라우터 (003-role-based-ui Feature)
+# 변호사/스태프 포털 라우터
 app.include_router(lawyer_portal.router, prefix="/lawyer", tags=["Lawyer Portal"])
 
-# Note: Draft preview endpoint (POST /cases/{case_id}/draft-preview) remains in cases router
+# 변호사 고객 관리 라우터 (005-lawyer-portal-pages US2)
+app.include_router(lawyer_clients.router, tags=["Lawyer Clients"])
+
+# 변호사 탐정 관리 라우터 (005-lawyer-portal-pages US3)
+app.include_router(lawyer_investigators.router, tags=["Lawyer Investigators"])
+
+# 재산분할 라우터 (Phase 1: Property Division)
+app.include_router(properties.router, tags=["Properties"])
+
+# 사용자 설정 라우터
+app.include_router(settings_router.router, tags=["Settings"])
+
+# 007-lawyer-portal-v1: Party Graph 라우터
+app.include_router(party.router, tags=["Party Graph"])
+app.include_router(party.graph_router, tags=["Party Graph"])
+app.include_router(relationships.router, tags=["Party Relationships"])
+
+# 007-lawyer-portal-v1: Evidence Links 라우터 (US4)
+app.include_router(evidence_links.router, tags=["Evidence Links"])
+
+# 007-lawyer-portal-v1: Global Search 라우터 (US6)
+app.include_router(search.router, tags=["Search"])
+
+# 007-lawyer-portal-v1: Dashboard (Today View - US7)
+app.include_router(dashboard.router, tags=["Dashboard"])
+
+# Calendar 라우터
+app.include_router(calendar.router, tags=["Calendar"])
+
+# L-work Demo API (테스트 후 제거 가능)
+try:
+    from app.api.l_demo import router as l_demo_router
+    app.include_router(l_demo_router)
+except ImportError:
+    pass  # l_demo 모듈 없으면 무시
+
+# Note: Timeline router removed (002-evidence-timeline feature incomplete)
+# Draft preview endpoint (POST /cases/{case_id}/draft-preview) remains in cases router
 # Note: RAG search is integrated into draft generation service (draft_service.py)
 
 

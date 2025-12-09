@@ -10,10 +10,18 @@ from fastapi import Depends, Header, Cookie
 from typing import Optional
 from sqlalchemy.orm import Session
 from app.core.security import decode_access_token
-from app.db.session import get_db
+from app.db.session import get_db  # Re-export for convenience
 from app.middleware import AuthenticationError, PermissionError
 from app.db.models import User, UserRole
 from app.repositories.user_repository import UserRepository
+from app.core.config import settings
+
+# Re-export get_db for modules that import from dependencies
+__all__ = ["get_db", "get_current_user_id", "get_current_user", "require_admin",
+           "require_lawyer_or_admin", "require_client", "require_detective",
+           "require_lawyer", "require_any_authenticated", "require_internal_user",
+           "require_role", "get_role_redirect_path", "verify_internal_api_key",
+           "verify_case_read_access", "verify_case_write_access"]
 
 
 def get_current_user_id(
@@ -219,6 +227,48 @@ def require_internal_user(current_user: User = Depends(get_current_user)) -> Use
     return current_user
 
 
+def require_role(allowed_roles: list[str]):
+    """
+    Require specific role(s) for access.
+
+    Factory function that creates a dependency for role-based authorization.
+
+    Args:
+        allowed_roles: List of allowed role names (e.g., ["client"], ["lawyer", "admin"])
+
+    Returns:
+        Dependency function that validates user role and returns user_id
+
+    Usage:
+        @router.get("/dashboard")
+        async def get_dashboard(user_id: str = Depends(require_role(["client"]))):
+            ...
+    """
+    # Convert string role names to UserRole enum values
+    role_mapping = {
+        "admin": UserRole.ADMIN,
+        "lawyer": UserRole.LAWYER,
+        "staff": UserRole.STAFF,
+        "client": UserRole.CLIENT,
+        "detective": UserRole.DETECTIVE,
+    }
+
+    allowed_role_enums = [role_mapping.get(r.lower()) for r in allowed_roles if role_mapping.get(r.lower())]
+
+    # Admin always has access to all endpoints
+    if UserRole.ADMIN not in allowed_role_enums:
+        allowed_role_enums.append(UserRole.ADMIN)
+
+    def role_checker(current_user: User = Depends(get_current_user)) -> str:
+        if current_user.role not in allowed_role_enums:
+            role_names = ", ".join(allowed_roles)
+            raise PermissionError(f"{role_names} 권한이 필요합니다.")
+        return current_user.id
+
+    return role_checker
+
+
+
 def get_role_redirect_path(role: UserRole) -> str:
     """
     Get the default redirect path for a user role after login
@@ -237,3 +287,98 @@ def get_role_redirect_path(role: UserRole) -> str:
         UserRole.DETECTIVE: "/detective/dashboard",
     }
     return role_paths.get(role, "/dashboard")
+
+
+def verify_case_read_access(case_id: str, db: Session, user_id: str) -> str:
+    """
+    Verify user has read access to a case (any member role).
+
+    Args:
+        case_id: Case ID to check access for
+        db: Database session
+        user_id: User ID to check
+
+    Returns:
+        user_id if access granted
+
+    Raises:
+        PermissionError: User is not a member of this case
+    """
+    from app.db.models import CaseMember
+
+    member = db.query(CaseMember).filter(
+        CaseMember.case_id == case_id,
+        CaseMember.user_id == user_id
+    ).first()
+
+    if not member:
+        raise PermissionError("이 케이스에 대한 접근 권한이 없습니다.")
+
+    return user_id
+
+
+def verify_case_write_access(case_id: str, db: Session, user_id: str) -> str:
+    """
+    Verify user has write access to a case (OWNER or MEMBER role, not VIEWER).
+
+    Args:
+        case_id: Case ID to check access for
+        db: Database session
+        user_id: User ID to check
+
+    Returns:
+        user_id if access granted
+
+    Raises:
+        PermissionError: User is VIEWER or not a member
+    """
+    from app.db.models import CaseMember, CaseMemberRole
+
+    member = db.query(CaseMember).filter(
+        CaseMember.case_id == case_id,
+        CaseMember.user_id == user_id
+    ).first()
+
+    if not member:
+        raise PermissionError("이 케이스에 대한 접근 권한이 없습니다.")
+
+    if member.role == CaseMemberRole.VIEWER:
+        raise PermissionError("이 케이스를 수정할 권한이 없습니다.")
+
+    return user_id
+
+
+def verify_internal_api_key(
+    x_internal_api_key: Optional[str] = Header(None, alias="X-Internal-API-Key")
+) -> bool:
+    """
+    Verify internal API key for internal/callback endpoints
+
+    This is used for AI Worker Lambda callbacks that don't have user authentication.
+    The API key should be set in INTERNAL_API_KEY environment variable.
+
+    Args:
+        x_internal_api_key: API key from X-Internal-API-Key header
+
+    Returns:
+        True if valid
+
+    Raises:
+        AuthenticationError: Invalid or missing API key
+
+    Security Note:
+        - API key should be a strong random string (minimum 32 characters)
+        - In production, ensure INTERNAL_API_KEY is set and secure
+        - In development/testing, empty key will skip validation
+    """
+    # In development/testing with empty key, allow all (for easier local testing)
+    if not settings.INTERNAL_API_KEY:
+        return True
+
+    if not x_internal_api_key:
+        raise AuthenticationError("Internal API key required")
+
+    if x_internal_api_key != settings.INTERNAL_API_KEY:
+        raise AuthenticationError("Invalid internal API key")
+
+    return True

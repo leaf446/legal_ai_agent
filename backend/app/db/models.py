@@ -3,7 +3,7 @@ SQLAlchemy ORM Models for LEH Backend
 Database tables: users, cases, case_members, audit_logs
 """
 
-from sqlalchemy import Column, String, DateTime, Enum as SQLEnum, ForeignKey, Integer, Boolean, Text, JSON
+from sqlalchemy import Column, String, DateTime, Enum as SQLEnum, ForeignKey, Integer, Boolean, Text, JSON, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
@@ -35,6 +35,8 @@ class UserStatus(str, enum.Enum):
 class CaseStatus(str, enum.Enum):
     """Case status enum"""
     ACTIVE = "active"
+    OPEN = "open"              # 진행 중 (open and active)
+    IN_PROGRESS = "in_progress"  # 검토 대기 (being actively worked)
     CLOSED = "closed"
 
 
@@ -73,7 +75,6 @@ class ExportJobStatus(str, enum.Enum):
     COMPLETED = "completed"
     FAILED = "failed"
 
-
 class CalendarEventType(str, enum.Enum):
     """Calendar event type enum"""
     COURT = "court"          # 재판/출석
@@ -99,6 +100,106 @@ class InvoiceStatus(str, enum.Enum):
     PAID = "paid"            # 결제완료
     OVERDUE = "overdue"      # 연체
     CANCELLED = "cancelled"  # 취소
+
+
+class PropertyType(str, enum.Enum):
+    """Property type enum for asset division"""
+    REAL_ESTATE = "real_estate"    # 부동산
+    SAVINGS = "savings"            # 예금/적금
+    STOCKS = "stocks"              # 주식/펀드
+    RETIREMENT = "retirement"      # 퇴직금/연금
+    VEHICLE = "vehicle"            # 자동차
+    INSURANCE = "insurance"        # 보험
+    DEBT = "debt"                  # 부채
+    OTHER = "other"                # 기타
+
+
+class PropertyOwner(str, enum.Enum):
+    """Property owner enum"""
+    PLAINTIFF = "plaintiff"        # 원고(의뢰인)
+    DEFENDANT = "defendant"        # 피고(상대방)
+    JOINT = "joint"                # 공동 소유
+
+
+class ConfidenceLevel(str, enum.Enum):
+    """Prediction confidence level"""
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
+class JobType(str, enum.Enum):
+    """Job type enum for async processing"""
+    OCR = "ocr"                      # Image/PDF text extraction
+    STT = "stt"                      # Audio transcription
+    VISION_ANALYSIS = "vision"       # GPT-4o image understanding
+    DRAFT_GENERATION = "draft"       # RAG + GPT-4o legal document
+    EVIDENCE_ANALYSIS = "analysis"   # Evidence re-analysis
+    PDF_EXPORT = "pdf_export"        # Export draft to PDF
+    DOCX_EXPORT = "docx_export"      # Export draft to DOCX
+
+
+class JobStatus(str, enum.Enum):
+    """Job status enum"""
+    QUEUED = "queued"          # Waiting to be processed
+    PROCESSING = "processing"  # Currently running
+    COMPLETED = "completed"    # Success
+    FAILED = "failed"          # Error occurred
+    RETRY = "retry"            # Waiting to retry
+    CANCELLED = "cancelled"    # User cancelled
+
+
+class EvidenceStatus(str, enum.Enum):
+    """Evidence processing status enum"""
+    PENDING = "pending"        # Upload URL generated, waiting for file
+    UPLOADED = "uploaded"      # File uploaded, waiting for processing
+    PROCESSING = "processing"  # AI processing in progress
+    COMPLETED = "completed"    # AI processing complete
+    FAILED = "failed"          # Processing failed
+
+
+class NotificationFrequency(str, enum.Enum):
+    """Notification frequency enum"""
+    IMMEDIATE = "immediate"
+    DAILY = "daily"
+    WEEKLY = "weekly"
+
+
+class ProfileVisibility(str, enum.Enum):
+    """Profile visibility enum"""
+    PUBLIC = "public"
+    TEAM = "team"
+    PRIVATE = "private"
+
+
+# ============================================
+# v1 Lawyer Portal Enums
+# ============================================
+class PartyType(str, enum.Enum):
+    """Party type enum for relationship graph"""
+    PLAINTIFF = "plaintiff"       # 원고 (의뢰인)
+    DEFENDANT = "defendant"       # 피고 (상대방)
+    THIRD_PARTY = "third_party"   # 제3자 (불륜상대, 증인 등)
+    CHILD = "child"               # 자녀
+    FAMILY = "family"             # 친족
+
+
+class RelationshipType(str, enum.Enum):
+    """Relationship type enum for party connections"""
+    MARRIAGE = "marriage"         # 혼인
+    AFFAIR = "affair"             # 불륜관계
+    PARENT_CHILD = "parent_child" # 부모-자녀
+    SIBLING = "sibling"           # 형제자매
+    IN_LAW = "in_law"             # 인척
+    COHABIT = "cohabit"           # 동거
+
+
+class LinkType(str, enum.Enum):
+    """Link type enum for evidence-party connections"""
+    MENTIONS = "mentions"         # 언급
+    PROVES = "proves"             # 증명
+    INVOLVES = "involves"         # 관련
+    CONTRADICTS = "contradicts"   # 반박
 
 
 # ============================================
@@ -172,6 +273,27 @@ class CaseMember(Base):
 
     def __repr__(self):
         return f"<CaseMember(case_id={self.case_id}, user_id={self.user_id}, role={self.role})>"
+
+
+class CaseChecklistStatus(Base):
+    """Tracks per-case completion state for mid-demo feedback checklist."""
+
+    __tablename__ = "case_checklist_statuses"
+    __table_args__ = (UniqueConstraint("case_id", "item_id", name="uq_case_checklist_item"),)
+
+    id = Column(String, primary_key=True, default=lambda: f"cfbk_{uuid.uuid4().hex[:12]}")
+    case_id = Column(String, ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, index=True)
+    item_id = Column(String, nullable=False)
+    status = Column(String, nullable=False, default="pending")
+    notes = Column(Text, nullable=True)
+    updated_by = Column(String, ForeignKey("users.id"), nullable=True, index=True)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+    case = relationship("Case", backref="checklist_statuses")
+    updater = relationship("User")
+
+    def __repr__(self):
+        return f"<CaseChecklistStatus(case_id={self.case_id}, item_id={self.item_id}, status={self.status})>"
 
 
 class InviteToken(Base):
@@ -405,3 +527,310 @@ class Invoice(Base):
 
     def __repr__(self):
         return f"<Invoice(id={self.id}, amount={self.amount}, status={self.status})>"
+
+
+class CaseProperty(Base):
+    """
+    Case property model - assets and debts for property division calculation
+    재산분할 계산을 위한 사건별 재산/부채 정보
+    """
+    __tablename__ = "case_properties"
+
+    id = Column(String, primary_key=True, default=lambda: f"prop_{uuid.uuid4().hex[:12]}")
+    case_id = Column(String, ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, index=True)
+    property_type = Column(SQLEnum(PropertyType), nullable=False)
+    description = Column(String(255), nullable=True)
+    estimated_value = Column(Integer, nullable=False)  # 원 단위 (BigInt for large values)
+    owner = Column(SQLEnum(PropertyOwner), nullable=False, default=PropertyOwner.JOINT)
+    is_premarital = Column(Boolean, default=False)  # 혼전 재산 여부 (분할 제외 가능)
+    acquisition_date = Column(DateTime(timezone=True), nullable=True)  # 취득일
+    notes = Column(Text, nullable=True)  # 추가 메모
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+    # Relationships
+    case = relationship("Case", backref="properties")
+
+    def __repr__(self):
+        return f"<CaseProperty(id={self.id}, type={self.property_type}, value={self.estimated_value})>"
+
+
+class DivisionPrediction(Base):
+    """
+    Division prediction model - AI-generated property division predictions
+    AI 기반 재산분할 예측 결과 저장
+    """
+    __tablename__ = "division_predictions"
+
+    id = Column(String, primary_key=True, default=lambda: f"pred_{uuid.uuid4().hex[:12]}")
+    case_id = Column(String, ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # 총 재산 정보
+    total_property_value = Column(Integer, nullable=False)  # 총 재산액 (원)
+    total_debt_value = Column(Integer, default=0)  # 총 부채액 (원)
+    net_value = Column(Integer, nullable=False)  # 순자산 (재산 - 부채)
+
+    # 분할 비율
+    plaintiff_ratio = Column(Integer, nullable=False)  # 원고 비율 (0-100)
+    defendant_ratio = Column(Integer, nullable=False)  # 피고 비율 (0-100)
+    plaintiff_amount = Column(Integer, nullable=False)  # 원고 예상 수령액
+    defendant_amount = Column(Integer, nullable=False)  # 피고 예상 수령액
+
+    # 분석 결과
+    evidence_impacts = Column(JSON, nullable=True)  # 증거별 영향도 리스트
+    similar_cases = Column(JSON, nullable=True)  # 유사 판례 리스트
+    confidence_level = Column(SQLEnum(ConfidenceLevel), nullable=False, default=ConfidenceLevel.MEDIUM)
+
+    # 메타
+    version = Column(Integer, default=1)  # 예측 버전 (재계산 시 증가)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+    # Relationships
+    case = relationship("Case", backref="predictions")
+
+    def __repr__(self):
+        return f"<DivisionPrediction(id={self.id}, ratio={self.plaintiff_ratio}:{self.defendant_ratio})>"
+
+
+class Evidence(Base):
+    """
+    Evidence model - uploaded evidence files for cases
+    Metadata is stored here, actual files in S3, AI analysis results in DynamoDB/Qdrant
+    """
+    __tablename__ = "evidence"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    case_id = Column(String, ForeignKey("cases.id"), nullable=False, index=True)
+
+    # File info
+    file_name = Column(String, nullable=False)
+    s3_key = Column(String, nullable=False)
+    file_type = Column(String, nullable=True)  # MIME type
+    file_size = Column(String, nullable=True)  # Size in bytes (stored as string for SQLite compatibility)
+    description = Column(String, nullable=True)
+
+    # Processing status
+    status = Column(String, nullable=False, default="pending")  # pending, uploaded, processing, completed, failed
+
+    # AI analysis results (stored as JSON strings for SQLite compatibility)
+    ai_labels = Column(String, nullable=True)  # JSON array: ["폭언", "불륜", ...]
+    ai_summary = Column(String, nullable=True)  # AI-generated summary
+    ai_score = Column(String, nullable=True)  # Evidence strength score
+
+    # Upload tracking
+    uploaded_by = Column(String, ForeignKey("users.id"), nullable=True, index=True)
+
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+    # Relationships
+    case = relationship("Case", backref="evidence_items")
+    uploader = relationship("User")
+
+    @property
+    def ai_labels_list(self) -> list:
+        """Parse ai_labels JSON string to list"""
+        import json
+        if not self.ai_labels:
+            return []
+        try:
+            return json.loads(self.ai_labels)
+        except (json.JSONDecodeError, TypeError):
+            return []
+
+    def __repr__(self):
+        return f"<Evidence(id={self.id}, file_name={self.file_name}, status={self.status})>"
+
+
+class Job(Base):
+    """
+    Job model - tracks async processing tasks (OCR, STT, draft generation, etc.)
+    """
+    __tablename__ = "jobs"
+
+    id = Column(String, primary_key=True, default=lambda: f"job_{uuid.uuid4().hex[:12]}")
+    case_id = Column(String, ForeignKey("cases.id"), nullable=False, index=True)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    job_type = Column(SQLEnum(JobType), nullable=False)
+    status = Column(SQLEnum(JobStatus), nullable=False, default=JobStatus.QUEUED)
+
+    # Related resources
+    evidence_id = Column(String, nullable=True, index=True)  # For evidence-related jobs
+
+    # Job data (stored as JSON strings)
+    input_data = Column(String, nullable=True)   # JSON: {s3_key, file_type, parameters, ...}
+    output_data = Column(String, nullable=True)  # JSON: Result from AI processing
+    error_details = Column(String, nullable=True)  # JSON: {error_code, message, traceback, ...}
+
+    # Progress tracking
+    progress = Column(String, default="0")  # 0-100 for long-running jobs
+
+    # Retry tracking
+    retry_count = Column(String, default="0")
+    max_retries = Column(String, default="3")
+
+    # AWS Lambda correlation
+    lambda_request_id = Column(String, nullable=True)  # For CloudWatch logs correlation
+
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Relationships
+    case = relationship("Case")
+    user = relationship("User")
+
+    def __repr__(self):
+        return f"<Job(id={self.id}, type={self.job_type}, status={self.status})>"
+
+
+class UserSettings(Base):
+    """
+    User settings model - stores user preferences and notification settings
+    """
+    __tablename__ = "user_settings"
+
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+
+    # Profile settings
+    display_name = Column(String(100), nullable=True)
+    avatar_url = Column(String(500), nullable=True)
+    timezone = Column(String(50), nullable=False, default="Asia/Seoul")
+    language = Column(String(10), nullable=False, default="ko")
+
+    # Notification settings
+    email_notifications = Column(Boolean, nullable=False, default=True)
+    push_notifications = Column(Boolean, nullable=False, default=True)
+    notification_frequency = Column(
+        SQLEnum(NotificationFrequency),
+        nullable=False,
+        default=NotificationFrequency.IMMEDIATE
+    )
+
+    # Privacy settings
+    profile_visibility = Column(
+        SQLEnum(ProfileVisibility),
+        nullable=False,
+        default=ProfileVisibility.TEAM
+    )
+
+    # Security settings
+    two_factor_enabled = Column(Boolean, nullable=False, default=False)
+    last_password_change = Column(DateTime(timezone=True), nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+    # Relationship
+    user = relationship("User", backref="settings")
+
+    def __repr__(self):
+        return f"<UserSettings(user_id={self.user_id}, language={self.language})>"
+
+
+# ============================================
+# v1 Lawyer Portal Models
+# ============================================
+class PartyNode(Base):
+    """
+    Party node model - represents a person in the relationship graph
+    원고, 피고, 제3자, 자녀, 친족 등 사건에 등장하는 인물
+    """
+    __tablename__ = "party_nodes"
+
+    id = Column(String, primary_key=True, default=lambda: f"party_{uuid.uuid4().hex[:12]}")
+    case_id = Column(String, ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, index=True)
+    type = Column(SQLEnum(PartyType), nullable=False)
+    name = Column(String(100), nullable=False)
+    alias = Column(String(50), nullable=True)  # 소장용 가명 (김○○)
+    birth_year = Column(Integer, nullable=True)
+    occupation = Column(String(100), nullable=True)
+    position_x = Column(Integer, nullable=False, default=0)  # React Flow X coordinate
+    position_y = Column(Integer, nullable=False, default=0)  # React Flow Y coordinate
+    extra_data = Column(JSON, nullable=True, default=dict)  # Additional info (renamed from metadata)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+    # Relationships
+    case = relationship("Case", backref="party_nodes")
+    source_relationships = relationship(
+        "PartyRelationship",
+        foreign_keys="PartyRelationship.source_party_id",
+        back_populates="source_party",
+        cascade="all, delete-orphan"
+    )
+    target_relationships = relationship(
+        "PartyRelationship",
+        foreign_keys="PartyRelationship.target_party_id",
+        back_populates="target_party",
+        cascade="all, delete-orphan"
+    )
+    evidence_links = relationship("EvidencePartyLink", back_populates="party", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<PartyNode(id={self.id}, name={self.name}, type={self.type})>"
+
+
+class PartyRelationship(Base):
+    """
+    Party relationship model - represents a connection between two parties
+    혼인, 불륜, 부모-자녀, 형제자매, 인척, 동거 관계
+    """
+    __tablename__ = "party_relationships"
+
+    id = Column(String, primary_key=True, default=lambda: f"rel_{uuid.uuid4().hex[:12]}")
+    case_id = Column(String, ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, index=True)
+    source_party_id = Column(String, ForeignKey("party_nodes.id", ondelete="CASCADE"), nullable=False, index=True)
+    target_party_id = Column(String, ForeignKey("party_nodes.id", ondelete="CASCADE"), nullable=False, index=True)
+    type = Column(SQLEnum(RelationshipType), nullable=False)
+    start_date = Column(DateTime(timezone=True), nullable=True)  # 관계 시작일
+    end_date = Column(DateTime(timezone=True), nullable=True)    # 관계 종료일
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+    # Relationships
+    case = relationship("Case", backref="party_relationships")
+    source_party = relationship(
+        "PartyNode",
+        foreign_keys=[source_party_id],
+        back_populates="source_relationships"
+    )
+    target_party = relationship(
+        "PartyNode",
+        foreign_keys=[target_party_id],
+        back_populates="target_relationships"
+    )
+    evidence_links = relationship("EvidencePartyLink", back_populates="relationship", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<PartyRelationship(id={self.id}, type={self.type}, source={self.source_party_id}, target={self.target_party_id})>"
+
+
+class EvidencePartyLink(Base):
+    """
+    Evidence-party link model - connects evidence to parties, relationships, or assets
+    증거와 당사자/관계/자산 간의 연결
+    """
+    __tablename__ = "evidence_party_links"
+
+    id = Column(String, primary_key=True, default=lambda: f"link_{uuid.uuid4().hex[:12]}")
+    case_id = Column(String, ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, index=True)
+    evidence_id = Column(String(100), nullable=False, index=True)  # References DynamoDB evidence
+    party_id = Column(String, ForeignKey("party_nodes.id", ondelete="CASCADE"), nullable=True, index=True)
+    relationship_id = Column(String, ForeignKey("party_relationships.id", ondelete="CASCADE"), nullable=True, index=True)
+    link_type = Column(SQLEnum(LinkType), nullable=False, default=LinkType.MENTIONS)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    # Relationships
+    case = relationship("Case", backref="evidence_party_links")
+    party = relationship("PartyNode", back_populates="evidence_links")
+    relationship = relationship("PartyRelationship", back_populates="evidence_links")
+
+    def __repr__(self):
+        return f"<EvidencePartyLink(id={self.id}, evidence_id={self.evidence_id}, link_type={self.link_type})>"
