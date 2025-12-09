@@ -5,7 +5,7 @@ Database tables: users, cases, case_members, audit_logs
 
 from sqlalchemy import Column, String, DateTime, Enum as SQLEnum, ForeignKey, Integer, Boolean, Text, JSON, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from datetime import datetime, timezone
 import uuid
 import enum
@@ -549,3 +549,200 @@ class Job(Base):
 
     def __repr__(self):
         return f"<Job(id={self.id}, type={self.job_type}, status={self.status})>"
+
+
+# ============================================
+# US2: Asset Division (재산분할) Models
+# ============================================
+class AssetCategory(str, enum.Enum):
+    """Asset category types for divorce property division"""
+    REAL_ESTATE = "real_estate"     # 부동산
+    SAVINGS = "savings"             # 예금/적금
+    STOCKS = "stocks"               # 주식/증권
+    RETIREMENT = "retirement"       # 퇴직금/연금
+    VEHICLE = "vehicle"             # 차량
+    INSURANCE = "insurance"         # 보험
+    DEBT = "debt"                   # 부채
+    OTHER = "other"                 # 기타
+
+
+class AssetOwnership(str, enum.Enum):
+    """Asset ownership types"""
+    PLAINTIFF = "plaintiff"         # 원고 소유
+    DEFENDANT = "defendant"         # 피고 소유
+    JOINT = "joint"                 # 공동 소유
+    THIRD_PARTY = "third_party"     # 제3자 명의
+
+
+class AssetNature(str, enum.Enum):
+    """Asset nature classification for Korean divorce law"""
+    MARITAL = "marital"             # 공동재산 (혼인 중 취득)
+    SEPARATE = "separate"           # 특유재산 (혼전, 상속, 증여)
+    MIXED = "mixed"                 # 혼합재산
+
+
+class Asset(Base):
+    """
+    Asset model for divorce property division
+    재산분할을 위한 자산 모델 (민법 제839조의2)
+    """
+    __tablename__ = "assets"
+
+    id = Column(String, primary_key=True, default=lambda: f"asset_{uuid.uuid4().hex[:12]}")
+    case_id = Column(String, ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Asset classification
+    category = Column(SQLEnum(AssetCategory), nullable=False)
+    ownership = Column(SQLEnum(AssetOwnership), nullable=False)
+    nature = Column(SQLEnum(AssetNature), nullable=False, default=AssetNature.MARITAL)
+
+    # Asset details
+    name = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+
+    # Valuation
+    acquisition_date = Column(DateTime(timezone=True), nullable=True)
+    acquisition_value = Column(Integer, nullable=True)  # 취득가액 (KRW)
+    current_value = Column(Integer, nullable=False)     # 현재가액 (KRW)
+    valuation_date = Column(DateTime(timezone=True), nullable=True)
+    valuation_source = Column(String(200), nullable=True)  # 감정기관, KB시세 등
+
+    # Division proposal
+    division_ratio_plaintiff = Column(Integer, nullable=True, default=50)
+    division_ratio_defendant = Column(Integer, nullable=True, default=50)
+    proposed_allocation = Column(SQLEnum(AssetOwnership), nullable=True)
+
+    # Evidence linkage
+    evidence_id = Column(String(100), nullable=True)  # Link to supporting evidence
+
+    # Notes
+    notes = Column(Text, nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_by = Column(String, ForeignKey("users.id"), nullable=True)
+
+    # Relationships
+    case = relationship("Case", backref="assets")
+    creator = relationship("User", foreign_keys=[created_by])
+
+    def __repr__(self):
+        return f"<Asset(id={self.id}, name={self.name}, value={self.current_value})>"
+
+
+class AssetDivisionSummary(Base):
+    """
+    Asset Division Summary - stores calculated division results
+    재산분할 정산 결과 저장
+    """
+    __tablename__ = "asset_division_summaries"
+
+    id = Column(String, primary_key=True, default=lambda: f"div_{uuid.uuid4().hex[:12]}")
+    case_id = Column(String, ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Calculation results
+    total_marital_assets = Column(Integer, nullable=False, default=0)
+    total_separate_plaintiff = Column(Integer, nullable=False, default=0)
+    total_separate_defendant = Column(Integer, nullable=False, default=0)
+    total_debts = Column(Integer, nullable=False, default=0)
+    net_marital_value = Column(Integer, nullable=False, default=0)
+
+    # Division calculation
+    plaintiff_share = Column(Integer, nullable=False, default=0)
+    defendant_share = Column(Integer, nullable=False, default=0)
+    settlement_amount = Column(Integer, nullable=False, default=0)  # 정산금
+
+    # Ratios used
+    plaintiff_ratio = Column(Integer, nullable=False, default=50)
+    defendant_ratio = Column(Integer, nullable=False, default=50)
+
+    # Current holdings
+    plaintiff_holdings = Column(Integer, nullable=False, default=0)
+    defendant_holdings = Column(Integer, nullable=False, default=0)
+
+    # Notes
+    notes = Column(Text, nullable=True)
+
+    # Timestamps
+    calculated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    calculated_by = Column(String, ForeignKey("users.id"), nullable=True)
+
+    # Relationships
+    case = relationship("Case", backref="division_summaries")
+    calculator = relationship("User", foreign_keys=[calculated_by])
+
+    def __repr__(self):
+        return f"<AssetDivisionSummary(id={self.id}, settlement={self.settlement_amount})>"
+
+
+# ============================================
+# US3: Procedure Stage (절차 단계) Models
+# ============================================
+class ProcedureStageType(str, enum.Enum):
+    """Korean family litigation procedure stages"""
+    FILED = "filed"                       # 소장 접수
+    SERVED = "served"                     # 송달
+    ANSWERED = "answered"                 # 답변서
+    MEDIATION = "mediation"               # 조정 회부
+    MEDIATION_CLOSED = "mediation_closed" # 조정 종결
+    TRIAL = "trial"                       # 본안 이행
+    JUDGMENT = "judgment"                 # 판결 선고
+    APPEAL = "appeal"                     # 항소심
+    FINAL = "final"                       # 확정
+
+
+class StageStatus(str, enum.Enum):
+    """Procedure stage status"""
+    PENDING = "pending"           # 대기
+    IN_PROGRESS = "in_progress"   # 진행중
+    COMPLETED = "completed"       # 완료
+    SKIPPED = "skipped"           # 건너뜀
+
+
+class ProcedureStageRecord(Base):
+    """
+    Procedure Stage Record - tracks case procedure progress
+    절차 단계 기록 (한국 가사소송법 기반)
+    """
+    __tablename__ = "procedure_stages"
+
+    id = Column(String, primary_key=True, default=lambda: f"stage_{uuid.uuid4().hex[:12]}")
+    case_id = Column(String, ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Stage information
+    stage = Column(SQLEnum(ProcedureStageType), nullable=False)
+    status = Column(SQLEnum(StageStatus), nullable=False, default=StageStatus.PENDING)
+
+    # Dates
+    scheduled_date = Column(DateTime(timezone=True), nullable=True)  # 예정일
+    completed_date = Column(DateTime(timezone=True), nullable=True)  # 완료일
+
+    # Court information
+    court_reference = Column(String(100), nullable=True)  # 법원 사건번호
+    judge_name = Column(String(50), nullable=True)        # 담당 판사
+    court_room = Column(String(50), nullable=True)        # 법정
+
+    # Notes and documents
+    notes = Column(Text, nullable=True)
+    documents = Column(JSON, nullable=True, default=list)  # [{name, s3_key, uploaded_at}]
+
+    # Outcome (for mediation, judgment)
+    outcome = Column(String(100), nullable=True)  # 조정성립/불성립, 인용/기각 등
+
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_by = Column(String, ForeignKey("users.id"), nullable=True)
+
+    # Unique constraint: one stage per case
+    __table_args__ = (
+        UniqueConstraint('case_id', 'stage', name='uq_case_stage'),
+    )
+
+    # Relationships
+    case = relationship("Case", backref=backref("procedure_stages", passive_deletes=True))
+    creator = relationship("User", foreign_keys=[created_by])
+
+    def __repr__(self):
+        return f"<ProcedureStageRecord(id={self.id}, stage={self.stage}, status={self.status})>"

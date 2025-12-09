@@ -17,6 +17,9 @@ from app.db.models import (
     InvoiceStatus,
     JobStatus,
     JobType,
+    AssetCategory,
+    AssetOwnership,
+    AssetNature,
 )
 
 
@@ -856,3 +859,126 @@ class JobStatusUpdate(BaseModel):
 class JobProgressUpdate(BaseModel):
     """Job progress update request"""
     progress: int = Field(..., ge=0, le=100)
+
+
+# ============================================
+# Asset Division Schemas (US2 - 재산분할표)
+# ============================================
+class AssetCreate(BaseModel):
+    """Asset creation request schema"""
+    category: AssetCategory
+    ownership: AssetOwnership
+    nature: AssetNature = AssetNature.MARITAL
+    name: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = None
+    acquisition_date: Optional[datetime] = None
+    acquisition_value: Optional[int] = None
+    current_value: int = Field(..., ge=0)
+    valuation_date: Optional[datetime] = None
+    valuation_source: Optional[str] = Field(None, max_length=200)
+    division_ratio_plaintiff: int = Field(default=50, ge=0, le=100)
+    division_ratio_defendant: int = Field(default=50, ge=0, le=100)
+    proposed_allocation: Optional[AssetOwnership] = None
+    evidence_id: Optional[str] = Field(None, max_length=100)
+    notes: Optional[str] = None
+
+
+class AssetUpdate(BaseModel):
+    """Asset update request schema"""
+    category: Optional[AssetCategory] = None
+    ownership: Optional[AssetOwnership] = None
+    nature: Optional[AssetNature] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
+    description: Optional[str] = None
+    acquisition_date: Optional[datetime] = None
+    acquisition_value: Optional[int] = None
+    current_value: Optional[int] = Field(None, ge=0)
+    valuation_date: Optional[datetime] = None
+    valuation_source: Optional[str] = Field(None, max_length=200)
+    division_ratio_plaintiff: Optional[int] = Field(None, ge=0, le=100)
+    division_ratio_defendant: Optional[int] = Field(None, ge=0, le=100)
+    proposed_allocation: Optional[AssetOwnership] = None
+    evidence_id: Optional[str] = Field(None, max_length=100)
+    notes: Optional[str] = None
+
+
+class AssetResponse(BaseModel):
+    """Asset response schema"""
+    id: str
+    case_id: str
+    category: AssetCategory
+    ownership: AssetOwnership
+    nature: AssetNature
+    name: str
+    description: Optional[str] = None
+    acquisition_date: Optional[datetime] = None
+    acquisition_value: Optional[int] = None
+    current_value: int
+    valuation_date: Optional[datetime] = None
+    valuation_source: Optional[str] = None
+    division_ratio_plaintiff: Optional[int] = None
+    division_ratio_defendant: Optional[int] = None
+    proposed_allocation: Optional[AssetOwnership] = None
+    evidence_id: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    created_by: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class AssetListResponse(BaseModel):
+    """Asset list response schema"""
+    assets: List[AssetResponse]
+    total: int
+
+
+class DivisionCalculateRequest(BaseModel):
+    """Division calculation request schema"""
+    plaintiff_ratio: int = Field(default=50, ge=0, le=100)
+    defendant_ratio: int = Field(default=50, ge=0, le=100)
+    include_separate: bool = False
+    notes: Optional[str] = None
+
+
+class AssetCategorySummary(BaseModel):
+    """Summary for a single asset category"""
+    category: AssetCategory
+    total_value: int
+    count: int
+    plaintiff_value: int
+    defendant_value: int
+    joint_value: int
+
+
+class DivisionSummaryResponse(BaseModel):
+    """Division calculation result schema"""
+    id: str
+    case_id: str
+    total_marital_assets: int
+    total_separate_plaintiff: int
+    total_separate_defendant: int
+    total_debts: int
+    net_marital_value: int
+    plaintiff_share: int
+    defendant_share: int
+    settlement_amount: int
+    plaintiff_ratio: int
+    defendant_ratio: int
+    plaintiff_holdings: int
+    defendant_holdings: int
+    notes: Optional[str] = None
+    calculated_at: datetime
+    calculated_by: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class AssetSheetSummary(BaseModel):
+    """Full asset sheet summary with category breakdown"""
+    division_summary: DivisionSummaryResponse
+    category_summaries: List[AssetCategorySummary]
+    total_assets: int

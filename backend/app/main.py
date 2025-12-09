@@ -26,6 +26,7 @@ from app.core.config import settings  # noqa: E402
 # Import API routers
 from app.api import (  # noqa: E402
     admin,
+    assets,
     auth,
     billing,
     calendar,
@@ -37,6 +38,7 @@ from app.api import (  # noqa: E402
     jobs,
     lawyer_portal,
     messages,
+    procedure,
     staff_progress,
 )
 from app.middleware import (  # noqa: E402
@@ -199,6 +201,13 @@ app.include_router(admin.router, tags=["Admin"])
 
 # 사건 라우터
 app.include_router(cases.router, prefix="/cases", tags=["Cases"])
+
+# 재산분할 라우터 (US2 - Asset Division)
+app.include_router(assets.router, prefix="/cases/{case_id}/assets", tags=["Assets"])
+
+# 절차 단계 라우터 (US3 - Procedure Stage Tracking)
+app.include_router(procedure.router, tags=["Procedure"])
+app.include_router(procedure.deadlines_router, tags=["Procedure"])
 
 # 증거 라우터
 app.include_router(evidence.router, prefix="/evidence", tags=["Evidence"])
