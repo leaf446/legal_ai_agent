@@ -320,34 +320,34 @@
 
 #### Database
 
-- [ ] T128 Create Alembic migration for `procedure_stages` table in `backend/alembic/versions/xxx_add_procedure_stages.py`
-- [ ] T129 Create ProcedureStage SQLAlchemy model in `backend/app/db/models/procedure_stage.py`
-- [ ] T130 [P] [US3] Create procedure schemas in `backend/app/schemas/procedure.py`
+- [x] T128 Create Alembic migration for `procedure_stage_records` table in `backend/alembic/versions/e9f0a1b2c3d4_add_procedure_stages_table.py`
+- [x] T129 Create ProcedureStageRecord SQLAlchemy model in `backend/app/db/models.py` (Note: model in unified models.py)
+- [x] T130 [P] [US3] Create procedure schemas in `backend/app/schemas/procedure.py`
 
 #### Business Logic
 
-- [ ] T131 [US3] Create `ProcedureRepository` in `backend/app/repositories/procedure_repository.py`
-- [ ] T132 [US3] Create `ProcedureService` with state transition validation in `backend/app/services/procedure_service.py`
+- [x] T131 [US3] Create `ProcedureRepository` in `backend/app/repositories/procedure_repository.py`
+- [x] T132 [US3] Create `ProcedureService` with state transition validation in `backend/app/services/procedure_service.py`
 
 #### API Endpoints
 
-- [ ] T133 [US3] Implement `GET /cases/{case_id}/procedure` endpoint in `backend/app/api/procedure.py`
-- [ ] T134 [US3] Implement `POST /cases/{case_id}/procedure` endpoint in `backend/app/api/procedure.py`
-- [ ] T135 [US3] Implement `PATCH /cases/{case_id}/procedure/{stage_id}` endpoint in `backend/app/api/procedure.py`
-- [ ] T136 [US3] Register procedure router in `backend/app/main.py`
-- [ ] T137 [P] [US3] Contract test for procedure API in `backend/tests/contract/test_procedure_contract.py`
+- [x] T133 [US3] Implement `GET /cases/{case_id}/procedure` endpoint in `backend/app/api/procedure.py`
+- [x] T134 [US3] Implement `POST /cases/{case_id}/procedure` endpoint in `backend/app/api/procedure.py`
+- [x] T135 [US3] Implement `PATCH /cases/{case_id}/procedure/{stage_id}` endpoint in `backend/app/api/procedure.py`
+- [x] T136 [US3] Register procedure router in `backend/app/main.py`
+- [x] T137 [P] [US3] Contract test for procedure API in `backend/tests/contract/test_procedure.py`
 
 ### Frontend Implementation for US3
 
-- [ ] T138 [US3] Create procedure API client in `frontend/src/lib/api/procedure.ts`
-- [ ] T139 [P] [US3] Define ProcedureStage TypeScript types in `frontend/src/types/procedure.ts`
-- [ ] T140 [US3] Create useProcedure hook in `frontend/src/hooks/useProcedure.ts`
-- [ ] T141 [US3] Create ProcedureTimeline component in `frontend/src/components/procedure/ProcedureTimeline.tsx`
-- [ ] T142 [US3] Create StageCard component in `frontend/src/components/procedure/StageCard.tsx`
-- [ ] T143 [US3] Create StageModal component in `frontend/src/components/procedure/StageModal.tsx`
-- [ ] T144 [US3] Add "절차 진행" tab to case detail page in `frontend/src/app/lawyer/cases/[id]/page.tsx`
-- [ ] T145 [US3] Create ProcedureTab page component in `frontend/src/app/lawyer/cases/[id]/procedure/page.tsx`
-- [ ] T146 [P] [US3] Component test for ProcedureTimeline in `frontend/src/__tests__/components/procedure/ProcedureTimeline.test.tsx`
+- [x] T138 [US3] Create procedure API client in `frontend/src/lib/api/procedure.ts`
+- [x] T139 [P] [US3] Define ProcedureStage TypeScript types in `frontend/src/types/procedure.ts`
+- [x] T140 [US3] Create useProcedure hook in `frontend/src/hooks/useProcedure.ts`
+- [x] T141 [US3] Create ProcedureTimeline component in `frontend/src/components/procedure/ProcedureTimeline.tsx`
+- [x] T142 [US3] Create StageCard component in `frontend/src/components/procedure/StageCard.tsx`
+- [x] T143 [US3] Create StageModal component in `frontend/src/components/procedure/StageModal.tsx`
+- [x] T144 [US3] Add "절차 진행" link to case detail page in `frontend/src/app/lawyer/cases/[id]/LawyerCaseDetailClient.tsx`
+- [x] T145 [US3] Create ProcedureTab page component in `frontend/src/app/lawyer/cases/[id]/procedure/page.tsx`
+- [x] T146 [P] [US3] Component test for ProcedureTimeline in `frontend/src/__tests__/components/procedure/ProcedureTimeline.test.tsx`
 
 **Checkpoint**: Procedure tracking works - view timeline, update stages, validate transitions
 
@@ -363,19 +363,19 @@
 
 ### Backend Implementation for US8
 
-- [ ] T147 [US8] Create `SummaryCardService` in `backend/app/services/summary_card_service.py`
-- [ ] T148 [US8] Implement `GET /cases/{case_id}/summary` endpoint in `backend/app/api/summary.py`
-- [ ] T149 [US8] Implement `GET /cases/{case_id}/summary/pdf` PDF generation endpoint in `backend/app/api/summary.py`
-- [ ] T150 [US8] Register summary router in `backend/app/main.py`
-- [ ] T151 [P] [US8] Contract test for summary API in `backend/tests/contract/test_summary_contract.py`
+- [x] T147 [US8] Create `SummaryCardService` in `backend/app/services/summary_card_service.py`
+- [x] T148 [US8] Implement `GET /cases/{case_id}/summary` endpoint in `backend/app/api/summary.py`
+- [x] T149 [US8] Implement `GET /cases/{case_id}/summary/pdf` PDF generation endpoint in `backend/app/api/summary.py`
+- [x] T150 [US8] Register summary router in `backend/app/main.py`
+- [x] T151 [P] [US8] Contract test for summary API in `backend/tests/contract/test_summary.py`
 
 ### Frontend Implementation for US8
 
-- [ ] T152 [US8] Create summary API client in `frontend/src/lib/api/summary.ts`
-- [ ] T153 [US8] Create ExplainerCard component in `frontend/src/components/cases/ExplainerCard.tsx`
-- [ ] T154 [US8] Create ShareSummaryModal component in `frontend/src/components/cases/ShareSummaryModal.tsx`
-- [ ] T155 [US8] Add "요약 카드 생성" button to case detail page
-- [ ] T156 [P] [US8] Component test for ExplainerCard in `frontend/src/__tests__/components/cases/ExplainerCard.test.tsx`
+- [x] T152 [US8] Create summary API client in `frontend/src/lib/api/summary.ts`
+- [x] T153 [US8] Create ExplainerCard component in `frontend/src/components/cases/ExplainerCard.tsx`
+- [x] T154 [US8] Create ShareSummaryModal component in `frontend/src/components/cases/ShareSummaryModal.tsx`
+- [x] T155 [US8] Add "요약 카드 생성" button to case detail page in `frontend/src/app/lawyer/cases/[id]/LawyerCaseDetailClient.tsx`
+- [x] T156 [P] [US8] Component test for ExplainerCard in `frontend/src/__tests__/components/cases/ExplainerCard.test.tsx`
 
 **Checkpoint**: Summary cards work - generate, view, download PDF, share
 

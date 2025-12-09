@@ -44,6 +44,7 @@ from app.api import (  # noqa: E402
     search,
     settings as settings_router,
     staff_progress,
+    summary,
 )
 from app.middleware import (  # noqa: E402
     register_exception_handlers,
@@ -260,15 +261,116 @@ app.include_router(billing.client_router, tags=["Client Billing"])
 # Calendar 라우터
 app.include_router(calendar.router, tags=["Calendar"])
 
+# Summary 라우터 (US8 - Progress Summary Cards)
+app.include_router(summary.router, tags=["Summary"])
+
 # Admin 라우터 (User Management & Audit Log)
 app.include_router(admin.router, tags=["Admin"])
-
 # L-work Demo API (테스트 후 제거 가능)
 try:
     from app.api.l_demo import router as l_demo_router
     app.include_router(l_demo_router)
 except ImportError:
     pass  # l_demo 모듈 없으면 무시
+
+
+# ============================================
+# TEMPORARY: Database Debug Endpoints
+# Remove after migration is complete
+# ============================================
+@app.get("/admin/check-roles", tags=["Admin"])
+async def check_roles():
+    """Check current role values in database and enum type definition."""
+    from app.db.session import get_db
+    from sqlalchemy import text
+
+    db = next(get_db())
+    try:
+        # Check users
+        result = db.execute(text("SELECT id, email, role::text as role FROM users"))
+        users = [{"id": r[0], "email": r[1], "role": r[2]} for r in result.fetchall()]
+
+        # Check enum type definition
+        enum_result = db.execute(text("""
+            SELECT e.enumlabel
+            FROM pg_type t
+            JOIN pg_enum e ON t.oid = e.enumtypid
+            WHERE t.typname = 'userrole'
+            ORDER BY e.enumsortorder
+        """))
+        enum_values = [r[0] for r in enum_result.fetchall()]
+
+        return {
+            "users": users,
+            "enum_values": enum_values
+        }
+    finally:
+        db.close()
+
+
+@app.post("/admin/migrate-enums", tags=["Admin"])
+async def migrate_enums_to_lowercase():
+    """
+    Migrate all enum values from uppercase to lowercase.
+    Handles: userrole, userstatus, and other enums.
+    """
+    from app.db.session import get_db
+    from sqlalchemy import text
+
+    db = next(get_db())
+    try:
+        steps = []
+
+        # Migration config: (enum_type, table, column, values)
+        migrations = [
+            ('userrole', 'users', 'role', ['lawyer', 'staff', 'admin', 'client', 'detective']),
+            ('userstatus', 'users', 'status', ['active', 'inactive']),
+        ]
+
+        for enum_type, table, column, values in migrations:
+            # Step 1: Add lowercase values to enum
+            for val in values:
+                try:
+                    db.execute(text(f"ALTER TYPE {enum_type} ADD VALUE IF NOT EXISTS '{val}'"))
+                    steps.append(f"Added {enum_type}.{val}")
+                except Exception as e:
+                    steps.append(f"Skipped {enum_type}.{val}: {str(e)}")
+            db.commit()
+
+            # Step 2: Update from UPPERCASE to lowercase
+            for val in values:
+                upper_val = val.upper()
+                try:
+                    result = db.execute(
+                        text(f"UPDATE {table} SET {column} = '{val}' WHERE {column}::text = '{upper_val}'")
+                    )
+                    db.commit()
+                    steps.append(f"Updated {result.rowcount} rows: {table}.{column} {upper_val} -> {val}")
+                except Exception as e:
+                    db.rollback()
+                    steps.append(f"Error {table}.{column} {upper_val}: {str(e)}")
+
+        # Verify
+        check_result = db.execute(text("SELECT DISTINCT role::text, status::text FROM users"))
+        final_values = [{"role": r[0], "status": r[1]} for r in check_result.fetchall()]
+
+        return {
+            "status": "success",
+            "steps": steps,
+            "final_values": final_values
+        }
+    except Exception as e:
+        db.rollback()
+        return {"status": "error", "message": str(e)}
+    finally:
+        db.close()
+
+
+# Keep old endpoint for backwards compatibility
+@app.post("/admin/migrate-roles", tags=["Admin"])
+async def migrate_roles_redirect():
+    """Redirects to migrate-enums endpoint."""
+    return await migrate_enums_to_lowercase()
 
 # Note: Timeline router removed (002-evidence-timeline feature incomplete)
 # Draft preview endpoint (POST /cases/{case_id}/draft-preview) remains in cases router
