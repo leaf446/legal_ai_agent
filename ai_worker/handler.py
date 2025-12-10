@@ -62,7 +62,16 @@ from src.utils.cost_guard import (
     get_file_type_from_extension
 )
 
-logger = logging.getLogger()
+# Configure structured JSON logging for Lambda/CloudWatch (T056)
+from src.utils.logging import setup_logging
+
+# Check if running in Lambda environment
+_is_lambda = os.getenv("AWS_LAMBDA_FUNCTION_NAME") is not None
+
+# Setup JSON logging for Lambda (CloudWatch compatible), console for local dev
+setup_logging(level="INFO", json_output=_is_lambda)
+
+logger = logging.getLogger("ai_worker")
 logger.setLevel(logging.INFO)
 logger.addFilter(SensitiveDataFilter())
 
@@ -586,8 +595,27 @@ def handle(event, context):
     """
     AWS Lambda Entrypoint.
     S3 이벤트를 수신하여 파일 정보를 파싱하고 AI 파이프라인을 시작합니다.
+
+    Supported event types:
+    - S3 ObjectCreated events: Process uploaded files
+    - Health check: {"action": "health"} → Returns service status
     """
+    # Import metrics (T057)
+    from src.utils.metrics import get_metrics_publisher, flush_metrics
+
     logger.info(f"Received event: {json.dumps(event)}")
+    metrics = get_metrics_publisher()
+
+    # Health check endpoint (for monitoring and deployment verification)
+    if event.get("action") == "health":
+        return {
+            "statusCode": 200,
+            "body": json.dumps({
+                "status": "healthy",
+                "service": "leh-ai-worker",
+                "version": os.getenv("AWS_LAMBDA_FUNCTION_VERSION", "unknown")
+            })
+        }
 
     # S3 이벤트가 아닌 경우(테스트 등) 방어 로직
     if "Records" not in event:
@@ -609,13 +637,24 @@ def handle(event, context):
             logger.info(f"Processing file: s3://{bucket_name}/{object_key}")
 
             # 2. 파일 처리 로직 실행 (Strategy Pattern 적용)
-            result = route_and_process(bucket_name, object_key)
+            with metrics.track_execution("FULL_PIPELINE"):
+                result = route_and_process(bucket_name, object_key)
+
+            # Record processed messages count (T057)
+            if result.get("status") == "processed":
+                chunks = result.get("chunks_indexed", 0)
+                metrics.record_processed_messages(chunks)
+
             results.append(result)
 
         except Exception as e:
             logger.error(f"Error processing record: {e}", exc_info=True)
+            metrics.record_error(type(e).__name__)
             # 실제 운영 시에는 여기서 DLQ로 보내거나 에러를 다시 raise 해야 함
             results.append({"error": str(e), "status": "failed"})
+
+    # Flush all metrics to CloudWatch (T057)
+    flush_metrics()
 
     return {
         "statusCode": 200,
