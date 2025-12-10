@@ -586,8 +586,23 @@ def handle(event, context):
     """
     AWS Lambda Entrypoint.
     S3 이벤트를 수신하여 파일 정보를 파싱하고 AI 파이프라인을 시작합니다.
+
+    Supported event types:
+    - S3 ObjectCreated events: Process uploaded files
+    - Health check: {"action": "health"} → Returns service status
     """
     logger.info(f"Received event: {json.dumps(event)}")
+
+    # Health check endpoint (for monitoring and deployment verification)
+    if event.get("action") == "health":
+        return {
+            "statusCode": 200,
+            "body": json.dumps({
+                "status": "healthy",
+                "service": "leh-ai-worker",
+                "version": os.getenv("AWS_LAMBDA_FUNCTION_VERSION", "unknown")
+            })
+        }
 
     # S3 이벤트가 아닌 경우(테스트 등) 방어 로직
     if "Records" not in event:
