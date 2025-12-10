@@ -12,6 +12,7 @@
     "coverage",
     "playwright-report",
     "test-results",
-    "src/tests/**"
+    "src/tests/**",
+    "src/__tests__/**"
   ]
 }

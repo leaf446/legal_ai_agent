@@ -1,210 +1,192 @@
 'use client';
 
-/**
- * RelationshipFlow Component
- * Main React Flow container for relationship visualization
- */
-
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import ReactFlow, {
-  Node,
-  Edge,
-  Controls,
   Background,
   MiniMap,
+  Node,
+  Edge,
   useNodesState,
   useEdgesState,
   MarkerType,
-  NodeMouseHandler,
-  EdgeMouseHandler,
+  ConnectionMode,
   BackgroundVariant,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-import PersonNode from './PersonNode';
-import RelationshipEdge from './RelationshipEdge';
-import PersonDetailModal from './PersonDetailModal';
-import RelationshipDetailModal from './RelationshipDetailModal';
 import {
   RelationshipGraph,
   PersonNode as PersonNodeType,
   RelationshipEdge as RelationshipEdgeType,
-  PersonNodeData,
-  RelationshipEdgeData,
+  ROLE_COLORS,
+  RELATIONSHIP_COLORS,
+  PersonRole,
+  RelationshipType,
 } from '@/types/relationship';
-import { useTheme } from '@/contexts/ThemeContext';
+import PersonNode from './PersonNode';
+import RelationshipEdge from './RelationshipEdge';
+import FlowControls from './FlowControls';
 
-interface RelationshipFlowProps {
-  graph: RelationshipGraph;
-}
-
-// Custom node types
+// Register custom types
 const nodeTypes = {
   person: PersonNode,
 };
 
-// Custom edge types
 const edgeTypes = {
   relationship: RelationshipEdge,
 };
 
-// Calculate circular layout positions
+interface RelationshipFlowProps {
+  graph: RelationshipGraph;
+  onNodeClick?: (node: PersonNodeType) => void;
+  onEdgeClick?: (edge: RelationshipEdgeType) => void;
+  onPaneClick?: () => void;
+}
+
+/**
+ * Circular Layout Calculation
+ */
 function calculateCircularLayout(
   nodes: PersonNodeType[],
-  centerX: number = 400,
-  centerY: number = 300,
-  radius: number = 200
-): { x: number; y: number }[] {
-  return nodes.map((_, index) => {
-    const angle = (2 * Math.PI * index) / nodes.length - Math.PI / 2;
+  centerX: number,
+  centerY: number,
+  radius: number
+): Node[] {
+  const angleStep = (2 * Math.PI) / nodes.length;
+
+  return nodes.map((node, index) => {
+    const angle = index * angleStep - Math.PI / 2; // Start from 12 o'clock
+    const x = centerX + radius * Math.cos(angle);
+    const y = centerY + radius * Math.sin(angle);
+
     return {
-      x: centerX + radius * Math.cos(angle),
-      y: centerY + radius * Math.sin(angle),
+      id: node.id,
+      type: 'person',
+      position: { x, y },
+      data: {
+        ...node,
+        color: node.color || ROLE_COLORS[node.role as PersonRole] || ROLE_COLORS[PersonRole.UNKNOWN],
+      },
     };
   });
 }
 
-// Transform API data to React Flow nodes
-function transformToNodes(persons: PersonNodeType[]): Node<PersonNodeData>[] {
-  const positions = calculateCircularLayout(persons);
-
-  return persons.map((person, index) => ({
-    id: person.id,
-    type: 'person',
-    position: positions[index],
-    data: {
-      label: person.name,
-      role: person.role,
-      side: person.side,
-      color: person.color,
-      originalNode: person,
-    },
-  }));
-}
-
-// Transform API data to React Flow edges
-function transformToEdges(edges: RelationshipEdgeType[]): Edge<RelationshipEdgeData>[] {
+/**
+ * Edge Conversion
+ */
+function convertEdges(edges: RelationshipEdgeType[]): Edge[] {
   return edges.map((edge, index) => ({
     id: `edge-${index}`,
     source: edge.source,
     target: edge.target,
     type: 'relationship',
-    animated: edge.relationship === 'affair',
-    markerEnd: edge.direction !== 'bidirectional' ? {
-      type: MarkerType.ArrowClosed,
-      color: edge.color,
-    } : undefined,
+    data: {
+      ...edge,
+      relationship: edge.relationship,
+      confidence: edge.confidence,
+    },
+    // Styles are handled in the custom Edge component, 
+    // but we set some defaults here for fallback/interaction
     style: {
-      stroke: edge.color,
       strokeWidth: 2,
     },
-    data: {
-      label: edge.label,
-      relationship: edge.relationship,
-      direction: edge.direction,
-      confidence: edge.confidence,
-      color: edge.color,
-      evidence: edge.evidence,
-      originalEdge: edge,
+    markerEnd: {
+      type: MarkerType.ArrowClosed,
+      width: 20,
+      height: 20,
+      color: RELATIONSHIP_COLORS[edge.relationship as RelationshipType] || '#CBD5E1',
     },
   }));
 }
 
-export default function RelationshipFlow({ graph }: RelationshipFlowProps) {
-  const { isDark } = useTheme();
+export default function RelationshipFlow({
+  graph,
+  onNodeClick,
+  onEdgeClick,
+  onPaneClick,
+}: RelationshipFlowProps) {
+  // Memoize layout calculation
+  const initialNodes = useMemo(
+    () => calculateCircularLayout(graph.nodes, 400, 300, 250),
+    [graph.nodes]
+  );
 
-  // Transform graph data to React Flow format
-  const initialNodes = useMemo(() => transformToNodes(graph.nodes), [graph.nodes]);
-  const initialEdges = useMemo(() => transformToEdges(graph.edges), [graph.edges]);
+  const initialEdges = useMemo(() => convertEdges(graph.edges), [graph.edges]);
 
+  // React Flow State
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  // Modal states
-  const [selectedPerson, setSelectedPerson] = useState<PersonNodeType | null>(null);
-  const [selectedRelationship, setSelectedRelationship] = useState<RelationshipEdgeType | null>(null);
+  // Handlers
+  const handleNodeClick = useCallback(
+    (_: React.MouseEvent, node: Node) => {
+      if (onNodeClick) {
+        const personNode = graph.nodes.find((n) => n.id === node.id);
+        if (personNode) {
+          onNodeClick(personNode);
+        }
+      }
+    },
+    [graph.nodes, onNodeClick]
+  );
 
-  // Node click handler
-  const onNodeClick: NodeMouseHandler = useCallback((_, node) => {
-    const personData = node.data as PersonNodeData;
-    setSelectedPerson(personData.originalNode);
-  }, []);
-
-  // Edge click handler
-  const onEdgeClick: EdgeMouseHandler = useCallback((_, edge) => {
-    const edgeData = edge.data as RelationshipEdgeData;
-    if (edgeData?.originalEdge) {
-      setSelectedRelationship(edgeData.originalEdge);
-    }
-  }, []);
-
-  // Close modals
-  const handleClosePersonModal = useCallback(() => {
-    setSelectedPerson(null);
-  }, []);
-
-  const handleCloseRelationshipModal = useCallback(() => {
-    setSelectedRelationship(null);
-  }, []);
+  const handleEdgeClick = useCallback(
+    (_: React.MouseEvent, edge: Edge) => {
+      if (onEdgeClick) {
+        const relationshipEdge = graph.edges.find(
+          (e) => e.source === edge.source && e.target === edge.target
+        );
+        if (relationshipEdge) {
+          onEdgeClick(relationshipEdge);
+        }
+      }
+    },
+    [graph.edges, onEdgeClick]
+  );
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full bg-neutral-50/50">
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onNodeClick={onNodeClick}
-        onEdgeClick={onEdgeClick}
+        onNodeClick={handleNodeClick}
+        onEdgeClick={handleEdgeClick}
+        onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
+        connectionMode={ConnectionMode.Loose}
+        nodesConnectable={false}
+        nodesDraggable={true}
         fitView
-        fitViewOptions={{ padding: 0.2 }}
-        minZoom={0.1}
-        maxZoom={2}
-        defaultEdgeOptions={{
-          type: 'relationship',
-        }}
+        minZoom={0.2}
+        maxZoom={4}
+        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         proOptions={{ hideAttribution: true }}
       >
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={16}
-          size={1}
-          color={isDark ? '#404040' : '#e5e5e5'}
+        <Background 
+          variant={BackgroundVariant.Dots} 
+          gap={24} 
+          size={2} 
+          color="#E2E8F0" // neutral-200 
         />
-        <Controls position="bottom-left" />
+        
+        <FlowControls />
+        
         <MiniMap
-          position="bottom-right"
-          nodeColor={(node) => {
-            const data = node.data as PersonNodeData;
-            return data.color || '#9E9E9E';
-          }}
-          maskColor={isDark ? 'rgba(38, 38, 38, 0.8)' : 'rgba(255, 255, 255, 0.8)'}
+          nodeColor={(node) => node.data?.color || '#94A3B8'}
+          maskColor="rgba(248, 249, 250, 0.7)" // neutral-50 with opacity
           style={{
-            backgroundColor: isDark ? '#262626' : '#ffffff',
+            backgroundColor: 'white',
+            border: '1px solid #E2E8F0',
+            borderRadius: '0.5rem',
+            margin: '1.5rem',
           }}
+          zoomable
+          pannable
         />
       </ReactFlow>
-
-      {/* Person Detail Modal */}
-      {selectedPerson && (
-        <PersonDetailModal
-          person={selectedPerson}
-          isOpen={!!selectedPerson}
-          onClose={handleClosePersonModal}
-        />
-      )}
-
-      {/* Relationship Detail Modal */}
-      {selectedRelationship && (
-        <RelationshipDetailModal
-          relationship={selectedRelationship}
-          nodes={graph.nodes}
-          isOpen={!!selectedRelationship}
-          onClose={handleCloseRelationshipModal}
-        />
-      )}
     </div>
   );
 }

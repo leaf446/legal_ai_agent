@@ -141,8 +141,8 @@ export default function RelationshipClient({ caseId }: RelationshipClientProps) 
 
         {/* Legend Panel */}
         {graph && graph.nodes.length > 0 && (
-          <aside className="w-64 border-l bg-white overflow-y-auto">
-            <RelationshipLegend graph={graph} />
+          <aside className="w-64 border-l bg-white overflow-y-auto p-4">
+            <RelationshipLegend />
           </aside>
         )}
       </main>

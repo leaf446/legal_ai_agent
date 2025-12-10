@@ -1,152 +1,125 @@
 /**
- * Relationship Visualization Types
- * Matches backend ai_worker PersonExtractor and RelationshipInferrer
+ * Relationship Graph Types
+ * 인물 관계도 시각화를 위한 타입 정의
  */
 
-// Person Role enum (matches backend PersonRole)
-export type PersonRole =
-  | 'plaintiff'
-  | 'defendant'
-  | 'child'
-  | 'plaintiff_parent'
-  | 'defendant_parent'
-  | 'relative'
-  | 'friend'
-  | 'colleague'
-  | 'third_party'
-  | 'witness'
-  | 'unknown';
+/**
+ * 인물 역할 (당사자 구분)
+ */
+export enum PersonRole {
+  PLAINTIFF = 'plaintiff',     // 원고
+  DEFENDANT = 'defendant',     // 피고
+  CHILD = 'child',             // 자녀
+  THIRD_PARTY = 'third_party', // 제3자 (외도 상대 등)
+  UNKNOWN = 'unknown',         // 미상
+}
 
-// Person Side enum (matches backend PersonSide)
-export type PersonSide = 'plaintiff_side' | 'defendant_side' | 'neutral' | 'unknown';
+/**
+ * 관계 유형
+ */
+export enum RelationshipType {
+  SPOUSE = 'spouse',   // 배우자
+  AFFAIR = 'affair',   // 외도 관계
+  PARENT = 'parent',   // 부모
+  CHILD = 'child',     // 자녀
+  SIBLING = 'sibling', // 형제/자매
+}
 
-// Relationship Type enum (matches backend RelationshipType)
-export type RelationshipType =
-  | 'spouse'
-  | 'ex_spouse'
-  | 'parent'
-  | 'child'
-  | 'sibling'
-  | 'in_law'
-  | 'relative'
-  | 'friend'
-  | 'colleague'
-  | 'affair'
-  | 'acquaintance'
-  | 'unknown';
-
-// Person Node from API
+/**
+ * 인물 노드 (React Flow 노드 데이터)
+ */
 export interface PersonNode {
+  /** 고유 ID (예: "person-0") */
   id: string;
+  /** 인물 이름 */
   name: string;
+  /** 역할 (원고/피고/자녀 등) */
   role: PersonRole;
-  side: PersonSide;
+  /** 소속 측 (원고측/피고측/제3자) */
+  side: 'plaintiff' | 'defendant' | 'third_party';
+  /** 노드 색상 (hex) */
   color: string;
+  /** 별칭 목록 (선택) */
+  aliases?: string[];
 }
 
-// Relationship Edge from API
+/**
+ * 관계 방향 유형
+ */
+export type RelationshipDirection = 'bidirectional' | 'a_to_b' | 'b_to_a';
+
+/**
+ * 관계 엣지 (React Flow 엣지 데이터)
+ */
 export interface RelationshipEdge {
+  /** 시작 노드 ID */
   source: string;
+  /** 종료 노드 ID */
   target: string;
+  /** 관계 유형 */
   relationship: RelationshipType;
+  /** 관계 라벨 (한글) */
   label: string;
-  direction: 'a_to_b' | 'b_to_a' | 'bidirectional';
+  /** 신뢰도 (0-1) */
   confidence: number;
-  color: string;
-  evidence: string;
+  /** 근거 증거 (선택) */
+  evidence?: string;
+  /** 관계 방향 (선택, 009 호환) */
+  direction?: RelationshipDirection;
+  /** 엣지 색상 (선택, 009 호환) */
+  color?: string;
 }
 
-// Relationship Graph from API
+/**
+ * 관계도 그래프 (API 응답 형식)
+ */
 export interface RelationshipGraph {
+  /** 인물 노드 목록 */
   nodes: PersonNode[];
+  /** 관계 엣지 목록 */
   edges: RelationshipEdge[];
 }
 
-// API Response wrapper
-export interface RelationshipAnalysisResponse {
-  status: string;
-  input_length: number;
-  result: RelationshipGraph;
-}
-
-// React Flow Node Data
-export interface PersonNodeData {
-  label: string;
-  role: PersonRole;
-  side: PersonSide;
-  color: string;
-  originalNode: PersonNode;
-}
-
-// React Flow Edge Data
-export interface RelationshipEdgeData {
-  label: string;
-  relationship: RelationshipType;
-  direction: string;
-  confidence: number;
-  color: string;
-  evidence: string;
-  originalEdge: RelationshipEdge;
-}
-
-// Korean labels for roles
-export const ROLE_LABELS: Record<PersonRole, string> = {
-  plaintiff: '원고',
-  defendant: '피고',
-  child: '자녀',
-  plaintiff_parent: '원고 부모',
-  defendant_parent: '피고 부모',
-  relative: '친척',
-  friend: '친구',
-  colleague: '동료',
-  third_party: '제3자',
-  witness: '증인',
-  unknown: '미상',
-};
-
-// Korean labels for relationships
-export const RELATIONSHIP_LABELS: Record<RelationshipType, string> = {
-  spouse: '배우자',
-  ex_spouse: '전 배우자',
-  parent: '부모',
-  child: '자녀',
-  sibling: '형제자매',
-  in_law: '시/처가',
-  relative: '친척',
-  friend: '친구',
-  colleague: '직장동료',
-  affair: '외도 상대',
-  acquaintance: '지인',
-  unknown: '미상',
-};
-
-// Node colors by role
+/**
+ * 역할별 색상 매핑
+ */
 export const ROLE_COLORS: Record<PersonRole, string> = {
-  plaintiff: '#4CAF50',
-  defendant: '#F44336',
-  child: '#2196F3',
-  plaintiff_parent: '#66BB6A',
-  defendant_parent: '#EF5350',
-  relative: '#FF9800',
-  friend: '#03A9F4',
-  colleague: '#00BCD4',
-  third_party: '#E91E63',
-  witness: '#9C27B0',
-  unknown: '#9E9E9E',
+  [PersonRole.PLAINTIFF]: '#4CAF50',   // 초록
+  [PersonRole.DEFENDANT]: '#F44336',   // 빨강
+  [PersonRole.CHILD]: '#2196F3',       // 파랑
+  [PersonRole.THIRD_PARTY]: '#E91E63', // 핑크
+  [PersonRole.UNKNOWN]: '#9E9E9E',     // 회색
 };
 
-// Edge colors by relationship type
+/**
+ * 관계별 색상 매핑
+ */
 export const RELATIONSHIP_COLORS: Record<RelationshipType, string> = {
-  spouse: '#2196F3',
-  ex_spouse: '#9E9E9E',
-  parent: '#4CAF50',
-  child: '#4CAF50',
-  sibling: '#8BC34A',
-  in_law: '#FF9800',
-  relative: '#FF9800',
-  friend: '#03A9F4',
-  colleague: '#00BCD4',
-  affair: '#E91E63',
-  acquaintance: '#607D8B',
-  unknown: '#9E9E9E',
+  [RelationshipType.SPOUSE]: '#2196F3',  // 파랑
+  [RelationshipType.AFFAIR]: '#E91E63',  // 핑크
+  [RelationshipType.PARENT]: '#4CAF50',  // 초록
+  [RelationshipType.CHILD]: '#4CAF50',   // 초록
+  [RelationshipType.SIBLING]: '#FF9800', // 주황
+};
+
+/**
+ * 역할 한글 라벨
+ */
+export const ROLE_LABELS: Record<PersonRole, string> = {
+  [PersonRole.PLAINTIFF]: '원고',
+  [PersonRole.DEFENDANT]: '피고',
+  [PersonRole.CHILD]: '자녀',
+  [PersonRole.THIRD_PARTY]: '제3자',
+  [PersonRole.UNKNOWN]: '미상',
+};
+
+/**
+ * 관계 한글 라벨
+ */
+export const RELATIONSHIP_LABELS: Record<RelationshipType, string> = {
+  [RelationshipType.SPOUSE]: '배우자',
+  [RelationshipType.AFFAIR]: '외도 상대',
+  [RelationshipType.PARENT]: '부모',
+  [RelationshipType.CHILD]: '자녀',
+  [RelationshipType.SIBLING]: '형제/자매',
 };

@@ -1,15 +1,14 @@
 'use client';
 
-/**
- * RelationshipEdge Component
- * Custom React Flow edge for displaying relationships
- */
+import { BaseEdge, EdgeLabelRenderer, EdgeProps, getBezierPath } from 'reactflow';
+import { RelationshipType, RELATIONSHIP_COLORS, RELATIONSHIP_LABELS } from '@/types/relationship';
 
-import { memo } from 'react';
-import { EdgeProps, getBezierPath, EdgeLabelRenderer } from 'reactflow';
-import { RelationshipEdgeData } from '@/types/relationship';
+interface RelationshipEdgeData {
+  relationship: RelationshipType;
+  confidence?: number; // 0-1
+}
 
-function RelationshipEdgeComponent({
+export default function RelationshipEdge({
   id,
   sourceX,
   sourceY,
@@ -17,9 +16,9 @@ function RelationshipEdgeComponent({
   targetY,
   sourcePosition,
   targetPosition,
+  style = {},
+  markerEnd,
   data,
-  style,
-  selected,
 }: EdgeProps<RelationshipEdgeData>) {
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -30,62 +29,51 @@ function RelationshipEdgeComponent({
     targetPosition,
   });
 
-  // Show confidence percentage if less than 100%
-  const confidenceText = data && data.confidence < 1
-    ? ` (${Math.round(data.confidence * 100)}%)`
-    : '';
+  const confidence = data?.confidence ?? 1;
+  const isUncertain = confidence < 1.0;
+  
+  const relationshipType = data?.relationship as RelationshipType;
+  const strokeColor = RELATIONSHIP_COLORS[relationshipType] || '#CBD5E1'; // Default: neutral-300
+
+  // Dynamic Styles based on relationship
+  const edgeStyle = {
+    ...style,
+    stroke: strokeColor,
+    strokeWidth: 2,
+    strokeDasharray: isUncertain ? '5, 5' : undefined,
+    opacity: isUncertain ? 0.7 : 1,
+  };
+
+  const label = RELATIONSHIP_LABELS[relationshipType] || '관계';
 
   return (
     <>
-      {/* Main edge path */}
-      <path
-        id={id}
-        className={`react-flow__edge-path transition-all duration-200 ${
-          selected ? 'stroke-[3px]' : ''
-        }`}
-        d={edgePath}
-        style={{
-          ...style,
-          strokeWidth: selected ? 3 : 2,
-        }}
-        fill="none"
-      />
-
-      {/* Invisible wider path for easier selection */}
-      <path
-        d={edgePath}
-        fill="none"
-        strokeWidth={20}
-        stroke="transparent"
-        className="cursor-pointer"
-      />
-
-      {/* Edge Label */}
+      <BaseEdge path={edgePath} markerEnd={markerEnd} style={edgeStyle} />
       <EdgeLabelRenderer>
         <div
-          className={`
-            absolute px-2 py-1 rounded shadow-sm text-xs font-medium
-            pointer-events-auto cursor-pointer select-none
-            transition-all duration-200
-            ${selected
-              ? 'bg-white border-2 scale-110 z-10'
-              : 'bg-white/90 border hover:bg-white hover:scale-105'
-            }
-          `}
           style={{
-            transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-            borderColor: data?.color || '#9E9E9E',
-            color: data?.color || '#666',
+            position: 'absolute',
+            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+            pointerEvents: 'all',
           }}
+          className="group"
         >
-          {data?.label || '관계'}
-          <span className="text-neutral-400 ml-0.5">
-            {confidenceText}
-          </span>
+          <div 
+            className={`
+              px-2.5 py-1 rounded-full bg-white border shadow-sm text-xs font-medium
+              transition-all duration-200 hover:scale-110 hover:shadow-md cursor-pointer
+              ${isUncertain ? 'border-neutral-300 text-neutral-500' : 'border-neutral-200 text-neutral-700'}
+            `}
+            style={{ 
+              borderColor: isUncertain ? undefined : strokeColor,
+              color: isUncertain ? undefined : strokeColor
+            }}
+          >
+            {label}
+            {isUncertain && <span className="ml-1 text-[10px] text-neutral-400">?</span>}
+          </div>
         </div>
       </EdgeLabelRenderer>
     </>
   );
 }
-
-export default memo(RelationshipEdgeComponent);

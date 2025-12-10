@@ -1,145 +1,84 @@
 'use client';
 
-/**
- * RelationshipLegend Component
- * Displays legend for node colors and edge types
- */
-
-import { useMemo } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
+import { Info } from 'lucide-react';
 import {
-  RelationshipGraph,
+  ROLE_COLORS,
+  ROLE_LABELS,
+  RELATIONSHIP_COLORS,
+  RELATIONSHIP_LABELS,
   PersonRole,
   RelationshipType,
-  ROLE_LABELS,
-  RELATIONSHIP_LABELS,
-  ROLE_COLORS,
-  RELATIONSHIP_COLORS,
 } from '@/types/relationship';
 
-interface RelationshipLegendProps {
-  graph: RelationshipGraph;
-}
+export default function RelationshipLegend() {
+  const [isOpen, setIsOpen] = useState(false);
 
-export default function RelationshipLegend({ graph }: RelationshipLegendProps) {
-  const [showNodes, setShowNodes] = useState(true);
-  const [showEdges, setShowEdges] = useState(true);
-
-  // Extract unique roles from nodes
-  const uniqueRoles = useMemo(() => {
-    const roles = new Set<PersonRole>();
-    graph.nodes.forEach((node) => roles.add(node.role));
-    return Array.from(roles);
-  }, [graph.nodes]);
-
-  // Extract unique relationship types from edges
-  const uniqueRelationships = useMemo(() => {
-    const types = new Set<RelationshipType>();
-    graph.edges.forEach((edge) => types.add(edge.relationship));
-    return Array.from(types);
-  }, [graph.edges]);
+  const roleEntries = Object.entries(ROLE_LABELS) as [PersonRole, string][];
+  const relationshipEntries = Object.entries(RELATIONSHIP_LABELS) as [
+    RelationshipType,
+    string
+  ][];
 
   return (
-    <div className="p-4 space-y-4">
-      <h2 className="font-bold text-neutral-900">범례</h2>
+    <div className="relative">
+      {/* Toggle Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+      >
+        <Info className="w-4 h-4 mr-1" />
+        범례
+      </button>
 
-      {/* Node Legend */}
-      <div>
-        <button
-          onClick={() => setShowNodes(!showNodes)}
-          className="flex items-center justify-between w-full text-sm font-medium text-neutral-700 hover:text-neutral-900"
-        >
-          <span>인물 ({graph.nodes.length}명)</span>
-          {showNodes ? (
-            <ChevronUp className="w-4 h-4" />
-          ) : (
-            <ChevronDown className="w-4 h-4" />
-          )}
-        </button>
-
-        {showNodes && (
-          <div className="mt-2 space-y-2">
-            {uniqueRoles.map((role) => (
-              <div key={role} className="flex items-center gap-2">
-                <div
-                  className="w-4 h-4 rounded-full"
-                  style={{ backgroundColor: ROLE_COLORS[role] }}
-                />
-                <span className="text-sm text-neutral-600">
-                  {ROLE_LABELS[role]}
-                </span>
-                <span className="text-xs text-neutral-400">
-                  ({graph.nodes.filter((n) => n.role === role).length})
-                </span>
-              </div>
-            ))}
+      {/* Legend Panel */}
+      {isOpen && (
+        <div className="absolute right-0 top-8 z-50 bg-white rounded-lg shadow-lg border border-gray-200 p-4 min-w-[200px]">
+          {/* 역할별 색상 */}
+          <div className="mb-4">
+            <h4 className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">
+              인물 역할
+            </h4>
+            <div className="space-y-1">
+              {roleEntries.map(([role, label]) => (
+                <div key={role} className="flex items-center space-x-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: ROLE_COLORS[role] }}
+                  />
+                  <span className="text-xs text-gray-600">{label}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* Edge Legend */}
-      <div>
-        <button
-          onClick={() => setShowEdges(!showEdges)}
-          className="flex items-center justify-between w-full text-sm font-medium text-neutral-700 hover:text-neutral-900"
-        >
-          <span>관계 ({graph.edges.length}개)</span>
-          {showEdges ? (
-            <ChevronUp className="w-4 h-4" />
-          ) : (
-            <ChevronDown className="w-4 h-4" />
-          )}
-        </button>
+          {/* 관계별 색상 */}
+          <div>
+            <h4 className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">
+              관계 유형
+            </h4>
+            <div className="space-y-1">
+              {relationshipEntries.map(([type, label]) => (
+                <div key={type} className="flex items-center space-x-2">
+                  <div
+                    className="w-6 h-0.5"
+                    style={{ backgroundColor: RELATIONSHIP_COLORS[type] }}
+                  />
+                  <span className="text-xs text-gray-600">{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
-        {showEdges && (
-          <div className="mt-2 space-y-2">
-            {uniqueRelationships.map((type) => (
-              <div key={type} className="flex items-center gap-2">
-                <div
-                  className="w-8 h-0.5"
-                  style={{ backgroundColor: RELATIONSHIP_COLORS[type] }}
-                />
-                <span className="text-sm text-neutral-600">
-                  {RELATIONSHIP_LABELS[type]}
-                </span>
-                <span className="text-xs text-neutral-400">
-                  ({graph.edges.filter((e) => e.relationship === type).length})
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Stats Summary */}
-      <div className="pt-4 border-t">
-        <h3 className="text-sm font-medium text-neutral-700 mb-2">요약</h3>
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          <div className="bg-neutral-50 rounded p-2 text-center">
-            <p className="text-2xl font-bold text-neutral-900">
-              {graph.nodes.length}
-            </p>
-            <p className="text-xs text-neutral-500">인물</p>
-          </div>
-          <div className="bg-neutral-50 rounded p-2 text-center">
-            <p className="text-2xl font-bold text-neutral-900">
-              {graph.edges.length}
-            </p>
-            <p className="text-xs text-neutral-500">관계</p>
-          </div>
+          {/* Close on outside click */}
+          <button
+            onClick={() => setIsOpen(false)}
+            className="mt-3 w-full text-xs text-gray-400 hover:text-gray-600 text-center"
+          >
+            닫기
+          </button>
         </div>
-      </div>
-
-      {/* Instructions */}
-      <div className="text-xs text-neutral-500 bg-neutral-50 rounded-lg p-3">
-        <p className="font-medium mb-1">사용법</p>
-        <ul className="space-y-1">
-          <li>• 노드를 드래그하여 위치 이동</li>
-          <li>• 마우스 휠로 확대/축소</li>
-          <li>• 노드/엣지 클릭 시 상세 정보</li>
-        </ul>
-      </div>
+      )}
     </div>
   );
 }
