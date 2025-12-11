@@ -9,11 +9,18 @@
  */
 
 import type { Metadata } from 'next';
+import { Toaster } from 'react-hot-toast';
 import './globals.css';
 import Footer from '@/components/common/Footer';
+import { AppProviders } from './providers';
+
+const APP_BASE_URL =
+  process.env.NEXT_PUBLIC_APP_BASE_URL ||
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  'https://legalevidence.hub';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://legalevidence.hub'),
+  metadataBase: new URL(APP_BASE_URL),
   title: 'Legal Evidence Hub - AI 이혼 소송 증거 분석 솔루션',
   description:
     'AI 기반 이혼 소송 증거 자동 분석 및 답변서 초안 생성 서비스. 증거 정리 시간 90% 단축, 14일 무료 체험.',
@@ -31,13 +38,13 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Legal Evidence Hub - AI 이혼 소송 증거 분석',
     description: '증거 정리 시간 90% 단축. AI가 이혼 소송 증거를 자동 분석하고 초안을 작성합니다.',
-    url: 'https://legalevidence.hub',
+    url: APP_BASE_URL,
     siteName: 'Legal Evidence Hub',
     locale: 'ko_KR',
     type: 'website',
     images: [
       {
-        url: '/images/og-image.png',
+        url: `${APP_BASE_URL}/images/og-image.png`,
         width: 1200,
         height: 630,
         alt: 'Legal Evidence Hub - AI 이혼 소송 증거 분석',
@@ -48,7 +55,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Legal Evidence Hub - AI 이혼 소송 증거 분석',
     description: '증거 정리 시간 90% 단축. AI가 이혼 소송 증거를 자동 분석하고 초안을 작성합니다.',
-    images: ['/images/twitter-image.png'],
+    images: [`${APP_BASE_URL}/images/twitter-image.png`],
   },
   robots: {
     index: true,
@@ -74,8 +81,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
       <head>
+        {/* Prevent FOUC by setting theme before React hydration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('leh-theme');
+                  var isDark = theme === 'dark' ||
+                    (theme === 'system' || !theme) &&
+                    window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  if (isDark) {
+                    document.documentElement.classList.add('dark');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
         {/* Structured Data - Organization */}
         <script
           type="application/ld+json"
@@ -85,8 +110,8 @@ export default function RootLayout({
               '@type': 'Organization',
               name: 'Legal Evidence Hub',
               alternateName: 'LEH',
-              url: 'https://legalevidence.hub',
-              logo: 'https://legalevidence.hub/logo.png',
+              url: APP_BASE_URL,
+              logo: `${APP_BASE_URL}/logo.png`,
               description:
                 'AI 기반 이혼 소송 증거 자동 분석 및 답변서 초안 생성 서비스',
               address: {
@@ -142,10 +167,36 @@ export default function RootLayout({
         />
       </head>
       <body className="font-pretendard antialiased">
-        <div className="flex flex-col min-h-screen">
-          <main className="flex-grow">{children}</main>
-          <Footer />
-        </div>
+        <AppProviders>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#363636',
+                color: '#fff',
+              },
+              success: {
+                duration: 3000,
+                iconTheme: {
+                  primary: '#22c55e',
+                  secondary: '#fff',
+                },
+              },
+              error: {
+                duration: 5000,
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#fff',
+                },
+              },
+            }}
+          />
+          <div className="flex flex-col min-h-screen">
+            <main className="flex-grow">{children}</main>
+            <Footer />
+          </div>
+        </AppProviders>
       </body>
     </html>
   );

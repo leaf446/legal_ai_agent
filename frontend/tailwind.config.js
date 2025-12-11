@@ -1,5 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  // Dark mode via class (controlled by ThemeProvider)
+  darkMode: 'class',
   content: [
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
@@ -41,6 +43,12 @@ module.exports = {
           active: 'var(--color-error-active)',
           light: 'var(--color-error-light)',
           contrast: 'var(--color-error-contrast)',
+        },
+        info: {
+          DEFAULT: 'var(--color-info)',
+          hover: 'var(--color-info-hover)',
+          light: 'var(--color-info-light)',
+          contrast: 'var(--color-info-contrast)',
         },
         neutral: {
           50: 'var(--color-neutral-50)',

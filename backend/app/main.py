@@ -30,7 +30,8 @@ from app.middleware import (  # noqa: E402
     register_exception_handlers,
     SecurityHeadersMiddleware,
     HTTPSRedirectMiddleware,
-    AuditLogMiddleware
+    AuditLogMiddleware,
+    LatencyLoggingMiddleware
 )
 
 
@@ -111,7 +112,7 @@ app = FastAPI(
 # 3. Audit Log Middleware (Must be before CORS to log all requests)
 # app.add_middleware(AuditLogMiddleware)
 
-# 4. CORS (Must be after security headers and audit log)
+# 5. CORS (Must be after security headers and audit log)
 # Note: For cross-origin cookie authentication, allow_credentials=True is required
 # API Gateway also has CORS config - they should match
 app.add_middleware(
@@ -181,21 +182,25 @@ async def health_check():
 # 인증 라우터
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 
-# 관리자 라우터
-app.include_router(admin.router, tags=["Admin"])
-
 # 사건 라우터
 app.include_router(cases.router, prefix="/cases", tags=["Cases"])
+
+# 재산분할 라우터 (US2 - Asset Division)
+app.include_router(assets.router, prefix="/cases/{case_id}/assets", tags=["Assets"])
+
+# 절차 단계 라우터 (US3 - Procedure Stage Tracking)
+app.include_router(procedure.router, tags=["Procedure"])
+app.include_router(procedure.deadlines_router, tags=["Procedure"])
 
 # 증거 라우터
 app.include_router(evidence.router, prefix="/evidence", tags=["Evidence"])
 
 # 초안 라우터 (케이스별 초안 CRUD)
-# Note: Nested under /cases/{case_id}/drafts for case-scoped operations
 app.include_router(drafts.router, prefix="/cases/{case_id}/drafts", tags=["Drafts"])
 
-# 변호사 포털 라우터 (003-role-based-ui Feature)
+# 변호사/스태프 포털 라우터
 app.include_router(lawyer_portal.router, prefix="/lawyer", tags=["Lawyer Portal"])
+app.include_router(staff_progress.router, tags=["Staff Progress"])
 
 # L-Demo 라우터 (AI 분석 테스트용)
 app.include_router(l_demo.router)

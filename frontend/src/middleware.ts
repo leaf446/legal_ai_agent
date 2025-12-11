@@ -53,11 +53,12 @@ const STATIC_PATTERNS = [
 ];
 
 // Role-to-portal mapping for access control
+// Note: admin can access ALL portals
 const PORTAL_ROLES: Record<string, UserRole[]> = {
   '/admin': ['admin'],
   '/lawyer': ['lawyer', 'staff', 'admin'],
-  '/client': ['client'],
-  '/detective': ['detective'],
+  '/client': ['client', 'admin'],
+  '/detective': ['detective', 'admin'],
 };
 
 /**
@@ -128,14 +129,6 @@ function getUserFromCookie(request: NextRequest): { role: UserRole } | null {
   return null;
 }
 
-/**
- * Check if user has valid auth token
- */
-function hasAuthToken(request: NextRequest): boolean {
-  const accessToken = request.cookies.get('access_token');
-  return !!accessToken?.value;
-}
-
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -149,7 +142,7 @@ export function middleware(request: NextRequest) {
     // If user is already logged in and tries to access login/signup, redirect to portal
     if (['/login', '/signup'].includes(pathname)) {
       const user = getUserFromCookie(request);
-      if (user && hasAuthToken(request)) {
+      if (user) {
         const portalPath = ROLE_PORTALS[user.role] || '/lawyer';
         return NextResponse.redirect(
           new URL(`${portalPath}/dashboard`, request.url)
@@ -160,14 +153,10 @@ export function middleware(request: NextRequest) {
   }
 
   // Check authentication for protected routes
-  if (!hasAuthToken(request)) {
-    // Redirect to login with return URL
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('returnUrl', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  // Get user data
+  // Note: access_token is HTTP-only and set on API domain (cross-origin),
+  // so we cannot read it in middleware. We rely on user_data cookie
+  // which is set by the frontend after successful login.
+  // The actual token validation happens on API calls.
   const user = getUserFromCookie(request);
   if (!user) {
     // No user data, redirect to login

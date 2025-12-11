@@ -1,10 +1,12 @@
 
 ### *REST API 명세서 (MVP)*
 
-**버전:** v2.0  
-**작성일:** 2025-11-18  
-**작성자:** Team H (Backend)  
+**버전:** v3.0
+**작성일:** 2025-12-09
+**작성자:** Team H (Backend)
 **관련 문서:** `PRD.md`, `ARCHITECTURE.md`, `BACKEND_DESIGN.md`, `AI_PIPELINE_DESIGN.md`, `FRONTEND_SPEC.md`
+
+> **v3.0 변경사항**: 007-lawyer-portal-v1 API 추가 (Party Graph, Evidence Links, Assets, Procedure Stages, Summary Card, Global Search, Calendar)
 
 ---
 
@@ -441,11 +443,11 @@ json
 
 # 🔍 6. RAG / 검색 API [MVP 이후]
 
-> ⚠️ **Note:** 이 섹션의 API는 MVP 이후 구현 예정입니다.
+> ✅ **Note:** 이 섹션의 API는 구현 완료되었습니다. (Updated: 2025-12-10)
 
 ## 6.1 사건 내 RAG 검색
 
-### `GET /cases/{case_id}/search` [미구현]
+### `GET /cases/{case_id}/search`
 
 - 설명: 사건별 증거를 기반으로 한 의미 검색 (Qdrant + 임베딩)
 
@@ -521,7 +523,461 @@ json
 
 ---
 
-# ✅ 9. 확장 포인트 (v2 이후)
+# 📊 8. Staff Progress Dashboard API
+
+## 8.1 진행 상황 요약 조회
+
+### `GET /staff/progress`
+
+- **권한**: `staff`, `lawyer`, `admin`
+- **설명**: Paralegal/Lawyer가 배정된 사건들의 증거 수집, AI 상태, 피드백 체크리스트를 한 번에 조회.
+- **쿼리 파라미터**:
+  - `blocked_only` (bool, optional) → true 시 `is_blocked=true` 인 케이스만 반환
+  - `assignee_id` (string, optional) → 관리자/변호사가 특정 스태프의 큐를 모니터링할 때 사용
+- **응답 (200)**
+
+```json
+[
+  {
+    "case_id": "case_001",
+    "title": "이혼 조정 사건",
+    "status": "open",
+    "assignee": { "id": "staff_17", "name": "Paralegal Kim" },
+    "updated_at": "2025-02-20T07:00:00Z",
+    "evidence_counts": {
+      "pending": 1,
+      "uploaded": 0,
+      "processing": 2,
+      "completed": 4,
+      "failed": 0
+    },
+    "ai_status": "processing",
+    "ai_last_updated": "2025-02-20T07:00:00Z",
+    "outstanding_feedback_count": 3,
+    "feedback_items": [
+      {
+        "item_id": "fbk-1",
+        "title": "판례 DB 연동",
+        "status": "done",
+        "owner": "Ops",
+        "notes": "12/4 동기화 완료",
+        "updated_by": "staff_17",
+        "updated_at": "2025-02-20T06:30:00Z"
+      }
+    ],
+    "is_blocked": false,
+    "blocked_reason": null
+  }
+]
+```
+
+> `feedback_items` 는 사양서(`specs/004-paralegal-progress/contracts/checklist.json`)에 정의된 16개 항목을 기본으로 전달하며, `status/notes/updated_at` 은 DB (case_checklist_statuses) 값이 있을 때 덮어쓴다.
+
+## 8.2 체크리스트 상태 갱신
+
+### `PATCH /staff/progress/{case_id}/checklist/{item_id}`
+
+- **권한**: `staff`, `lawyer`, `admin`
+- **설명**: 파라리걸이 mid-demo 피드백 항목을 완료/대기 상태로 토글하거나 메모를 남길 때 사용.
+- **요청 Body**
+
+```json
+{
+  "status": "done",
+  "notes": "판례 DB 최신화"
+}
+```
+
+- **검증**:
+  - `status` 는 `pending` 또는 `done` 만 허용
+  - `item_id` 는 16개 체크리스트 중 하나여야 함 → 존재하지 않으면 400
+
+- **응답 (200)**
+
+```json
+{
+  "item_id": "fbk-1",
+  "title": "판례 DB 연동",
+  "status": "done",
+  "owner": "Ops",
+  "notes": "판례 DB 최신화",
+  "updated_by": "staff_17",
+  "updated_at": "2025-02-21T02:10:00Z"
+}
+```
+
+오류 케이스:
+
+| Status | Code | 설명 |
+|--------|------|------|
+| 400 | `CHECKLIST_INVALID_STATUS` | 허용되지 않은 status 값 |
+| 400 | `CHECKLIST_ITEM_NOT_FOUND` | 잘못된 item_id |
+| 403 | `FORBIDDEN` | staff/lawyer/admin 이외의 역할 |
+
+---
+
+# 👥 9. Party Graph API (US1)
+
+당사자 관계도 시각화를 위한 API. 원고, 피고, 제3자 등의 당사자와 관계(혼인, 외도 등)를 관리.
+
+## 9.1 당사자 목록 조회
+
+### `GET /cases/{case_id}/parties`
+
+- **권한**: case_members (READ)
+- **설명**: 사건에 등록된 모든 당사자 노드 조회
+- **쿼리 파라미터**:
+  - `type` (optional): `plaintiff` | `defendant` | `third_party` | `child` | `family`
+- **응답 (200)**
+
+```json
+{
+  "items": [
+    {
+      "id": "party_001",
+      "case_id": "case_123",
+      "type": "plaintiff",
+      "name": "김철수",
+      "alias": "원고",
+      "birth_year": 1985,
+      "occupation": "회사원",
+      "position": { "x": 100, "y": 200 },
+      "created_at": "2025-01-15T10:00:00Z"
+    }
+  ],
+  "total": 3
+}
+```
+
+## 9.2 당사자 생성
+
+### `POST /cases/{case_id}/parties`
+
+- **권한**: case_members (WRITE)
+- **요청 Body**
+
+```json
+{
+  "type": "plaintiff",
+  "name": "김철수",
+  "alias": "원고",
+  "birth_year": 1985,
+  "occupation": "회사원",
+  "position": { "x": 100, "y": 200 }
+}
+```
+
+## 9.3 당사자 관계 목록
+
+### `GET /cases/{case_id}/relationships`
+
+- **응답 (200)**
+
+```json
+{
+  "items": [
+    {
+      "id": "rel_001",
+      "source_party_id": "party_001",
+      "target_party_id": "party_002",
+      "type": "marriage",
+      "start_date": "2010-05-20",
+      "end_date": null,
+      "notes": "2010년 혼인"
+    }
+  ]
+}
+```
+
+## 9.4 관계 생성
+
+### `POST /cases/{case_id}/relationships`
+
+- **type 값**: `marriage` | `affair` | `parent_child` | `sibling` | `in_law` | `cohabit`
+
+---
+
+# 📎 10. Evidence Links API (US4)
+
+증거와 당사자/관계 간의 연결 관리.
+
+## 10.1 증거 링크 목록
+
+### `GET /cases/{case_id}/evidence-links`
+
+- **쿼리 파라미터**:
+  - `party_id` (optional): 특정 당사자에 연결된 링크만
+  - `evidence_id` (optional): 특정 증거에 연결된 링크만
+- **응답 (200)**
+
+```json
+{
+  "items": [
+    {
+      "id": "link_001",
+      "evidence_id": "ev_001",
+      "party_id": "party_001",
+      "relationship_id": null,
+      "relevance": "primary",
+      "notes": "원고의 폭언 녹음",
+      "created_at": "2025-01-15T10:00:00Z"
+    }
+  ]
+}
+```
+
+## 10.2 증거 링크 생성
+
+### `POST /cases/{case_id}/evidence-links`
+
+- **relevance 값**: `primary` | `supporting` | `context`
+
+---
+
+# 💰 11. Assets API (US2)
+
+재산분할을 위한 자산 관리.
+
+## 11.1 자산 목록 조회
+
+### `GET /cases/{case_id}/assets`
+
+- **쿼리 파라미터**:
+  - `category` (optional): `real_estate` | `financial` | `vehicle` | `business` | `retirement` | `other`
+- **응답 (200)**
+
+```json
+{
+  "items": [
+    {
+      "id": "asset_001",
+      "name": "서울 아파트",
+      "category": "real_estate",
+      "value": 500000000,
+      "acquisition_date": "2015-03-20",
+      "ownership": "joint",
+      "plaintiff_share": 50,
+      "defendant_share": 50,
+      "notes": "혼인 후 공동 매입",
+      "evidence_ids": ["ev_001", "ev_002"]
+    }
+  ],
+  "total_value": 750000000,
+  "plaintiff_total": 375000000,
+  "defendant_total": 375000000
+}
+```
+
+## 11.2 자산 요약 조회
+
+### `GET /cases/{case_id}/assets/summary`
+
+- **응답 (200)**
+
+```json
+{
+  "total_value": 750000000,
+  "by_category": {
+    "real_estate": { "count": 1, "value": 500000000 },
+    "financial": { "count": 2, "value": 200000000 },
+    "vehicle": { "count": 1, "value": 50000000 }
+  },
+  "plaintiff_total": 375000000,
+  "defendant_total": 375000000,
+  "division_ratio": "50:50"
+}
+```
+
+---
+
+# 📋 12. Procedure Stages API (US3)
+
+이혼 소송 절차 단계 추적.
+
+## 12.1 절차 단계 목록
+
+### `GET /cases/{case_id}/procedure/stages`
+
+- **응답 (200)**
+
+```json
+{
+  "items": [
+    {
+      "id": "stage_001",
+      "stage_order": 1,
+      "label": "소장 접수",
+      "status": "completed",
+      "target_date": "2025-01-10",
+      "completed_date": "2025-01-08",
+      "notes": "법원 접수 완료"
+    },
+    {
+      "id": "stage_002",
+      "stage_order": 2,
+      "label": "송달",
+      "status": "in_progress",
+      "target_date": "2025-01-25",
+      "completed_date": null
+    }
+  ],
+  "current_stage": "송달",
+  "progress_percent": 33
+}
+```
+
+## 12.2 절차 단계 상태 업데이트
+
+### `PATCH /cases/{case_id}/procedure/stages/{stage_id}`
+
+- **요청 Body**
+
+```json
+{
+  "status": "completed",
+  "completed_date": "2025-01-20",
+  "notes": "피고 수령 확인"
+}
+```
+
+---
+
+# 📊 13. Summary Card API (US8)
+
+의뢰인 소통용 사건 진행 현황 요약 카드.
+
+## 13.1 요약 카드 조회
+
+### `GET /cases/{case_id}/summary`
+
+- **응답 (200)**
+
+```json
+{
+  "case_id": "case_123",
+  "case_title": "김○○ 이혼 사건",
+  "court_reference": "2024가합12345",
+  "client_name": "김민수",
+  "current_stage": "조정 절차 진행 중",
+  "progress_percent": 33,
+  "completed_stages": [
+    { "stage_label": "소장 접수", "completed_date": "2024-10-15T10:00:00Z" },
+    { "stage_label": "송달 완료", "completed_date": "2024-10-25T14:00:00Z" }
+  ],
+  "next_schedules": [
+    {
+      "event_type": "조정기일",
+      "scheduled_date": "2024-12-11T14:00:00Z",
+      "location": "서울가정법원 305호"
+    }
+  ],
+  "evidence_total": 12,
+  "evidence_stats": [
+    { "category": "부정행위 관련", "count": 8 },
+    { "category": "재산분할 관련", "count": 4 }
+  ],
+  "lawyer": {
+    "name": "홍길동",
+    "phone": "02-1234-5678",
+    "email": "hong@lawfirm.com"
+  },
+  "generated_at": "2024-12-09T10:00:00Z"
+}
+```
+
+## 13.2 요약 카드 PDF 다운로드
+
+### `GET /cases/{case_id}/summary/pdf`
+
+- **응답**: HTML (print-ready format)
+- **Content-Type**: `text/html`
+
+---
+
+# 🔍 14. Global Search API (US6)
+
+전역 검색 및 명령 팔레트용 API.
+
+## 14.1 전역 검색
+
+### `GET /search`
+
+- **쿼리 파라미터**:
+  - `q`: 검색어 (필수)
+  - `category` (optional): `case` | `client` | `evidence` | `calendar`
+  - `limit` (optional): 기본 20
+- **응답 (200)**
+
+```json
+{
+  "items": [
+    {
+      "id": "case_001",
+      "type": "case",
+      "title": "김○○ 이혼 사건",
+      "subtitle": "2024가합12345",
+      "url": "/lawyer/cases/case_001"
+    }
+  ],
+  "total": 15
+}
+```
+
+---
+
+# 📅 15. Calendar API
+
+일정 관리 API.
+
+## 15.1 일정 목록 조회
+
+### `GET /calendar/events`
+
+- **쿼리 파라미터**:
+  - `start`: ISO 날짜 (필수)
+  - `end`: ISO 날짜 (필수)
+  - `case_id` (optional): 특정 사건 일정만
+- **응답 (200)**
+
+```json
+{
+  "items": [
+    {
+      "id": "evt_001",
+      "title": "조정기일",
+      "event_type": "hearing",
+      "start_time": "2025-01-15T14:00:00Z",
+      "end_time": "2025-01-15T16:00:00Z",
+      "case_id": "case_001",
+      "case_title": "김○○ 이혼 사건",
+      "location": "서울가정법원 305호",
+      "color": "#3B82F6"
+    }
+  ]
+}
+```
+
+## 15.2 일정 생성
+
+### `POST /calendar/events`
+
+- **요청 Body**
+
+```json
+{
+  "title": "조정기일",
+  "event_type": "hearing",
+  "start_time": "2025-01-15T14:00:00Z",
+  "end_time": "2025-01-15T16:00:00Z",
+  "case_id": "case_001",
+  "location": "서울가정법원 305호",
+  "notes": "준비서면 지참"
+}
+```
+
+---
+
+# ✅ 16. 확장 포인트 (v2 이후)
 
 - Draft 버전 관리 및 편집 이력 (`PUT /cases/{id}/draft`)
 - Opponent Claim 관리 API (상대방 주장 텍스트 + 증거 링크)

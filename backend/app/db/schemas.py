@@ -8,8 +8,26 @@ from typing import Optional, List
 from datetime import datetime
 from enum import Enum
 from app.db.models import (
-    UserRole, UserStatus, CaseStatus, CaseMemberRole,
-    CalendarEventType, InvestigationRecordType, InvoiceStatus
+    UserRole,
+    UserStatus,
+    CaseStatus,
+    CaseMemberRole,
+    CalendarEventType,
+    InvestigationRecordType,
+    InvoiceStatus,
+    PropertyType,
+    PropertyOwner,
+    ConfidenceLevel,
+    JobStatus,
+    JobType,
+    NotificationFrequency,
+    ProfileVisibility,
+    PartyType,
+    RelationshipType,
+    LinkType,
+    AssetCategory,
+    AssetOwnership,
+    AssetNature,
 )
 
 
@@ -255,6 +273,16 @@ class PresignedUrlResponse(BaseModel):
     s3_key: str
 
 
+class ExifMetadataInput(BaseModel):
+    """EXIF metadata input from client-side extraction"""
+    gps_latitude: Optional[float] = Field(None, description="GPS latitude in decimal degrees")
+    gps_longitude: Optional[float] = Field(None, description="GPS longitude in decimal degrees")
+    gps_altitude: Optional[float] = Field(None, description="GPS altitude in meters")
+    datetime_original: Optional[str] = Field(None, description="Original capture datetime (ISO format)")
+    camera_make: Optional[str] = Field(None, description="Camera manufacturer")
+    camera_model: Optional[str] = Field(None, description="Camera model")
+
+
 class UploadCompleteRequest(BaseModel):
     """Upload complete request schema"""
     case_id: str
@@ -262,6 +290,10 @@ class UploadCompleteRequest(BaseModel):
     s3_key: str
     file_size: int = 0  # File size in bytes
     note: Optional[str] = None
+    exif_metadata: Optional[ExifMetadataInput] = Field(
+        None,
+        description="EXIF metadata extracted from image on client side (for detective uploads)"
+    )
 
 
 class UploadCompleteResponse(BaseModel):
@@ -271,6 +303,7 @@ class UploadCompleteResponse(BaseModel):
     filename: str
     s3_key: str
     status: str  # pending (waiting for AI processing)
+    review_status: Optional[str] = None  # pending_review for client uploads, None for internal uploads
     created_at: datetime
 
 
@@ -291,6 +324,22 @@ class EvidenceListResponse(BaseModel):
     """Evidence list response wrapper (matches frontend expectation)"""
     evidence: list[EvidenceSummary]
     total: int
+
+
+class EvidenceReviewRequest(BaseModel):
+    """Evidence review request schema (for lawyer approval)"""
+    action: str = Field(..., pattern="^(approve|reject)$", description="Review action: approve or reject")
+    comment: Optional[str] = Field(None, max_length=500, description="Optional review comment")
+
+
+class EvidenceReviewResponse(BaseModel):
+    """Evidence review response schema"""
+    evidence_id: str
+    case_id: str
+    review_status: str  # approved, rejected
+    reviewed_by: str
+    reviewed_at: datetime
+    comment: Optional[str] = None
 
 
 class EvidenceDetail(BaseModel):
@@ -459,6 +508,9 @@ class AuditAction(str, Enum):
     GENERATE_DRAFT = "GENERATE_DRAFT"
     EXPORT_DRAFT = "EXPORT_DRAFT"
     UPDATE_DRAFT = "UPDATE_DRAFT"
+
+    # Security actions
+    ACCESS_DENIED = "ACCESS_DENIED"
 
 
 class AuditLogOut(BaseModel):
@@ -777,3 +829,512 @@ ROLE_PORTAL_CONFIG = {
         restricted_features=["admin", "billing", "draft", "clients"]
     )
 }
+
+
+# ============================================
+# Property Division Schemas (재산분할)
+# ============================================
+class PropertyCreate(BaseModel):
+    """Property creation request schema"""
+    property_type: PropertyType
+    description: Optional[str] = Field(None, max_length=255)
+    estimated_value: int = Field(..., ge=0, description="Estimated value in KRW")
+    owner: PropertyOwner = PropertyOwner.JOINT
+    is_premarital: bool = False
+    acquisition_date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+class PropertyUpdate(BaseModel):
+    """Property update request schema"""
+    property_type: Optional[PropertyType] = None
+    description: Optional[str] = Field(None, max_length=255)
+    estimated_value: Optional[int] = Field(None, ge=0)
+    owner: Optional[PropertyOwner] = None
+    is_premarital: Optional[bool] = None
+    acquisition_date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+class PropertyOut(BaseModel):
+    """Property output schema"""
+    id: str
+    case_id: str
+    property_type: PropertyType
+    description: Optional[str] = None
+    estimated_value: int
+    owner: PropertyOwner
+    is_premarital: bool
+    acquisition_date: Optional[datetime] = None
+    notes: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PropertyListResponse(BaseModel):
+    """Property list response schema"""
+    properties: List[PropertyOut]
+    total: int
+    total_assets: int = 0  # Sum of all positive values
+    total_debts: int = 0   # Sum of all debt values
+    net_value: int = 0     # Assets - Debts
+
+
+class PropertySummary(BaseModel):
+    """Property summary for dashboard"""
+    total_assets: int
+    total_debts: int
+    net_value: int
+    by_type: dict  # {property_type: total_value}
+    by_owner: dict  # {owner: total_value}
+
+
+# ============================================
+# Division Prediction Schemas (재산분할 예측)
+# ============================================
+class EvidenceImpact(BaseModel):
+    """Single evidence impact on division"""
+    evidence_id: str
+    evidence_type: str  # 'chat_log', 'photo', etc.
+    impact_type: str    # 'adultery', 'violence', etc.
+    impact_percent: float
+    direction: str      # 'plaintiff_favor', 'defendant_favor', 'neutral'
+    reason: str
+    confidence: float = 0.8
+
+
+class SimilarCase(BaseModel):
+    """Similar precedent case"""
+    case_ref: str       # e.g., "서울가정법원 2023드합1234"
+    similarity_score: float
+    division_ratio: str  # e.g., "60:40"
+    key_factors: List[str] = Field(default_factory=list)
+
+
+class DivisionPredictionOut(BaseModel):
+    """Division prediction output schema"""
+    id: str
+    case_id: str
+    total_property_value: int
+    total_debt_value: int
+    net_value: int
+    plaintiff_ratio: int  # 0-100
+    defendant_ratio: int  # 0-100
+    plaintiff_amount: int
+    defendant_amount: int
+    evidence_impacts: List[EvidenceImpact] = Field(default_factory=list)
+    similar_cases: List[SimilarCase] = Field(default_factory=list)
+    confidence_level: ConfidenceLevel
+    version: int
+    created_at: datetime
+    updated_at: datetime
+    disclaimer: str = "본 예측은 참고용이며 실제 판결과 다를 수 있습니다."
+
+    class Config:
+        from_attributes = True
+
+
+class DivisionPredictionRequest(BaseModel):
+    """Request to trigger new prediction calculation"""
+    force_recalculate: bool = False  # Force recalculation even if recent prediction exists
+
+
+# ============================================
+# Job Queue Schemas
+# ============================================
+class JobCreate(BaseModel):
+    """Job creation request schema"""
+    case_id: str
+    job_type: JobType
+    evidence_id: Optional[str] = None
+    parameters: Optional[dict] = None
+
+
+class JobOut(BaseModel):
+    """Job output schema"""
+    id: str
+    case_id: str
+    user_id: str
+    job_type: JobType
+    status: JobStatus
+    evidence_id: Optional[str] = None
+    progress: int = 0
+    retry_count: int = 0
+    max_retries: int = 3
+    created_at: datetime
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    error_message: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class JobDetail(BaseModel):
+    """Job detail schema with full data"""
+    id: str
+    case_id: str
+    user_id: str
+    job_type: JobType
+    status: JobStatus
+    evidence_id: Optional[str] = None
+    input_data: Optional[dict] = None
+    output_data: Optional[dict] = None
+    error_details: Optional[dict] = None
+    progress: int = 0
+    retry_count: int = 0
+    max_retries: int = 3
+    lambda_request_id: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class JobListResponse(BaseModel):
+    """Job list response schema"""
+    jobs: List[JobOut]
+    total: int
+
+
+class JobStatusUpdate(BaseModel):
+    """Job status update request (for callbacks)"""
+    status: JobStatus
+    output_data: Optional[dict] = None
+    error_details: Optional[dict] = None
+    lambda_request_id: Optional[str] = None
+
+
+class JobProgressUpdate(BaseModel):
+    """Job progress update request"""
+    progress: int = Field(..., ge=0, le=100)
+
+
+# ============================================
+# User Settings Schemas
+# ============================================
+class ProfileSettingsUpdate(BaseModel):
+    """Profile settings update request"""
+    display_name: Optional[str] = Field(None, max_length=100)
+    avatar_url: Optional[str] = Field(None, max_length=500)
+    timezone: Optional[str] = Field(None, max_length=50)
+    language: Optional[str] = Field(None, max_length=10)
+
+
+class NotificationSettingsUpdate(BaseModel):
+    """Notification settings update request"""
+    email_notifications: Optional[bool] = None
+    push_notifications: Optional[bool] = None
+    notification_frequency: Optional[NotificationFrequency] = None
+
+
+class PrivacySettingsUpdate(BaseModel):
+    """Privacy settings update request"""
+    profile_visibility: Optional[ProfileVisibility] = None
+
+
+class SecuritySettingsUpdate(BaseModel):
+    """Security settings update request"""
+    two_factor_enabled: Optional[bool] = None
+
+
+class ProfileSettingsOut(BaseModel):
+    """Profile settings output schema"""
+    display_name: Optional[str] = None
+    email: str
+    name: str
+    phone: Optional[str] = None
+    avatar_url: Optional[str] = None
+    timezone: str = "Asia/Seoul"
+    language: str = "ko"
+
+    class Config:
+        from_attributes = True
+
+
+class NotificationSettingsOut(BaseModel):
+    """Notification settings output schema"""
+    email_enabled: bool = True
+    push_enabled: bool = True
+    frequency: NotificationFrequency = NotificationFrequency.IMMEDIATE
+
+    class Config:
+        from_attributes = True
+
+
+class SecuritySettingsOut(BaseModel):
+    """Security settings output schema"""
+    two_factor_enabled: bool = False
+    last_password_change: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class UserSettingsResponse(BaseModel):
+    """Complete user settings response"""
+    profile: ProfileSettingsOut
+    notifications: NotificationSettingsOut
+    security: SecuritySettingsOut
+
+    class Config:
+        from_attributes = True
+
+
+class SettingsUpdateRequest(BaseModel):
+    """Combined settings update request"""
+    profile: Optional[ProfileSettingsUpdate] = None
+    notifications: Optional[NotificationSettingsUpdate] = None
+    privacy: Optional[PrivacySettingsUpdate] = None
+    security: Optional[SecuritySettingsUpdate] = None
+
+
+# ============================================
+# Party Graph Schemas (v1 Lawyer Portal)
+# ============================================
+class Position(BaseModel):
+    """Position schema for React Flow coordinates"""
+    x: float = 0
+    y: float = 0
+
+
+class PartyNodeCreate(BaseModel):
+    """Create party node request schema"""
+    type: PartyType
+    name: str = Field(..., min_length=1, max_length=100)
+    alias: Optional[str] = Field(None, max_length=50)
+    birth_year: Optional[int] = Field(None, ge=1900, le=2100)
+    occupation: Optional[str] = Field(None, max_length=100)
+    position: Position = Position()
+    extra_data: Optional[dict] = None
+
+
+class PartyNodeUpdate(BaseModel):
+    """Update party node request schema"""
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    alias: Optional[str] = Field(None, max_length=50)
+    birth_year: Optional[int] = Field(None, ge=1900, le=2100)
+    occupation: Optional[str] = Field(None, max_length=100)
+    position: Optional[Position] = None
+    extra_data: Optional[dict] = None
+
+
+class PartyNodeResponse(BaseModel):
+    """Party node response schema"""
+    id: str
+    case_id: str
+    type: PartyType
+    name: str
+    alias: Optional[str] = None
+    birth_year: Optional[int] = None
+    occupation: Optional[str] = None
+    position: Position
+    extra_data: Optional[dict] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class RelationshipCreate(BaseModel):
+    """Create relationship request schema"""
+    source_party_id: str
+    target_party_id: str
+    type: RelationshipType
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+class RelationshipUpdate(BaseModel):
+    """Update relationship request schema"""
+    type: Optional[RelationshipType] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+class RelationshipResponse(BaseModel):
+    """Relationship response schema"""
+    id: str
+    case_id: str
+    source_party_id: str
+    target_party_id: str
+    type: RelationshipType
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    notes: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PartyGraphResponse(BaseModel):
+    """Combined party graph data response"""
+    nodes: List[PartyNodeResponse]
+    relationships: List[RelationshipResponse]
+
+
+class EvidenceLinkCreate(BaseModel):
+    """Create evidence-party link request schema"""
+    evidence_id: str = Field(..., max_length=100)
+    party_id: Optional[str] = None
+    relationship_id: Optional[str] = None
+    link_type: LinkType = LinkType.MENTIONS
+
+
+class EvidenceLinkResponse(BaseModel):
+    """Evidence-party link response schema"""
+    id: str
+    case_id: str
+    evidence_id: str
+    party_id: Optional[str] = None
+    relationship_id: Optional[str] = None
+    link_type: LinkType
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class EvidenceLinksResponse(BaseModel):
+    """List of evidence links response"""
+    links: List[EvidenceLinkResponse]
+    total: int
+
+
+# ============================================
+# Asset Schemas (US2 - 재산분할표)
+# ============================================
+class AssetCreate(BaseModel):
+    """Asset creation schema"""
+    category: AssetCategory
+    ownership: AssetOwnership
+    name: str = Field(..., max_length=255)
+    current_value: int = Field(..., ge=0)
+    nature: Optional[AssetNature] = AssetNature.MARITAL
+    description: Optional[str] = None
+    acquisition_date: Optional[datetime] = None
+    acquisition_value: Optional[int] = None
+    valuation_date: Optional[datetime] = None
+    valuation_source: Optional[str] = Field(None, max_length=100)
+    division_ratio_plaintiff: Optional[int] = Field(50, ge=0, le=100)
+    division_ratio_defendant: Optional[int] = Field(50, ge=0, le=100)
+    proposed_allocation: Optional[AssetOwnership] = None
+    evidence_id: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class AssetUpdate(BaseModel):
+    """Asset update schema"""
+    category: Optional[AssetCategory] = None
+    ownership: Optional[AssetOwnership] = None
+    name: Optional[str] = Field(None, max_length=255)
+    current_value: Optional[int] = Field(None, ge=0)
+    nature: Optional[AssetNature] = None
+    description: Optional[str] = None
+    acquisition_date: Optional[datetime] = None
+    acquisition_value: Optional[int] = None
+    valuation_date: Optional[datetime] = None
+    valuation_source: Optional[str] = Field(None, max_length=100)
+    division_ratio_plaintiff: Optional[int] = Field(None, ge=0, le=100)
+    division_ratio_defendant: Optional[int] = Field(None, ge=0, le=100)
+    proposed_allocation: Optional[AssetOwnership] = None
+    evidence_id: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class AssetResponse(BaseModel):
+    """Asset response schema"""
+    id: str
+    case_id: str
+    category: AssetCategory
+    ownership: AssetOwnership
+    nature: Optional[AssetNature] = None
+    name: str
+    description: Optional[str] = None
+    current_value: int
+    acquisition_value: Optional[int] = None
+    acquisition_date: Optional[datetime] = None
+    valuation_date: Optional[datetime] = None
+    valuation_source: Optional[str] = None
+    division_ratio_plaintiff: Optional[int] = None
+    division_ratio_defendant: Optional[int] = None
+    proposed_allocation: Optional[AssetOwnership] = None
+    evidence_id: Optional[str] = None
+    notes: Optional[str] = None
+    created_by: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AssetListResponse(BaseModel):
+    """Asset list response with pagination"""
+    assets: List[AssetResponse]
+    total: int
+    page: int = 1
+    page_size: int = 20
+    total_pages: int = 1
+
+
+class DivisionCalculateRequest(BaseModel):
+    """Request to calculate property division"""
+    plaintiff_ratio: int = Field(50, ge=0, le=100)
+    defendant_ratio: int = Field(50, ge=0, le=100)
+    include_separate: bool = Field(False, description="Whether to include separate property in division")
+    notes: Optional[str] = Field(None, description="Additional notes for the calculation")
+
+
+class AssetCategorySummary(BaseModel):
+    """Summary for a single asset category"""
+    category: AssetCategory
+    total_value: int
+    count: int
+    plaintiff_value: int
+    defendant_value: int
+    joint_value: int
+
+
+class AssetSheetSummary(BaseModel):
+    """Complete asset sheet summary"""
+    division_summary: Optional["DivisionSummaryResponse"] = None
+    category_summaries: List[AssetCategorySummary]
+    total_assets: int
+
+
+class DivisionSummaryResponse(BaseModel):
+    """Division calculation summary response"""
+    total_marital_assets: int
+    total_separate_plaintiff: int = 0
+    total_separate_defendant: int = 0
+    total_debts: int
+    net_marital_value: int
+    plaintiff_share: int
+    defendant_share: int
+    settlement_amount: int
+    plaintiff_holdings: int
+    defendant_holdings: int
+    # Additional metadata
+    id: Optional[str] = None
+    case_id: Optional[str] = None
+    plaintiff_ratio: Optional[int] = None
+    defendant_ratio: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+
+# Rebuild models with forward references
+AssetSheetSummary.model_rebuild()

@@ -9,6 +9,9 @@
 .env
 .env.*
 !.env.example
+!.env.production
+!frontend/.env.production
+!.env.production
 *.pem
 *.key
 *.cert
@@ -69,6 +72,8 @@ ai_worker/workflows/local_debug/
 .env
 .env.*
 !.env.example
+!.env.production
+!frontend/.env.production
 # Distribution / Packaging
 build/
 dist/
@@ -168,7 +173,8 @@ docker-data/
 
 # Agent & Personal Configs
 .agent/
-.claude/
+.claude/*
+!.claude/commands/
 /CLAUDE.md
 
 # 개인 파일들 담아주세요
@@ -197,11 +203,14 @@ docker-data/
 # Personal CLAUDE.md (prevent accidental commits)
 /CLAUDE.md
 /claude.md
+AGENTS.md
 docs/guides/CLAUDE.md
 docs/guides/claude.md
 
 # Personal Claude configuration directory
-.claude/
+# Note: .claude/commands/ is tracked for speckit sharing
 .specify/
 .agent/
+# Note: .claude/commands/ is tracked for speckit sharing
+.specify/
 *.pdf

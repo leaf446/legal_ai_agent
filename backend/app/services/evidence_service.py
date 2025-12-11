@@ -13,13 +13,21 @@ from app.db.schemas import (
     UploadCompleteResponse,
     EvidenceSummary,
     EvidenceDetail,
+    EvidenceReviewResponse,
     Article840Tags,
     Article840Category
 )
 from app.repositories.case_repository import CaseRepository
 from app.repositories.case_member_repository import CaseMemberRepository
+from app.repositories.user_repository import UserRepository
+from app.db.models import UserRole
 from app.utils.s3 import generate_presigned_upload_url
-from app.utils.dynamo import get_evidence_by_case, get_evidence_by_id, put_evidence_metadata as save_evidence_metadata
+from app.utils.dynamo import (
+    get_evidence_by_case,
+    get_evidence_by_id,
+    put_evidence_metadata as save_evidence_metadata,
+    update_evidence_status
+)
 from app.utils.lambda_client import invoke_ai_worker
 from app.utils.evidence import generate_evidence_id, extract_filename_from_s3_key
 from app.core.config import settings
@@ -39,6 +47,7 @@ class EvidenceService:
         self.db = db
         self.case_repo = CaseRepository(db)
         self.member_repo = CaseMemberRepository(db)
+        self.user_repo = UserRepository(db)
 
     @staticmethod
     def _parse_article_840_tags(evidence_data: dict) -> Optional[Article840Tags]:
@@ -158,6 +167,14 @@ class EvidenceService:
         if not self.member_repo.has_access(request.case_id, user_id):
             raise PermissionError("You do not have access to this case")
 
+        # Determine review_status based on uploader role
+        uploader = self.user_repo.get_by_id(user_id)
+        if uploader and uploader.role == UserRole.CLIENT:
+            review_status = "pending_review"
+        else:
+            # Internal users (lawyer, staff, admin) auto-approve
+            review_status = "approved"
+
         # Extract filename from s3_key
         filename = extract_filename_from_s3_key(request.s3_key)
 
@@ -191,30 +208,68 @@ class EvidenceService:
             "size": request.file_size,  # File size in bytes
             "content_type": self._get_content_type(extension),
             "status": "pending",  # Waiting for AI Worker processing
+            "review_status": review_status,  # pending_review for client, approved for internal
             "created_at": created_at.isoformat(),
             "created_by": user_id,
             "note": request.note,
             "deleted": False
         }
 
+        # Store EXIF metadata if provided (for detective image uploads)
+        if request.exif_metadata:
+            exif_data = {}
+            if request.exif_metadata.gps_latitude is not None:
+                exif_data["gps_latitude"] = request.exif_metadata.gps_latitude
+            if request.exif_metadata.gps_longitude is not None:
+                exif_data["gps_longitude"] = request.exif_metadata.gps_longitude
+            if request.exif_metadata.gps_altitude is not None:
+                exif_data["gps_altitude"] = request.exif_metadata.gps_altitude
+            if request.exif_metadata.datetime_original:
+                exif_data["datetime_original"] = request.exif_metadata.datetime_original
+            if request.exif_metadata.camera_make:
+                exif_data["camera_make"] = request.exif_metadata.camera_make
+            if request.exif_metadata.camera_model:
+                exif_data["camera_model"] = request.exif_metadata.camera_model
+            if exif_data:
+                evidence_metadata["exif_metadata"] = exif_data
+                logger.info(f"EXIF metadata stored for evidence {evidence_id}: {list(exif_data.keys())}")
+
         # Save to DynamoDB
         save_evidence_metadata(evidence_metadata)
 
         # Trigger AI Worker Lambda for processing
-        invoke_result = invoke_ai_worker(
-            bucket=settings.S3_EVIDENCE_BUCKET,
-            s3_key=request.s3_key,
-            evidence_id=evidence_id,
-            case_id=request.case_id
-        )
-        logger.info(f"AI Worker invocation result: {invoke_result}")
+        try:
+            invoke_result = invoke_ai_worker(
+                bucket=settings.S3_EVIDENCE_BUCKET,
+                s3_key=request.s3_key,
+                evidence_id=evidence_id,
+                case_id=request.case_id
+            )
+            logger.info(f"AI Worker invocation result: {invoke_result}")
+            # Update status to processing if invocation succeeded
+            update_evidence_status(evidence_id, "processing")
+        except Exception as e:
+            # Mark as failed if AI Worker invocation fails
+            logger.error(f"AI Worker invocation failed for evidence {evidence_id}: {e}")
+            update_evidence_status(evidence_id, "failed", error_message=str(e))
+            # Still return success - the evidence record exists, just needs retry
+            return UploadCompleteResponse(
+                evidence_id=evidence_id,
+                case_id=request.case_id,
+                filename=filename,
+                s3_key=request.s3_key,
+                status="failed",
+                review_status=review_status,
+                created_at=created_at
+            )
 
         return UploadCompleteResponse(
             evidence_id=evidence_id,
             case_id=request.case_id,
             filename=filename,
             s3_key=request.s3_key,
-            status="pending",
+            status="processing",
+            review_status=review_status,
             created_at=created_at
         )
 
@@ -248,17 +303,16 @@ class EvidenceService:
             List of evidence summary
 
         Raises:
-            NotFoundError: Case not found
-            PermissionError: User does not have access to case
+            PermissionError: User does not have access (also for non-existent cases)
         """
-        # Check if case exists
+        # Check permission first to prevent information leakage
+        if not self.member_repo.has_access(case_id, user_id):
+            raise PermissionError("You do not have access to this case")
+
+        # Check if case exists (only after permission check)
         case = self.case_repo.get_by_id(case_id)
         if not case:
             raise NotFoundError("Case")
-
-        # Check if user has access to case
-        if not self.member_repo.has_access(case_id, user_id):
-            raise PermissionError("You do not have access to this case")
 
         # Get evidence metadata from DynamoDB
         evidence_list = get_evidence_by_case(case_id)
@@ -344,4 +398,181 @@ class EvidenceService:
             timestamp=datetime.fromisoformat(evidence["timestamp"]) if evidence.get("timestamp") else None,
             qdrant_id=evidence.get("qdrant_id"),
             article_840_tags=article_840_tags
+        )
+
+    def retry_processing(self, evidence_id: str, user_id: str) -> dict:
+        """
+        Retry processing for failed evidence
+
+        Args:
+            evidence_id: Evidence ID to retry
+            user_id: User ID requesting retry
+
+        Returns:
+            dict with status and message
+
+        Raises:
+            NotFoundError: Evidence not found
+            PermissionError: User does not have access
+            ValueError: Evidence not in failed state
+
+        State Machine:
+            FAILED → PROCESSING (on successful retry)
+        """
+        # Get evidence metadata from DynamoDB
+        evidence = get_evidence_by_id(evidence_id)
+        if not evidence:
+            raise NotFoundError("Evidence")
+
+        # Check if user has access to the case
+        case_id = evidence["case_id"]
+        if not self.member_repo.has_access(case_id, user_id):
+            raise PermissionError("You do not have access to this case")
+
+        # Only allow retry for failed evidence
+        current_status = evidence.get("status", "")
+        if current_status not in ["failed", "pending"]:
+            raise ValueError(f"Cannot retry evidence with status '{current_status}'. Only 'failed' or 'pending' evidence can be retried.")
+
+        # Get required fields
+        s3_key = evidence.get("s3_key")
+        if not s3_key:
+            raise ValueError("Evidence missing s3_key - cannot retry")
+
+        # Update status to processing
+        update_evidence_status(evidence_id, "processing", error_message=None)
+
+        # Re-invoke AI Worker
+        try:
+            invoke_result = invoke_ai_worker(
+                bucket=settings.S3_EVIDENCE_BUCKET,
+                s3_key=s3_key,
+                evidence_id=evidence_id,
+                case_id=case_id
+            )
+            logger.info(f"AI Worker retry invocation result for {evidence_id}: {invoke_result}")
+
+            return {
+                "success": True,
+                "message": "Evidence processing restarted",
+                "evidence_id": evidence_id,
+                "status": "processing"
+            }
+        except Exception as e:
+            # Mark as failed again
+            logger.error(f"AI Worker retry failed for evidence {evidence_id}: {e}")
+            update_evidence_status(evidence_id, "failed", error_message=str(e))
+
+            return {
+                "success": False,
+                "message": f"Retry failed: {str(e)}",
+                "evidence_id": evidence_id,
+                "status": "failed"
+            }
+
+    def get_evidence_status(self, evidence_id: str, user_id: str) -> dict:
+        """
+        Get current status of evidence
+
+        Args:
+            evidence_id: Evidence ID
+            user_id: User ID requesting status
+
+        Returns:
+            dict with status information
+
+        Raises:
+            NotFoundError: Evidence not found
+            PermissionError: User does not have access
+        """
+        evidence = get_evidence_by_id(evidence_id)
+        if not evidence:
+            raise NotFoundError("Evidence")
+
+        case_id = evidence["case_id"]
+        if not self.member_repo.has_access(case_id, user_id):
+            raise PermissionError("You do not have access to this case")
+
+        return {
+            "evidence_id": evidence_id,
+            "status": evidence.get("status", "unknown"),
+            "error_message": evidence.get("error_message"),
+            "updated_at": evidence.get("updated_at")
+        }
+
+    def review_evidence(
+        self,
+        case_id: str,
+        evidence_id: str,
+        reviewer_id: str,
+        action: str,
+        comment: Optional[str] = None
+    ) -> EvidenceReviewResponse:
+        """
+        Review client-uploaded evidence (approve or reject)
+
+        Args:
+            case_id: Case ID
+            evidence_id: Evidence ID
+            reviewer_id: ID of the reviewer (lawyer/admin)
+            action: "approve" or "reject"
+            comment: Optional review comment
+
+        Returns:
+            EvidenceReviewResponse with updated review status
+
+        Raises:
+            NotFoundError: Case or evidence not found
+            PermissionError: User doesn't have access to case
+            ValueError: Evidence is not in pending_review state
+        """
+        # Check if case exists
+        case = self.case_repo.get_by_id(case_id)
+        if not case:
+            raise NotFoundError("Case")
+
+        # Check if reviewer has access to case
+        if not self.member_repo.has_access(case_id, reviewer_id):
+            raise PermissionError("You do not have access to this case")
+
+        # Get evidence from DynamoDB
+        evidence = get_evidence_by_id(evidence_id)
+        if not evidence:
+            raise NotFoundError("Evidence")
+
+        # Verify evidence belongs to the case
+        if evidence.get("case_id") != case_id:
+            raise NotFoundError("Evidence not found in this case")
+
+        # Check if evidence is in pending_review state
+        current_review_status = evidence.get("review_status")
+        if current_review_status != "pending_review":
+            raise ValueError(f"Evidence cannot be reviewed. Current review_status: {current_review_status}")
+
+        # Determine new review_status
+        new_review_status = "approved" if action == "approve" else "rejected"
+        reviewed_at = datetime.utcnow()
+
+        # Update evidence in DynamoDB
+        additional_fields = {
+            "review_status": new_review_status,
+            "reviewed_by": reviewer_id,
+            "reviewed_at": reviewed_at.isoformat(),
+        }
+        if comment:
+            additional_fields["review_comment"] = comment
+
+        update_evidence_status(
+            evidence_id=evidence_id,
+            status=evidence.get("status", "pending"),  # Keep current processing status
+            additional_fields=additional_fields
+        )
+
+        return EvidenceReviewResponse(
+            evidence_id=evidence_id,
+            case_id=case_id,
+            review_status=new_review_status,
+            reviewed_by=reviewer_id,
+            reviewed_at=reviewed_at,
+            comment=comment
         )

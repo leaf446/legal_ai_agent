@@ -59,7 +59,7 @@ class VectorStore:
             url: Qdrant Cloud URL (기본값: 환경변수 QDRANT_URL)
             api_key: Qdrant API Key (기본값: 환경변수 QDRANT_API_KEY)
             collection_name: 기본 컬렉션명
-            vector_size: 벡터 차원 (기본값: 환경변수 VECTOR_SIZE 또는 1536)
+            vector_size: 벡터 차원 (기본값: QDRANT_VECTOR_SIZE 또는 legacy VECTOR_SIZE)
             persist_directory: Deprecated - ignored (was used for ChromaDB)
         """
         # Note: persist_directory is ignored - Qdrant Cloud handles persistence
@@ -72,8 +72,10 @@ class VectorStore:
 
         self.url = url or os.environ.get('QDRANT_URL')
         self.api_key = api_key or os.environ.get('QDRANT_API_KEY')
-        self.collection_name = collection_name
-        self.vector_size = vector_size or int(os.environ.get('VECTOR_SIZE', '1536'))
+        default_collection = os.environ.get('QDRANT_COLLECTION') or "leh_evidence"
+        self.collection_name = collection_name or default_collection
+        vector_env = os.environ.get('QDRANT_VECTOR_SIZE') or os.environ.get('VECTOR_SIZE', '1536')
+        self.vector_size = vector_size or int(vector_env)
 
         if not self.url:
             raise ValueError("QDRANT_URL is required")
@@ -543,7 +545,7 @@ class VectorStore:
 
         try:
             # Get all points for this case
-            results, _ = self.client.scroll(
+            scroll_result = self.client.scroll(
                 collection_name=collection,
                 scroll_filter=Filter(
                     must=[
@@ -556,6 +558,12 @@ class VectorStore:
                 limit=100,
                 with_payload=True
             )
+
+            # Handle scroll result safely (Mock may return different types)
+            if isinstance(scroll_result, tuple) and len(scroll_result) >= 2:
+                results, _ = scroll_result
+            else:
+                results = scroll_result if scroll_result else []
 
             if not results:
                 return True
@@ -705,7 +713,7 @@ class VectorStore:
             offset = None
 
             while True:
-                points, offset = self.client.scroll(
+                scroll_result = self.client.scroll(
                     collection_name=collection,
                     scroll_filter=Filter(
                         must=[
@@ -719,6 +727,13 @@ class VectorStore:
                     offset=offset,
                     with_payload=True
                 )
+
+                # Handle scroll result safely (Mock may return different types)
+                if isinstance(scroll_result, tuple) and len(scroll_result) >= 2:
+                    points, offset = scroll_result
+                else:
+                    points = scroll_result if scroll_result else []
+                    offset = None
 
                 for point in points:
                     payload = point.payload or {}
