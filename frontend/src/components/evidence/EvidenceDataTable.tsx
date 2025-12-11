@@ -1,5 +1,4 @@
 /**
-import { logger } from '@/lib/logger';
  * Evidence DataTable Component
  * Shadcn/ui style with TanStack Table integration
  *
@@ -10,6 +9,7 @@ import { logger } from '@/lib/logger';
  */
 
 import { useState } from 'react';
+import { logger } from '@/lib/logger';
 import { flexRender } from '@tanstack/react-table';
 import { ArrowUpDown, MoreVertical, Filter, Sparkles, X, FileText, Loader2, RefreshCw } from 'lucide-react';
 import { Evidence } from '@/types/evidence';
@@ -181,7 +181,7 @@ export function EvidenceDataTable({ items, onRetry }: EvidenceDataTableProps) {
       await retryEvidence(evidenceId);
       onRetry?.(evidenceId);
     } catch (err) {
-      console.error('Failed to retry evidence:', err);
+      logger.error('Failed to retry evidence:', err);
     } finally {
       setRetryingIds((prev) => {
         const next = new Set(prev);
