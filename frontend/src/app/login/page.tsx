@@ -17,17 +17,19 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import LoginForm from '@/components/auth/LoginForm';
 import { useAuth } from '@/hooks/useAuth';
+import { getDashboardPath, UserRole } from '@/types/user';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   useEffect(() => {
     // Navigation Guard: Redirect if already authenticated
-    if (!isLoading && isAuthenticated) {
-      router.push('/cases');
+    if (!isLoading && isAuthenticated && user) {
+      const dashboardPath = getDashboardPath(user.role as UserRole);
+      router.push(dashboardPath);
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, router, user]);
 
   // Show loading while checking auth
   if (isLoading) {
