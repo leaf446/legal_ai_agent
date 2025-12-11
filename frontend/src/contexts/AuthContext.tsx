@@ -45,7 +45,7 @@ interface AuthProviderProps {
 }
 
 const USER_CACHE_KEY = 'userCache';
-
+const ACCESS_TOKEN_KEY = 'accessToken';
 const JUST_LOGGED_IN_KEY = 'justLoggedIn';
 
 export function AuthProvider({ children }: AuthProviderProps) {
@@ -164,6 +164,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           // Set flag to prevent checkAuth race condition after redirect
           sessionStorage.setItem(JUST_LOGGED_IN_KEY, 'true');
           localStorage.setItem(USER_CACHE_KEY, JSON.stringify(userData));
+          // Store access token for Authorization header (cross-origin support)
+          if (response.data.access_token) {
+            localStorage.setItem(ACCESS_TOKEN_KEY, response.data.access_token);
+          }
 
           // Set user_data cookie for middleware
           const userDisplayData = {
