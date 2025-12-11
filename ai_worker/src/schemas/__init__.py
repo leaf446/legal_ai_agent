@@ -7,6 +7,8 @@ from .evidence_file import EvidenceFile, FileMetadata, ParsingStatus
 from .evidence_chunk import EvidenceChunk
 from .evidence_cluster import EvidenceCluster, ConnectionType, ClusterEvidence
 from .search_result import SearchResult, SearchResultItem
+from .processing_result import ProcessingStatus, ProcessingResult
+from .evidence_summary import Article840Relevance, SourceReference, EvidenceSummary
 from .ai_classification import (
     DivorceGround,
     EvidenceClassification,
@@ -52,4 +54,13 @@ __all__ = [
     # Search Result
     "SearchResult",
     "SearchResultItem",
+
+    # Processing Result (010)
+    "ProcessingStatus",
+    "ProcessingResult",
+
+    # Evidence Summary (010)
+    "Article840Relevance",
+    "SourceReference",
+    "EvidenceSummary",
 ]
