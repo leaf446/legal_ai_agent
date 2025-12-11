@@ -181,7 +181,7 @@ export function EvidenceDataTable({ items, onRetry }: EvidenceDataTableProps) {
       await retryEvidence(evidenceId);
       onRetry?.(evidenceId);
     } catch (err) {
-      logger.error('Failed to retry evidence:', err);
+      console.error('Failed to retry evidence:', err);
     } finally {
       setRetryingIds((prev) => {
         const next = new Set(prev);
