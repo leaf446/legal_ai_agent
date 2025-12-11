@@ -25,13 +25,9 @@ from mangum import Mangum  # noqa: E402 - AWS Lambda handler
 from app.core.config import settings  # noqa: E402
 
 # Import API routers
-from app.api import auth, admin, cases, evidence, drafts, lawyer_portal, l_demo  # noqa: E402
+from app.api import auth, cases, evidence, drafts, lawyer_portal, l_demo, assets, procedure, staff_progress  # noqa: E402
 from app.middleware import (  # noqa: E402
-    register_exception_handlers,
-    SecurityHeadersMiddleware,
-    HTTPSRedirectMiddleware,
-    AuditLogMiddleware,
-    LatencyLoggingMiddleware
+    register_exception_handlers
 )
 
 
