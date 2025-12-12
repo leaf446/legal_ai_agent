@@ -135,7 +135,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [checkAuth]);
 
   const login = useCallback(
-    async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    async (
+      email: string,
+      password: string
+    ): Promise<{ success: boolean; error?: string; role?: UserRole; redirectPath?: string }> => {
       try {
         const response = await apiLogin(email, password);
 
@@ -151,11 +154,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         // Store and set user (display info only)
         if (response.data.user) {
+          const userRole = response.data.user.role as UserRole;
           const userData: User = {
             id: response.data.user.id,
             email: response.data.user.email,
             name: response.data.user.name,
-            role: response.data.user.role as UserRole,
+            role: userRole,
             status: 'active', // Default status for newly logged in users
             created_at: new Date().toISOString(), // Will be updated on refresh
           };
@@ -177,9 +181,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
           };
           document.cookie = `user_data=${encodeURIComponent(JSON.stringify(userDisplayData))}; path=/; max-age=${7 * 24 * 60 * 60}`;
 
-          // Redirect based on role
-          const dashboardPath = getDashboardPath(response.data.user.role as UserRole);
-          router.push(dashboardPath);
+          return {
+            success: true,
+            role: userRole,
+            redirectPath: getDashboardPath(userRole),
+          };
         }
 
         return { success: true };
@@ -190,7 +196,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         };
       }
     },
-    [router]
+    []
   );
 
   const logout = useCallback(async () => {

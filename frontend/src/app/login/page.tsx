@@ -13,16 +13,18 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import LoginForm from '@/components/auth/LoginForm';
 import { useAuth } from '@/hooks/useAuth';
 import { getDashboardPath, UserRole } from '@/types/user';
+import LandingNav from '@/components/landing/LandingNav';
 
 export default function LoginPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading, user } = useAuth();
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     // Navigation Guard: Redirect if already authenticated
@@ -32,6 +34,15 @@ export default function LoginPage() {
       router.push(dashboardPath);
     }
   }, [isAuthenticated, isLoading, router, user]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Show loading while checking auth
   if (isLoading) {
@@ -48,31 +59,38 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-deep-trust-blue mb-2">
-            Legal Evidence Hub
-          </h1>
-          <p className="text-neutral-600">로그인하여 시작하세요</p>
-        </div>
+    <div className="min-h-screen bg-neutral-50">
+      <LandingNav isScrolled={isScrolled} />
 
-        <div className="bg-white p-8 rounded-lg shadow-md">
-          <LoginForm />
+      <main
+        id="main-content"
+        className="flex items-center justify-center px-4 pb-10 pt-6"
+      >
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-deep-trust-blue mb-2">
+              Legal Evidence Hub
+            </h1>
+            <p className="text-neutral-600">로그인하여 시작하세요</p>
+          </div>
 
-          <div className="mt-6 pt-6 border-t border-neutral-200 text-center">
-            <p className="text-neutral-600">
-              계정이 없으신가요?{' '}
-              <Link
-                href="/signup"
-                className="text-deep-trust-blue hover:underline font-medium"
-              >
-                회원가입
-              </Link>
-            </p>
+          <div className="bg-white p-8 rounded-lg shadow-md">
+            <LoginForm />
+
+            <div className="mt-6 pt-6 border-t border-neutral-200 text-center">
+              <p className="text-neutral-600">
+                계정이 없으신가요?{' '}
+                <Link
+                  href="/signup"
+                  className="text-deep-trust-blue hover:underline font-medium"
+                >
+                  회원가입
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
