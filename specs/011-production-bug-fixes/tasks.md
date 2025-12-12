@@ -69,10 +69,13 @@
 
 ### Frontend Fix (if race condition or middleware is the root cause)
 
-- [ ] T014 [US1] Harden race condition fix: ensure sessionStorage.setItem completes before router.push in frontend/src/contexts/AuthContext.tsx
-- [ ] T015 [US1] Verify user_data cookie is set synchronously after login in frontend/src/contexts/AuthContext.tsx
-- [ ] T016 [US1] Update middleware to properly detect authenticated user and redirect from /login in frontend/src/middleware.ts
-- [ ] T017 [US1] Ensure credentials: 'include' is set on all API calls in frontend/src/lib/api/client.ts
+> **N/A**: Root cause confirmed as **Backend Cookie Configuration** (T011-T013).
+> Frontend race condition fix already exists and works correctly.
+
+- [N/A] T014 [US1] ~~Harden race condition fix~~ - Already implemented correctly
+- [N/A] T015 [US1] ~~Verify user_data cookie~~ - Working as expected
+- [N/A] T016 [US1] ~~Update middleware~~ - Redirect logic correct
+- [N/A] T017 [US1] ~~Ensure credentials: 'include'~~ - Already set correctly
 
 ### Verification
 
@@ -111,6 +114,11 @@
 - [ ] T026 [P] Update spec.md status from Draft to Complete
 - [ ] T027 [P] Run quickstart.md validation steps and document results
 - [ ] T028 Create PR to merge 011-production-bug-fixes → dev
+  - **Pre-merge checklist**:
+    - [ ] Backend deployed with updated config.py
+    - [ ] Production env var `CORS_ALLOW_ORIGINS` includes `https://dpbf86zqulqfy.cloudfront.net`
+    - [ ] Production env var `APP_ENV=prod` (triggers cookie auto-config)
+    - [ ] T018-T021 manual verification passed
 
 ---
 
