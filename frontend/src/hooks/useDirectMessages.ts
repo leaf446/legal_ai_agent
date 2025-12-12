@@ -17,6 +17,7 @@ import {
 } from '@/lib/api/messages';
 import type {
   DirectMessage,
+  DirectMessageSummary,
   DirectMessageCreate,
   DirectMessageQueryParams,
 } from '@/types/message';
@@ -28,7 +29,7 @@ interface UseDirectMessagesOptions {
 }
 
 interface UseDirectMessagesReturn {
-  messages: DirectMessage[];
+  messages: DirectMessageSummary[];
   total: number;
   page: number;
   isLoading: boolean;
@@ -46,7 +47,7 @@ export function useDirectMessages(
 ): UseDirectMessagesReturn {
   const { folder = 'inbox', limit = 20, autoFetch = true } = options;
 
-  const [messages, setMessages] = useState<DirectMessage[]>([]);
+  const [messages, setMessages] = useState<DirectMessageSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);

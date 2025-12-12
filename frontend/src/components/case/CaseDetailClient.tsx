@@ -49,9 +49,11 @@ interface CaseDetailClientProps {
   id: string;
   /** Default return URL if not specified in query params */
   defaultReturnUrl?: string;
+  /** API base path for role-specific endpoints (e.g., '/lawyer') */
+  apiBasePath?: string;
 }
 
-export default function CaseDetailClient({ id, defaultReturnUrl = '/lawyer/cases' }: CaseDetailClientProps) {
+export default function CaseDetailClient({ id, defaultReturnUrl = '/lawyer/cases', apiBasePath = '/lawyer' }: CaseDetailClientProps) {
     // Issue #290: Support returnUrl for proper back navigation
     const searchParams = useSearchParams();
     const returnUrl = searchParams.get('returnUrl') || defaultReturnUrl;
@@ -115,7 +117,7 @@ export default function CaseDetailClient({ id, defaultReturnUrl = '/lawyer/cases
 
         const fetchCaseData = async () => {
             setIsLoadingCase(true);
-            const response = await getCase(caseId);
+            const response = await getCase(caseId, apiBasePath);
             if (response.data) {
                 setCaseData(response.data);
             }
@@ -123,7 +125,7 @@ export default function CaseDetailClient({ id, defaultReturnUrl = '/lawyer/cases
         };
 
         fetchCaseData();
-    }, [caseId]);
+    }, [caseId, apiBasePath]);
 
     // Auto-polling: silently check for status updates without full re-render
     useEffect(() => {

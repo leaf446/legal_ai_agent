@@ -64,9 +64,11 @@ export async function getCases(): Promise<ApiResponse<CaseListResponse>> {
 
 /**
  * Get a single case by ID
+ * @param caseId - Case ID
+ * @param basePath - Optional base path for role-specific endpoints (e.g., '/lawyer')
  */
-export async function getCase(caseId: string): Promise<ApiResponse<ApiCase>> {
-  return apiRequest<ApiCase>(`/cases/${caseId}`, {
+export async function getCase(caseId: string, basePath: string = ''): Promise<ApiResponse<ApiCase>> {
+  return apiRequest<ApiCase>(`${basePath}/cases/${caseId}`, {
     method: 'GET',
   });
 }

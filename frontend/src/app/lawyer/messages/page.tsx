@@ -15,7 +15,7 @@ import { DirectMessageView } from '@/components/lawyer/messages/DirectMessageVie
 import { ComposeMessage } from '@/components/lawyer/messages/ComposeMessage';
 import { useRole } from '@/hooks/useRole';
 import { useDirectMessages } from '@/hooks/useDirectMessages';
-import type { DirectMessage, DirectMessageCreate } from '@/types/message';
+import type { DirectMessage, DirectMessageSummary, DirectMessageCreate } from '@/types/message';
 
 type TabType = 'case' | 'direct';
 
@@ -32,6 +32,7 @@ function DirectMessagesSection({ userId }: { userId: string }) {
     send,
     remove,
     markAsRead,
+    fetchMessage,
     refetch,
   } = useDirectMessages({ folder });
 
@@ -43,11 +44,15 @@ function DirectMessagesSection({ userId }: { userId: string }) {
     setSelectedMessage(null);
   };
 
-  const handleSelectMessage = async (message: DirectMessage) => {
-    setSelectedMessage(message);
+  const handleSelectMessage = async (summary: DirectMessageSummary) => {
     setIsComposing(false);
-    if (!message.isRead && folder === 'inbox') {
-      await markAsRead(message.id);
+    // Fetch full message content
+    const fullMessage = await fetchMessage(summary.id);
+    if (fullMessage) {
+      setSelectedMessage(fullMessage);
+      if (!summary.isRead && folder === 'inbox') {
+        await markAsRead(summary.id);
+      }
     }
   };
 

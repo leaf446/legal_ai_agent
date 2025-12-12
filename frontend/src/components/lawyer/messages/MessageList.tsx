@@ -8,15 +8,15 @@
 'use client';
 
 import React from 'react';
-import type { DirectMessage } from '@/types/message';
+import type { DirectMessageSummary } from '@/types/message';
 
 interface MessageListProps {
-  messages: DirectMessage[];
+  messages: DirectMessageSummary[];
   selectedId?: string;
   isLoading?: boolean;
   folder: 'inbox' | 'sent';
   onFolderChange: (folder: 'inbox' | 'sent') => void;
-  onSelect: (message: DirectMessage) => void;
+  onSelect: (message: DirectMessageSummary) => void;
 }
 
 function formatDate(dateString: string): string {
@@ -120,7 +120,7 @@ export function MessageList({
                 {message.subject}
               </p>
               <p className="mt-0.5 line-clamp-1 text-xs text-gray-400">
-                {message.content}
+                {message.preview}
               </p>
               {!message.isRead && folder === 'inbox' && (
                 <span className="mt-1 inline-block h-2 w-2 rounded-full bg-blue-500" />

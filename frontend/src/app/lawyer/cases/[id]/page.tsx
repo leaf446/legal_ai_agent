@@ -8,5 +8,11 @@ interface PageProps {
 }
 
 export default function LawyerCaseDetailPage({ params }: PageProps) {
-  return <CaseDetailClient id={params.id} />;
+  return (
+    <CaseDetailClient
+      id={params.id}
+      apiBasePath="/lawyer"
+      defaultReturnUrl="/lawyer/cases"
+    />
+  );
 }

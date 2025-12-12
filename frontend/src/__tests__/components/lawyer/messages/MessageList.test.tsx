@@ -6,9 +6,9 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MessageList } from '@/components/lawyer/messages/MessageList';
-import type { DirectMessage } from '@/types/message';
+import type { DirectMessageSummary } from '@/types/message';
 
-const mockMessages: DirectMessage[] = [
+const mockMessages: DirectMessageSummary[] = [
   {
     id: '1',
     senderId: 'user-1',
@@ -16,7 +16,7 @@ const mockMessages: DirectMessage[] = [
     recipientId: 'user-2',
     recipientName: '김철수',
     subject: '케이스 관련 문의',
-    content: '안녕하세요, 케이스 진행 상황에 대해 문의드립니다.',
+    preview: '안녕하세요, 케이스 진행 상황에 대해 문의드립니다.',
     isRead: false,
     createdAt: new Date().toISOString(),
   },
@@ -27,10 +27,9 @@ const mockMessages: DirectMessage[] = [
     recipientId: 'user-2',
     recipientName: '김철수',
     subject: '미팅 일정',
-    content: '다음 주 미팅 일정 확인 부탁드립니다.',
+    preview: '다음 주 미팅 일정 확인 부탁드립니다.',
     isRead: true,
     createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-    readAt: new Date(Date.now() - 43200000).toISOString(),
   },
   {
     id: '3',
@@ -39,7 +38,7 @@ const mockMessages: DirectMessage[] = [
     recipientId: 'user-4',
     recipientName: '박민수',
     subject: '자료 요청',
-    content: '증거 자료 전달드립니다.',
+    preview: '증거 자료 전달드립니다.',
     isRead: true,
     createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
   },
@@ -196,7 +195,7 @@ describe('MessageList', () => {
     });
 
     it('does not show unread indicator in sent folder', () => {
-      const unreadSentMessage: DirectMessage = {
+      const unreadSentMessage: DirectMessageSummary = {
         ...mockMessages[0],
         isRead: false,
       };
@@ -217,7 +216,7 @@ describe('MessageList', () => {
 
   describe('Date Formatting', () => {
     it('shows time for messages from today', () => {
-      const todayMessage: DirectMessage = {
+      const todayMessage: DirectMessageSummary = {
         ...mockMessages[0],
         createdAt: new Date().toISOString(),
       };
@@ -231,7 +230,7 @@ describe('MessageList', () => {
     });
 
     it('shows "어제" for messages from yesterday', () => {
-      const yesterdayMessage: DirectMessage = {
+      const yesterdayMessage: DirectMessageSummary = {
         ...mockMessages[0],
         createdAt: new Date(Date.now() - 86400000).toISOString(),
       };
@@ -242,7 +241,7 @@ describe('MessageList', () => {
     });
 
     it('shows days ago for recent messages', () => {
-      const threeDaysAgo: DirectMessage = {
+      const threeDaysAgo: DirectMessageSummary = {
         ...mockMessages[0],
         createdAt: new Date(Date.now() - 3 * 86400000).toISOString(),
       };
