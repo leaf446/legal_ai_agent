@@ -125,6 +125,7 @@ function DirectMessagesSection({ userId }: { userId: string }) {
             message={selectedMessage}
             onReply={handleReply}
             onDelete={handleDelete}
+            onCompose={handleCompose}
             isDeleting={isDeleting}
           />
         )}

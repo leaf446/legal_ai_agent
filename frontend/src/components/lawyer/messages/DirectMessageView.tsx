@@ -14,6 +14,7 @@ interface DirectMessageViewProps {
   message: DirectMessage | null;
   onReply?: (data: DirectMessageCreate) => void;
   onDelete?: (messageId: string) => void;
+  onCompose?: () => void;
   isDeleting?: boolean;
 }
 
@@ -32,6 +33,7 @@ export function DirectMessageView({
   message,
   onReply,
   onDelete,
+  onCompose,
   isDeleting = false,
 }: DirectMessageViewProps) {
   const [isReplying, setIsReplying] = useState(false);
@@ -39,8 +41,36 @@ export function DirectMessageView({
 
   if (!message) {
     return (
-      <div className="flex h-full items-center justify-center bg-gray-50 text-gray-500">
-        메시지를 선택하세요
+      <div className="flex h-full flex-col items-center justify-center bg-gray-50 text-gray-500">
+        <svg
+          className="mb-4 h-16 w-16 text-gray-300"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+          />
+        </svg>
+        <p className="mb-4 text-lg font-medium text-gray-700">메시지를 선택하세요</p>
+        <p className="mb-6 text-sm text-gray-400">
+          왼쪽 목록에서 메시지를 선택하거나 새 메시지를 작성하세요
+        </p>
+        {onCompose && (
+          <button
+            type="button"
+            onClick={onCompose}
+            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            새 메시지 작성
+          </button>
+        )}
       </div>
     );
   }
