@@ -159,9 +159,9 @@ describe('Client Cases Page', () => {
     test('should render case cards as links', async () => {
       render(<ClientCasesPage />);
 
-      // Issue #288: Changed to canonical /cases path with returnUrl
+      // Reverted to role-specific paths (IA fix: /cases is now legacy redirect)
       await waitFor(() => {
-        const links = document.querySelectorAll('a[href^="/cases/"]');
+        const links = document.querySelectorAll('a[href^="/client/cases/"]');
         expect(links.length).toBe(3);
       });
     });
@@ -169,16 +169,16 @@ describe('Client Cases Page', () => {
     test('should link to correct case detail pages', async () => {
       render(<ClientCasesPage />);
 
-      // Issue #288: Changed to canonical /cases path with returnUrl
+      // Reverted to role-specific paths (IA fix: /cases is now legacy redirect)
       await waitFor(() => {
         expect(
-          document.querySelector('a[href="/cases/case-1?returnUrl=/client/cases"]')
+          document.querySelector('a[href="/client/cases/case-1"]')
         ).toBeInTheDocument();
         expect(
-          document.querySelector('a[href="/cases/case-2?returnUrl=/client/cases"]')
+          document.querySelector('a[href="/client/cases/case-2"]')
         ).toBeInTheDocument();
         expect(
-          document.querySelector('a[href="/cases/case-3?returnUrl=/client/cases"]')
+          document.querySelector('a[href="/client/cases/case-3"]')
         ).toBeInTheDocument();
       });
     });
