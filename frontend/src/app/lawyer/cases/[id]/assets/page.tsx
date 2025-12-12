@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * Case Assets Page
  * 009-calm-control-design-system
@@ -7,12 +5,20 @@
  * Asset division management for divorce cases.
  */
 
-import { useParams } from 'next/navigation';
 import CaseAssetsClient from './CaseAssetsClient';
 
-export default function CaseAssetsPage() {
-  const params = useParams();
-  const id = params?.id as string || '';
+// Allow dynamic routes not listed in generateStaticParams
+export const dynamicParams = true;
 
-  return <CaseAssetsClient caseId={id} />;
+// Pre-render placeholder routes for static export
+export function generateStaticParams() {
+  return [{ id: '1' }, { id: '2' }, { id: '3' }];
+}
+
+interface PageProps {
+  params: { id: string };
+}
+
+export default function CaseAssetsPage({ params }: PageProps) {
+  return <CaseAssetsClient caseId={params.id} />;
 }

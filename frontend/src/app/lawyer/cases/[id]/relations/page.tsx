@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * Case Relations Page
  * 009-calm-control-design-system
@@ -7,12 +5,20 @@
  * Displays the party relations graph for a case using React Flow.
  */
 
-import { useParams } from 'next/navigation';
 import CaseRelationsClient from './CaseRelationsClient';
 
-export default function CaseRelationsPage() {
-  const params = useParams();
-  const id = params?.id as string || '';
+// Allow dynamic routes not listed in generateStaticParams
+export const dynamicParams = true;
 
-  return <CaseRelationsClient caseId={id} />;
+// Pre-render placeholder routes for static export
+export function generateStaticParams() {
+  return [{ id: '1' }, { id: '2' }, { id: '3' }];
+}
+
+interface PageProps {
+  params: { id: string };
+}
+
+export default function CaseRelationsPage({ params }: PageProps) {
+  return <CaseRelationsClient caseId={params.id} />;
 }

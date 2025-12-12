@@ -1,18 +1,24 @@
-'use client';
-
 /**
- * Detective Investigation Detail Page - Client Component
+ * Detective Investigation Detail Page
  * 003-role-based-ui Feature - US5 (T103)
  *
- * Client component wrapper for static export with SPA fallback.
+ * Server component wrapper with static export support.
  */
 
-import { useParams } from 'next/navigation';
 import DetectiveCaseDetailClient from './DetectiveCaseDetailClient';
 
-export default function DetectiveCaseDetailPage() {
-  const params = useParams();
-  const id = params?.id as string || '';
+// Allow dynamic routes not listed in generateStaticParams
+export const dynamicParams = true;
 
-  return <DetectiveCaseDetailClient caseId={id} />;
+// Pre-render placeholder routes for static export
+export function generateStaticParams() {
+  return [{ id: '1' }, { id: '2' }, { id: '3' }];
+}
+
+interface PageProps {
+  params: { id: string };
+}
+
+export default function DetectiveCaseDetailPage({ params }: PageProps) {
+  return <DetectiveCaseDetailClient caseId={params.id} />;
 }

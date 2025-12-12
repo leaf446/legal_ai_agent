@@ -1,16 +1,22 @@
-'use client';
-
 /**
  * Relationship Visualization Page
  * Displays person relationship graph for a case
  */
 
-import { useParams } from 'next/navigation';
 import RelationshipClient from './RelationshipClient';
 
-export default function RelationshipPage() {
-  const params = useParams();
-  const id = params?.id as string || '';
+// Allow dynamic routes not listed in generateStaticParams
+export const dynamicParams = true;
 
-  return <RelationshipClient caseId={id} />;
+// Pre-render placeholder routes for static export
+export function generateStaticParams() {
+  return [{ id: '1' }, { id: '2' }, { id: '3' }];
+}
+
+interface PageProps {
+  params: { id: string };
+}
+
+export default function RelationshipPage({ params }: PageProps) {
+  return <RelationshipClient caseId={params.id} />;
 }

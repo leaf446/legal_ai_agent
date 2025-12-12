@@ -1,16 +1,22 @@
-'use client';
-
 /**
- * Procedure Page (Client Component wrapper)
+ * Procedure Page
  * T145 - US3: Procedure stage tracking page for a case
  */
 
-import { useParams } from 'next/navigation';
 import ProcedureClient from './ProcedureClient';
 
-export default function ProcedurePage() {
-  const params = useParams();
-  const id = params?.id as string || '';
+// Allow dynamic routes not listed in generateStaticParams
+export const dynamicParams = true;
 
-  return <ProcedureClient caseId={id} />;
+// Pre-render placeholder routes for static export
+export function generateStaticParams() {
+  return [{ id: '1' }, { id: '2' }, { id: '3' }];
+}
+
+interface PageProps {
+  params: { id: string };
+}
+
+export default function ProcedurePage({ params }: PageProps) {
+  return <ProcedureClient caseId={params.id} />;
 }
