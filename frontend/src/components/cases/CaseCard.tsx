@@ -8,11 +8,13 @@ import { deleteCase } from '@/lib/api/cases';
 
 interface CaseCardProps {
   caseData: Case;
+  /** Optional override for the destination URL when the card is clicked */
+  href?: string;
   onStatusChange?: (caseId: string, newStatus: 'open' | 'closed') => void;
   onDelete?: () => void;
 }
 
-export default function CaseCard({ caseData, onStatusChange, onDelete }: CaseCardProps) {
+export default function CaseCard({ caseData, href, onStatusChange, onDelete }: CaseCardProps) {
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -91,8 +93,10 @@ export default function CaseCard({ caseData, onStatusChange, onDelete }: CaseCar
     setShowDeleteConfirm(false);
   };
 
+  const resolvedHref = href ?? `/lawyer/cases/${caseData.id}`;
+
   return (
-    <Link href={`/cases/${caseData.id}`}>
+    <Link href={resolvedHref}>
       <div className="card p-6 h-full flex flex-col justify-between group cursor-pointer bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary" style={{ position: 'relative', zIndex: 1 }}>
 
         {/* Content wrapper */}

@@ -343,7 +343,7 @@ export default function LawyerCaseDetailClient({ id }: LawyerCaseDetailClientPro
                   </div>
                 ))}
                 <Link
-                  href={`/cases/${caseId}`}
+                  href={`/lawyer/cases/${caseId}`}
                   className="inline-flex items-center gap-2 text-[var(--color-primary)] hover:underline"
                 >
                   전체 증거 자료 보기
