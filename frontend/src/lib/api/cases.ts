@@ -134,3 +134,26 @@ export async function updateCase(
     body: JSON.stringify(data),
   });
 }
+
+// ================================
+// Case Members
+// ================================
+
+export interface CaseMember {
+  user_id: string;
+  name: string;
+  email: string;
+  permission: 'read' | 'read_write';
+  role: 'owner' | 'member' | 'viewer';
+}
+
+export interface CaseMembersResponse {
+  members: CaseMember[];
+  total: number;
+}
+
+export async function getCaseMembers(caseId: string): Promise<ApiResponse<CaseMembersResponse>> {
+  return apiRequest<CaseMembersResponse>(`/cases/${caseId}/members`, {
+    method: 'GET',
+  });
+}

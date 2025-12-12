@@ -7,10 +7,11 @@
 
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useBilling } from '@/hooks/useBilling';
 import { getLawyerCases, type CaseListItem } from '@/lib/api/lawyer';
 import { getClients } from '@/lib/api/clients';
+import { getCaseMembers } from '@/lib/api/cases';
 import InvoiceList from '@/components/lawyer/InvoiceList';
 import InvoiceForm from '@/components/lawyer/InvoiceForm';
 import type { Invoice, InvoiceStatus, InvoiceCreateRequest, InvoiceUpdateRequest } from '@/types/billing';
@@ -30,6 +31,9 @@ interface ClientOption {
   name: string;
   email?: string;
 }
+
+const CASES_PAGE_SIZE = 100;
+const CLIENTS_PAGE_SIZE = 100;
 
 export default function LawyerBillingPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -58,42 +62,87 @@ export default function LawyerBillingPage() {
   useEffect(() => {
     let isMounted = true;
 
+    const fetchAllCases = async (): Promise<CaseOption[]> => {
+      const collected: CaseListItem[] = [];
+      let page = 1;
+      let total = Infinity;
+
+      while (collected.length < total) {
+        const response = await getLawyerCases({
+          page,
+          limit: CASES_PAGE_SIZE,
+          sort_by: 'updated_at',
+        });
+
+        if (response.error || !response.data) {
+          throw new Error(response.error || '사건 목록을 불러오지 못했습니다.');
+        }
+
+        collected.push(...response.data.cases);
+        total = response.data.total;
+
+        if (response.data.cases.length < CASES_PAGE_SIZE) {
+          break;
+        }
+
+        page += 1;
+      }
+
+      return collected.map((caseItem) => ({
+        id: caseItem.id,
+        title: caseItem.title,
+        client_name: caseItem.client_name,
+      }));
+    };
+
+    const fetchAllClients = async (): Promise<ClientOption[]> => {
+      const clients: ClientOption[] = [];
+      let page = 1;
+      let totalPages = 1;
+
+      do {
+        const response = await getClients({
+          page,
+          page_size: CLIENTS_PAGE_SIZE,
+          status: 'active',
+        });
+
+        if (response.error || !response.data) {
+          throw new Error(response.error || '의뢰인 목록을 불러오지 못했습니다.');
+        }
+
+        clients.push(
+          ...response.data.items.map((client: ClientItem) => ({
+            id: client.id,
+            name: client.name,
+            email: client.email,
+          }))
+        );
+
+        totalPages = response.data.total_pages;
+        page += 1;
+      } while (page <= totalPages);
+
+      return clients;
+    };
+
     async function loadOptions() {
       setOptionsLoading(true);
       setOptionError(null);
 
       try {
-        const [casesResponse, clientsResponse] = await Promise.all([
-          getLawyerCases({ page: 1, limit: 100, sort_by: 'updated_at' }),
-          getClients({ page: 1, page_size: 100, status: 'active' }),
+        const [caseList, clientList] = await Promise.all([
+          fetchAllCases(),
+          fetchAllClients(),
         ]);
 
         if (!isMounted) return;
 
-        if (casesResponse.error || !casesResponse.data) {
-          setCaseOptions([]);
-          setOptionError('사건 목록을 불러오지 못했습니다.');
-        } else {
-          setCaseOptions(
-            casesResponse.data.cases.map((caseItem: CaseListItem) => ({
-              id: caseItem.id,
-              title: caseItem.title,
-              client_name: caseItem.client_name,
-            }))
-          );
-        }
+        setCaseOptions(caseList);
+        setClientOptions(clientList);
 
-        if (clientsResponse.error || !clientsResponse.data) {
-          setClientOptions([]);
-          setOptionError((prev) => prev || '의뢰인 목록을 불러오지 못했습니다.');
-        } else {
-          setClientOptions(
-            clientsResponse.data.items.map((client: ClientItem) => ({
-              id: client.id,
-              name: client.name,
-              email: client.email,
-            }))
-          );
+        if (caseList.length === 0) {
+          setOptionError('등록된 사건이 없습니다. 먼저 사건을 생성해 주세요.');
         }
       } catch (error) {
         if (!isMounted) return;
@@ -185,6 +234,37 @@ export default function LawyerBillingPage() {
     setEditingInvoice(null);
   }, []);
 
+  const clientMap = useMemo(() => {
+    const map = new Map<string, ClientOption>();
+    clientOptions.forEach((client) => {
+      map.set(client.id, client);
+    });
+    return map;
+  }, [clientOptions]);
+
+  const loadCaseClients = useCallback(
+    async (caseId: string) => {
+      const response = await getCaseMembers(caseId);
+
+      if (response.error || !response.data) {
+        throw new Error(response.error || '사건 구성원을 불러오지 못했습니다.');
+      }
+
+      const deduped = new Map<string, ClientOption>();
+
+      response.data.members.forEach((member) => {
+        if (member.role === 'owner') return;
+        const client = clientMap.get(member.user_id);
+        if (client) {
+          deduped.set(client.id, client);
+        }
+      });
+
+      return Array.from(deduped.values());
+    },
+    [clientMap]
+  );
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -269,6 +349,7 @@ export default function LawyerBillingPage() {
           <InvoiceForm
             cases={caseOptions}
             clients={clientOptions}
+            loadCaseClients={loadCaseClients}
             onSubmit={handleCreate as (data: InvoiceCreateRequest | InvoiceUpdateRequest) => Promise<void>}
             onCancel={handleCancel}
             loading={formLoading || optionsLoading}
