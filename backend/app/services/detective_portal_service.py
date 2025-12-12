@@ -7,6 +7,7 @@ Business logic for detective portal operations.
 
 from typing import Optional, List
 from datetime import datetime
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.models import (
@@ -283,17 +284,17 @@ class DetectivePortalService:
         # Get summary
         summary = earnings_repo.get_earnings_summary(detective_id)
 
-        # Calculate this month's earnings
+        # Calculate this month's earnings using DB aggregation (Issue #279)
         start_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-        this_month_query = (
-            self.db.query(DetectiveEarnings)
+        this_month_total = (
+            self.db.query(func.coalesce(func.sum(DetectiveEarnings.amount), 0))
             .filter(
                 DetectiveEarnings.detective_id == detective_id,
                 DetectiveEarnings.created_at >= start_of_month
             )
+            .scalar()
         )
-        this_month_total = sum(e.amount for e in this_month_query.all())
 
         earnings_summary = EarningsSummary(
             total_earned=float(summary["total"]),
@@ -339,17 +340,17 @@ class DetectivePortalService:
         earnings_repo = DetectiveEarningsRepository(self.db)
         summary = earnings_repo.get_earnings_summary(detective_id)
 
-        # Calculate this month's earnings
+        # Calculate this month's earnings using DB aggregation (Issue #279)
         start_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-        this_month_query = (
-            self.db.query(DetectiveEarnings)
+        this_month_total = (
+            self.db.query(func.coalesce(func.sum(DetectiveEarnings.amount), 0))
             .filter(
                 DetectiveEarnings.detective_id == detective_id,
                 DetectiveEarnings.created_at >= start_of_month
             )
+            .scalar()
         )
-        this_month_total = sum(e.amount for e in this_month_query.all())
 
         return EarningsSummary(
             total_earned=float(summary["total"]),
