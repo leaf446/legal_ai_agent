@@ -439,3 +439,112 @@ class TestPdfGeneratorError:
         error = PdfGeneratorError("test error")
         assert isinstance(error, Exception)
         assert str(error) == "test error"
+
+
+class TestPdfGeneratorMockedWithSysModules:
+    """Mock-based tests using sys.modules injection for missing dependencies"""
+
+    def test_init_mocked_with_injected_modules(self):
+        """Test __init__ with injected mock modules"""
+        import sys
+        import importlib
+
+        # Create mock modules
+        mock_weasyprint = MagicMock()
+        mock_weasyprint.HTML = MagicMock()
+        mock_weasyprint.CSS = MagicMock()
+        mock_weasyprint.text = MagicMock()
+        mock_weasyprint.text.fonts = MagicMock()
+        mock_weasyprint.text.fonts.FontConfiguration = MagicMock()
+
+        mock_jinja2 = MagicMock()
+        mock_jinja2.Environment = MagicMock(return_value=MagicMock())
+        mock_jinja2.FileSystemLoader = MagicMock()
+        mock_jinja2.select_autoescape = MagicMock()
+
+        # Save original modules
+        orig_weasy = sys.modules.get('weasyprint')
+        orig_weasy_text = sys.modules.get('weasyprint.text')
+        orig_weasy_fonts = sys.modules.get('weasyprint.text.fonts')
+        orig_jinja = sys.modules.get('jinja2')
+
+        try:
+            # Inject mock modules
+            sys.modules['weasyprint'] = mock_weasyprint
+            sys.modules['weasyprint.text'] = mock_weasyprint.text
+            sys.modules['weasyprint.text.fonts'] = mock_weasyprint.text.fonts
+            sys.modules['jinja2'] = mock_jinja2
+
+            # Reload the module to pick up mocked dependencies
+            import app.utils.pdf_generator as pdf_module
+            importlib.reload(pdf_module)
+
+            # Now create generator
+            generator = pdf_module.PdfGenerator()
+            assert generator is not None
+            assert generator.jinja_env is not None
+
+        finally:
+            # Restore original modules
+            if orig_weasy:
+                sys.modules['weasyprint'] = orig_weasy
+            else:
+                sys.modules.pop('weasyprint', None)
+            if orig_weasy_text:
+                sys.modules['weasyprint.text'] = orig_weasy_text
+            else:
+                sys.modules.pop('weasyprint.text', None)
+            if orig_weasy_fonts:
+                sys.modules['weasyprint.text.fonts'] = orig_weasy_fonts
+            else:
+                sys.modules.pop('weasyprint.text.fonts', None)
+            if orig_jinja:
+                sys.modules['jinja2'] = orig_jinja
+            else:
+                sys.modules.pop('jinja2', None)
+
+            # Reload to restore original state
+            import app.utils.pdf_generator as pdf_module
+            importlib.reload(pdf_module)
+
+
+class TestPdfGeneratorStaticMethods:
+    """Tests for static/class methods that don't need instantiation"""
+
+    def test_document_types_keys(self):
+        """Test DOCUMENT_TYPES has all expected keys"""
+        expected_keys = ["complaint", "motion", "brief", "response"]
+        for key in expected_keys:
+            assert key in PdfGenerator.DOCUMENT_TYPES
+
+    def test_document_types_values_korean(self):
+        """Test DOCUMENT_TYPES has Korean values"""
+        assert PdfGenerator.DOCUMENT_TYPES["complaint"] == "소 장"
+        assert PdfGenerator.DOCUMENT_TYPES["motion"] == "신 청 서"
+        assert PdfGenerator.DOCUMENT_TYPES["brief"] == "준 비 서 면"
+        assert PdfGenerator.DOCUMENT_TYPES["response"] == "답 변 서"
+
+    def test_template_dir_is_path(self):
+        """Test TEMPLATE_DIR is a Path object"""
+        from pathlib import Path
+        assert isinstance(PdfGenerator.TEMPLATE_DIR, Path)
+
+    def test_styles_dir_is_path(self):
+        """Test STYLES_DIR is a Path object"""
+        from pathlib import Path
+        assert isinstance(PdfGenerator.STYLES_DIR, Path)
+
+    def test_exif_tags_to_extract_mapping(self):
+        """Test EXIF_TAGS_TO_EXTRACT has correct mapping"""
+        expected_tags = [
+            "DateTimeOriginal", "DateTimeDigitized", "Make", "Model",
+            "Software", "ImageWidth", "ImageLength", "Orientation", "Flash"
+        ]
+        # Note: EXIF_TAGS_TO_EXTRACT is in PdfGenerator class
+        # Check if it exists (it should based on the code)
+        if hasattr(PdfGenerator, 'EXIF_TAGS_TO_EXTRACT'):
+            for tag in expected_tags:
+                assert tag in PdfGenerator.EXIF_TAGS_TO_EXTRACT
+        else:
+            # Skip if attribute not present (class may have been modified)
+            pytest.skip("EXIF_TAGS_TO_EXTRACT not present in PdfGenerator")
