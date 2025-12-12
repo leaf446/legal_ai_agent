@@ -1,4 +1,4 @@
-import LawyerCaseDetailClient from './LawyerCaseDetailClient';
+import CaseDetailClient from '@/components/case/CaseDetailClient';
 
 // Required for static export with dynamic routes
 // Pre-render sample case pages; additional routes are handled at request time
@@ -18,5 +18,5 @@ interface PageProps {
 }
 
 export default function LawyerCaseDetailPage({ params }: PageProps) {
-  return <LawyerCaseDetailClient id={params.id} />;
+  return <CaseDetailClient id={params.id} />;
 }

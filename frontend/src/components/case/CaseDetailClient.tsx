@@ -47,12 +47,14 @@ type UploadStatus = {
 
 interface CaseDetailClientProps {
   id: string;
+  /** Default return URL if not specified in query params */
+  defaultReturnUrl?: string;
 }
 
-export default function CaseDetailClient({ id }: CaseDetailClientProps) {
+export default function CaseDetailClient({ id, defaultReturnUrl = '/lawyer/cases' }: CaseDetailClientProps) {
     // Issue #290: Support returnUrl for proper back navigation
     const searchParams = useSearchParams();
-    const returnUrl = searchParams.get('returnUrl') || '/cases';
+    const returnUrl = searchParams.get('returnUrl') || defaultReturnUrl;
 
     const [caseData, setCaseData] = useState<Case | null>(null);
     const [isLoadingCase, setIsLoadingCase] = useState(true);
