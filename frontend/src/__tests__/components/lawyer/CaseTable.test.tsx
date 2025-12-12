@@ -247,11 +247,12 @@ describe('CaseTable', () => {
   });
 
   describe('Links', () => {
+    // Issue #290: Updated to canonical /cases paths with returnUrl
     it('renders case title as link to case detail', () => {
       render(<CaseTable {...defaultProps} />);
 
       const link = screen.getByRole('link', { name: '이혼 소송 A' });
-      expect(link).toHaveAttribute('href', '/lawyer/cases/1');
+      expect(link).toHaveAttribute('href', '/cases/1?returnUrl=/lawyer/cases');
     });
 
     it('renders all case links (title + quick actions)', () => {
@@ -261,20 +262,20 @@ describe('CaseTable', () => {
       const links = screen.getAllByRole('link');
       expect(links).toHaveLength(9); // 3 cases x 3 links each
 
-      // First case links
-      expect(links[0]).toHaveAttribute('href', '/lawyer/cases/1'); // title
-      expect(links[1]).toHaveAttribute('href', '/lawyer/cases/1/procedure');
-      expect(links[2]).toHaveAttribute('href', '/lawyer/cases/1/assets');
+      // First case links - Issue #290: canonical paths with returnUrl
+      expect(links[0]).toHaveAttribute('href', '/cases/1?returnUrl=/lawyer/cases'); // title
+      expect(links[1]).toHaveAttribute('href', '/cases/1/procedure?returnUrl=/lawyer/cases');
+      expect(links[2]).toHaveAttribute('href', '/cases/1/assets?returnUrl=/lawyer/cases');
 
       // Second case links
-      expect(links[3]).toHaveAttribute('href', '/lawyer/cases/2');
-      expect(links[4]).toHaveAttribute('href', '/lawyer/cases/2/procedure');
-      expect(links[5]).toHaveAttribute('href', '/lawyer/cases/2/assets');
+      expect(links[3]).toHaveAttribute('href', '/cases/2?returnUrl=/lawyer/cases');
+      expect(links[4]).toHaveAttribute('href', '/cases/2/procedure?returnUrl=/lawyer/cases');
+      expect(links[5]).toHaveAttribute('href', '/cases/2/assets?returnUrl=/lawyer/cases');
 
       // Third case links
-      expect(links[6]).toHaveAttribute('href', '/lawyer/cases/3');
-      expect(links[7]).toHaveAttribute('href', '/lawyer/cases/3/procedure');
-      expect(links[8]).toHaveAttribute('href', '/lawyer/cases/3/assets');
+      expect(links[6]).toHaveAttribute('href', '/cases/3?returnUrl=/lawyer/cases');
+      expect(links[7]).toHaveAttribute('href', '/cases/3/procedure?returnUrl=/lawyer/cases');
+      expect(links[8]).toHaveAttribute('href', '/cases/3/assets?returnUrl=/lawyer/cases');
     });
   });
 });

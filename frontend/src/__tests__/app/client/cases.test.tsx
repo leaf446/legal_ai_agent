@@ -159,8 +159,9 @@ describe('Client Cases Page', () => {
     test('should render case cards as links', async () => {
       render(<ClientCasesPage />);
 
+      // Issue #288: Changed to canonical /cases path with returnUrl
       await waitFor(() => {
-        const links = document.querySelectorAll('a[href^="/client/cases/"]');
+        const links = document.querySelectorAll('a[href^="/cases/"]');
         expect(links.length).toBe(3);
       });
     });
@@ -168,15 +169,16 @@ describe('Client Cases Page', () => {
     test('should link to correct case detail pages', async () => {
       render(<ClientCasesPage />);
 
+      // Issue #288: Changed to canonical /cases path with returnUrl
       await waitFor(() => {
         expect(
-          document.querySelector('a[href="/client/cases/case-1"]')
+          document.querySelector('a[href="/cases/case-1?returnUrl=/client/cases"]')
         ).toBeInTheDocument();
         expect(
-          document.querySelector('a[href="/client/cases/case-2"]')
+          document.querySelector('a[href="/cases/case-2?returnUrl=/client/cases"]')
         ).toBeInTheDocument();
         expect(
-          document.querySelector('a[href="/client/cases/case-3"]')
+          document.querySelector('a[href="/cases/case-3?returnUrl=/client/cases"]')
         ).toBeInTheDocument();
       });
     });

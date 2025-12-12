@@ -44,10 +44,11 @@ function getStatusText(status: string) {
 }
 
 // Case card component
+// Issue #288: Use canonical /cases path with returnUrl
 function CaseCard({ caseItem }: { caseItem: ClientCaseListItem }) {
   return (
     <Link
-      href={`/client/cases/${caseItem.id}`}
+      href={`/cases/${caseItem.id}?returnUrl=/client/cases`}
       className="block bg-white rounded-xl shadow-sm border border-[var(--color-border-default)] hover:shadow-md hover:border-[var(--color-primary)] transition-all"
     >
       <div className="p-5">

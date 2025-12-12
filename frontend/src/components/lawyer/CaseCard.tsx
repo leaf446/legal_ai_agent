@@ -83,8 +83,8 @@ export function CaseCard({
         </span>
       </div>
 
-      {/* Title */}
-      <Link href={`/lawyer/cases/${id}`} className="block group">
+      {/* Title - Issue #290: Use canonical /cases/{id} with returnUrl */}
+      <Link href={`/cases/${id}?returnUrl=/lawyer/cases`} className="block group">
         <h3 className="font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] line-clamp-2">
           {title}
         </h3>
@@ -117,10 +117,10 @@ export function CaseCard({
         <span>{new Date(updatedAt).toLocaleDateString('ko-KR')}</span>
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions - Issue #290: Use canonical /cases paths */}
       <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-center gap-2">
         <Link
-          href={`/lawyer/cases/${id}/procedure`}
+          href={`/cases/${id}/procedure?returnUrl=/lawyer/cases`}
           className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded transition-colors"
           title="절차 진행"
         >
@@ -130,7 +130,7 @@ export function CaseCard({
           절차
         </Link>
         <Link
-          href={`/lawyer/cases/${id}/assets`}
+          href={`/cases/${id}/assets?returnUrl=/lawyer/cases`}
           className="flex items-center gap-1 px-2 py-1 text-xs text-green-600 hover:bg-green-50 rounded transition-colors"
           title="재산분할"
         >

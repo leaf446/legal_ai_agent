@@ -25,6 +25,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     // Navigation Guard: Redirect if already authenticated
+    // Issue #289: Use role-based dashboard path instead of hardcoded /cases
     if (!isLoading && isAuthenticated && user) {
       const dashboardPath = getDashboardPath(user.role as UserRole);
       router.push(dashboardPath);

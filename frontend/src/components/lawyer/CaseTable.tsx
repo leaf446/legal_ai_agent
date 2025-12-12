@@ -153,9 +153,10 @@ export function CaseTable({
                   className="w-4 h-4 rounded border-gray-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
                 />
               </td>
+              {/* Issue #290: Use canonical /cases path with returnUrl */}
               <td className="px-4 py-3">
                 <Link
-                  href={`/lawyer/cases/${caseItem.id}`}
+                  href={`/cases/${caseItem.id}?returnUrl=/lawyer/cases`}
                   className="font-medium text-[var(--color-text-primary)] hover:text-[var(--color-primary)]"
                 >
                   {caseItem.title}
@@ -191,10 +192,11 @@ export function CaseTable({
               <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
                 {caseItem.ownerName || '-'}
               </td>
+              {/* Issue #290: Use canonical /cases paths with returnUrl */}
               <td className="px-4 py-3">
                 <div className="flex items-center gap-1">
                   <Link
-                    href={`/lawyer/cases/${caseItem.id}/procedure`}
+                    href={`/cases/${caseItem.id}/procedure?returnUrl=/lawyer/cases`}
                     className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
                     title="절차 진행"
                   >
@@ -203,7 +205,7 @@ export function CaseTable({
                     </svg>
                   </Link>
                   <Link
-                    href={`/lawyer/cases/${caseItem.id}/assets`}
+                    href={`/cases/${caseItem.id}/assets?returnUrl=/lawyer/cases`}
                     className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
                     title="재산분할"
                   >

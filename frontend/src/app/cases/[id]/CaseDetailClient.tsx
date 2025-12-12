@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, CheckCircle2, Filter, Shield, Sparkles, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import EvidenceUpload from '@/components/evidence/EvidenceUpload';
 import EvidenceTable from '@/components/evidence/EvidenceTable';
 import { Evidence, EvidenceType, EvidenceStatus } from '@/types/evidence';
@@ -49,6 +50,10 @@ interface CaseDetailClientProps {
 }
 
 export default function CaseDetailClient({ id }: CaseDetailClientProps) {
+    // Issue #290: Support returnUrl for proper back navigation
+    const searchParams = useSearchParams();
+    const returnUrl = searchParams.get('returnUrl') || '/cases';
+
     const [caseData, setCaseData] = useState<Case | null>(null);
     const [isLoadingCase, setIsLoadingCase] = useState(true);
     const [evidenceList, setEvidenceList] = useState<Evidence[]>([]);
@@ -325,7 +330,8 @@ export default function CaseDetailClient({ id }: CaseDetailClientProps) {
             <header className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-10">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
                     <div className="flex items-center">
-                        <Link href="/cases" className="mr-4 text-gray-500 hover:text-gray-800 transition-colors">
+                        {/* Issue #290: Use returnUrl for back navigation */}
+                        <Link href={returnUrl} className="mr-4 text-gray-500 hover:text-gray-800 transition-colors">
                             <ArrowLeft className="w-6 h-6" />
                         </Link>
                         <div>

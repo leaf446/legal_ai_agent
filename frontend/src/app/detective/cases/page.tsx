@@ -168,11 +168,12 @@ export default function DetectiveCasesPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--color-border)]">
+                    {/* Issue #288: Use canonical /cases path with returnUrl */}
                     {cases.map((caseItem) => (
                       <tr key={caseItem.id} className="hover:bg-[var(--color-bg-secondary)]">
                         <td className="px-4 py-4">
                           <Link
-                            href={`/detective/cases/${caseItem.id}`}
+                            href={`/cases/${caseItem.id}?returnUrl=/detective/cases`}
                             className="font-medium text-[var(--color-text-primary)] hover:text-[var(--color-primary)]"
                           >
                             {caseItem.title}
@@ -192,7 +193,7 @@ export default function DetectiveCasesPage() {
                         </td>
                         <td className="px-4 py-4 text-right">
                           <Link
-                            href={`/detective/cases/${caseItem.id}`}
+                            href={`/cases/${caseItem.id}?returnUrl=/detective/cases`}
                             className="text-[var(--color-primary)] hover:underline"
                           >
                             상세보기
