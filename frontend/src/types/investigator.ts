@@ -73,3 +73,49 @@ export interface WorkItem {
   description: string;
   timestamp: string;
 }
+
+// ============== Detective CRUD Types (US2 - Lawyer Portal) ==============
+
+/**
+ * Detective contact for lawyer's address book
+ * Separate from User accounts - these are contacts managed by lawyers
+ */
+export interface DetectiveContact {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  specialty?: string;
+  memo?: string;
+  createdAt: string; // ISO 8601
+  updatedAt: string;
+}
+
+export interface DetectiveContactCreate {
+  name: string;
+  phone?: string;
+  email?: string;
+  specialty?: string;
+  memo?: string;
+}
+
+export interface DetectiveContactUpdate {
+  name?: string;
+  phone?: string;
+  email?: string;
+  specialty?: string;
+  memo?: string;
+}
+
+export interface DetectiveContactListResponse {
+  detectives: DetectiveContact[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface DetectiveContactQueryParams {
+  search?: string;
+  page?: number;
+  limit?: number;
+}

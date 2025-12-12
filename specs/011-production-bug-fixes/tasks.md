@@ -1,11 +1,13 @@
 # Tasks: Production Bug Fixes
 
 **Input**: Design documents from `/specs/011-production-bug-fixes/`
-**Prerequisites**: plan.md, spec.md, research.md, data-model.md, quickstart.md
+**Prerequisites**: plan.md, spec.md, research.md, data-model.md, quickstart.md, contracts/
 
 **Tests**: Included per Constitution VII (TDD Cycle)
 
 **Organization**: Tasks grouped by user story for independent implementation and testing.
+
+**Focus**: Frontend (per user input)
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -15,8 +17,8 @@
 
 ## Path Conventions
 
-- **Backend**: `backend/app/`, `backend/tests/`
-- **Frontend**: `frontend/src/`, `frontend/src/__tests__/`
+- **Backend**: `backend/app/`, `backend/tests/` (assigned to H)
+- **Frontend**: `frontend/src/`, `frontend/src/__tests__/` (assigned to P)
 
 ---
 
@@ -34,19 +36,19 @@
 - **ROOT CAUSE CONFIRMED**: Backend Cookie Configuration
   - `COOKIE_SAMESITE` defaults to `"lax"` (blocks cross-origin)
   - `COOKIE_SECURE` defaults to `False` (incompatible with `SameSite=None`)
-- Frontend credentials: ✅ OK (`credentials: 'include'` correctly set)
-- Race Condition: ✅ OK (JUST_LOGGED_IN_KEY fix exists)
-- Middleware: ✅ OK (auth redirect logic correct)
+- Frontend credentials: OK (`credentials: 'include'` correctly set)
+- Race Condition: OK (JUST_LOGGED_IN_KEY fix exists)
+- Middleware: OK (auth redirect logic correct)
 
 **Checkpoint**: Root cause identified - proceed to Backend Fix (T011-T013)
 
 ---
 
-## Phase 2: User Story 1 - 로그인 후 정상 리다이렉트 (Priority: P1) 🎯 MVP
+## Phase 2: User Story 1 - 로그인 후 정상 리다이렉트 (Priority: P1) MVP
 
 **Goal**: 로그인 성공 후 역할별 대시보드로 정상 리다이렉트되고, 로그인 상태가 유지되어야 한다
 
-**Independent Test**: 로그인 폼에서 유효한 자격 증명 입력 → 대시보드 도달 → 새로고침해도 로그인 유지
+**Independent Test**: 로그인 폼에서 유효한 자격 증명 입력 -> 대시보드 도달 -> 새로고침해도 로그인 유지
 
 ### Tests for User Story 1 (TDD)
 
@@ -58,24 +60,17 @@
 - [ ] T009 [P] [US1] Unit test: AuthContext login method stores state correctly in frontend/src/__tests__/contexts/AuthContext.test.tsx
 - [ ] T010 [P] [US1] Unit test: Middleware redirects authenticated user from /login in frontend/src/__tests__/middleware.test.ts
 
-### Backend Fix (if cookie config is the root cause)
+### Backend Fix (assigned to H - leaf446)
+
+> **GitHub Issues Created**: #294 (DB Migration), #295-#298 (APIs)
 
 - [x] T011 [US1] Update cookie settings in backend/app/core/config.py: auto-configure samesite="none" and secure=True for prod/dev environments
 - [x] T012 [US1] Verify CORS_ORIGINS includes CloudFront domain in backend/app/core/config.py
-  - **Finding**: Code is correct. Production env var `CORS_ALLOW_ORIGINS` must include `https://dpbf86zqulqfy.cloudfront.net`
-  - **Action Required**: Add CloudFront domain to Lambda/ECS environment variable
 - [x] T013 [P] [US1] Contract test: Login response includes correct Set-Cookie headers in backend/tests/contract/test_auth_cookies.py
-  - 12 tests: Cookie headers, settings validator, auto-config for cross-origin
 
-### Frontend Fix (if race condition or middleware is the root cause)
+### Frontend Fix (N/A - Root cause was backend)
 
-> **N/A**: Root cause confirmed as **Backend Cookie Configuration** (T011-T013).
-> Frontend race condition fix already exists and works correctly.
-
-- [N/A] T014 [US1] ~~Harden race condition fix~~ - Already implemented correctly
-- [N/A] T015 [US1] ~~Verify user_data cookie~~ - Working as expected
-- [N/A] T016 [US1] ~~Update middleware~~ - Redirect logic correct
-- [N/A] T017 [US1] ~~Ensure credentials: 'include'~~ - Already set correctly
+- [N/A] T014-T017 ~~Frontend fixes~~ - Not needed, backend cookie config was the issue
 
 ### Verification
 
@@ -88,21 +83,80 @@
 
 ---
 
-## Phase 3: User Story 2 - 추가 버그 수정 (Priority: P2)
+## Phase 3: User Story 2 - Lawyer Portal 기능 추가 (Priority: P2)
 
-**Goal**: 로그인 문제 해결 후 발견되는 추가 버그들을 수정
+**Goal**: 변호사 포털에 알림, 메시지, 의뢰인/탐정 관리 기능 추가
 
-**Independent Test**: TBD - 로그인 해결 후 확인
+**Independent Test**: 변호사로 로그인 후 각 기능(알림, 메시지, 의뢰인, 탐정)의 CRUD 동작 확인
 
-> **NOTE**: This phase will be populated after US1 is complete and additional bugs are discovered
+**Depends On**: US1 완료 (로그인 정상 작동 후 테스트 가능)
 
-### Placeholder Tasks
+### Backend Tasks (assigned to H - leaf446)
 
-- [ ] T022 [US2] [PLACEHOLDER] Discover and document additional bugs after login fix
-- [ ] T023 [US2] [PLACEHOLDER] Prioritize discovered bugs
-- [ ] T024 [US2] [PLACEHOLDER] Implement fixes for highest priority bugs
+> **GitHub Issues**: #294 (DB Migration), #295 (Notifications), #296 (Messages), #297 (Clients), #298 (Detectives)
 
-**Checkpoint**: All discovered bugs fixed
+- [ ] T022 [US2] [Backend] Create DB migration for notifications, messages, clients, detectives tables
+- [ ] T023 [US2] [Backend] Implement Notification API endpoints (GET /notifications, PATCH /notifications/{id}/read)
+- [ ] T024 [US2] [Backend] Implement Message CRUD API endpoints (GET, POST, GET/:id, DELETE)
+- [ ] T025 [US2] [Backend] Implement Client CRUD API endpoints (GET, POST, GET/:id, PATCH/:id, DELETE/:id)
+- [ ] T026 [US2] [Backend] Implement Detective CRUD API endpoints (GET, POST, GET/:id, PATCH/:id, DELETE/:id)
+
+### Frontend Tasks (assigned to P - Prometheus-P)
+
+#### Types & API Clients
+
+- [ ] T027 [P] [US2] Create Notification types in frontend/src/types/notification.ts
+- [ ] T028 [P] [US2] Create Message types in frontend/src/types/message.ts
+- [ ] T029 [P] [US2] Create Client types (update) in frontend/src/types/client.ts
+- [ ] T030 [P] [US2] Create Detective types (update) in frontend/src/types/detective.ts
+- [ ] T031 [P] [US2] Create Notification API client in frontend/src/lib/api/notifications.ts
+- [ ] T032 [P] [US2] Create Message API client in frontend/src/lib/api/messages.ts
+- [ ] T033 [P] [US2] Create Client API client (update) in frontend/src/lib/api/clients.ts
+- [ ] T034 [P] [US2] Create Detective API client (update) in frontend/src/lib/api/detectives.ts
+
+#### Hooks
+
+- [ ] T035 [P] [US2] Create useNotifications hook in frontend/src/hooks/useNotifications.ts
+- [ ] T036 [P] [US2] Create useMessages hook in frontend/src/hooks/useMessages.ts
+- [ ] T037 [P] [US2] Create useClients hook in frontend/src/hooks/useClients.ts
+- [ ] T038 [P] [US2] Create useDetectives hook in frontend/src/hooks/useDetectives.ts
+
+#### Notification Components (FR-007)
+
+- [ ] T039 [P] [US2] Create NotificationBadge component in frontend/src/components/shared/NotificationBadge.tsx
+- [ ] T040 [P] [US2] Create NotificationDropdown component in frontend/src/components/shared/NotificationDropdown.tsx
+- [ ] T041 [P] [US2] Create NotificationItem component in frontend/src/components/shared/NotificationItem.tsx
+- [ ] T042 [US2] Integrate NotificationBadge into LawyerNav in frontend/src/components/lawyer/LawyerNav.tsx
+
+#### Message Components (FR-008)
+
+- [ ] T043 [P] [US2] Create MessageList component in frontend/src/components/lawyer/messages/MessageList.tsx
+- [ ] T044 [P] [US2] Create MessageThread component in frontend/src/components/lawyer/messages/MessageThread.tsx
+- [ ] T045 [P] [US2] Create ComposeMessage component in frontend/src/components/lawyer/messages/ComposeMessage.tsx
+- [ ] T046 [US2] Create /lawyer/messages page in frontend/src/app/lawyer/messages/page.tsx
+
+#### Client Management Components (FR-009, FR-010, FR-015)
+
+- [ ] T047 [P] [US2] Create ClientCard component in frontend/src/components/lawyer/clients/ClientCard.tsx
+- [ ] T048 [P] [US2] Create ClientForm component (add/edit) in frontend/src/components/lawyer/clients/ClientForm.tsx
+- [ ] T049 [P] [US2] Create ClientList component in frontend/src/components/lawyer/clients/ClientList.tsx
+- [ ] T050 [US2] Update /lawyer/clients page with add button in frontend/src/app/lawyer/clients/page.tsx
+
+#### Detective Management Components (FR-011, FR-012, FR-016)
+
+- [ ] T051 [P] [US2] Create DetectiveCard component in frontend/src/components/lawyer/detectives/DetectiveCard.tsx
+- [ ] T052 [P] [US2] Create DetectiveForm component (add/edit) in frontend/src/components/lawyer/detectives/DetectiveForm.tsx
+- [ ] T053 [P] [US2] Create DetectiveList component in frontend/src/components/lawyer/detectives/DetectiveList.tsx
+- [ ] T054 [US2] Update /lawyer/investigators page with add button in frontend/src/app/lawyer/investigators/page.tsx
+
+#### Tests (TDD)
+
+- [ ] T055 [P] [US2] Unit tests for NotificationDropdown in frontend/src/__tests__/components/shared/NotificationDropdown.test.tsx
+- [ ] T056 [P] [US2] Unit tests for MessageList in frontend/src/__tests__/components/lawyer/messages/MessageList.test.tsx
+- [ ] T057 [P] [US2] Unit tests for ClientForm in frontend/src/__tests__/components/lawyer/clients/ClientForm.test.tsx
+- [ ] T058 [P] [US2] Unit tests for DetectiveForm in frontend/src/__tests__/components/lawyer/detectives/DetectiveForm.test.tsx
+
+**Checkpoint**: US2 complete - Lawyer portal has notification, message, client, detective management
 
 ---
 
@@ -110,15 +164,10 @@
 
 **Purpose**: Final validation and cleanup
 
-- [ ] T025 Run all tests: backend pytest + frontend Jest + E2E Playwright
-- [ ] T026 [P] Update spec.md status from Draft to Complete
-- [ ] T027 [P] Run quickstart.md validation steps and document results
-- [ ] T028 Create PR to merge 011-production-bug-fixes → dev
-  - **Pre-merge checklist**:
-    - [ ] Backend deployed with updated config.py
-    - [ ] Production env var `CORS_ALLOW_ORIGINS` includes `https://dpbf86zqulqfy.cloudfront.net`
-    - [ ] Production env var `APP_ENV=prod` (triggers cookie auto-config)
-    - [ ] T018-T021 manual verification passed
+- [ ] T059 Run all tests: backend pytest + frontend Jest + E2E Playwright
+- [ ] T060 [P] Update spec.md status from Draft to Complete
+- [ ] T061 [P] Run quickstart.md validation steps and document results
+- [ ] T062 Create PR to merge 011-production-bug-fixes -> dev
 
 ---
 
@@ -127,48 +176,41 @@
 ### Phase Dependencies
 
 - **Setup (Phase 1)**: No dependencies - start immediately
-- **User Story 1 (Phase 2)**: Depends on Phase 1 root cause identification
-  - If root cause = Cookie Config → T011-T013 first
-  - If root cause = Race Condition → T014-T015 first
-  - If root cause = Middleware Sync → T016-T017 first
-- **User Story 2 (Phase 3)**: Depends on US1 completion
+- **User Story 1 (Phase 2)**: Depends on Phase 1 diagnosis
+- **User Story 2 (Phase 3)**: Depends on US1 completion (login must work)
 - **Polish (Phase 4)**: Depends on all user stories
 
 ### User Story Dependencies
 
-- **User Story 1 (P1)**: Can start after Phase 1 - No dependencies on other stories
-- **User Story 2 (P2)**: DEPENDS on US1 completion (cannot discover other bugs until login works)
+- **User Story 1 (P1)**: Independent - can start immediately
+- **User Story 2 (P2)**: DEPENDS on US1 (cannot test features until login works)
 
-### Within User Story 1
+### Within User Story 2 (Frontend)
 
-1. **TDD Tests (T006-T010)**: Write first, verify they FAIL
-2. **Backend OR Frontend Fix**: Based on diagnosed root cause
-   - Backend fix path: T011 → T012 → T013
-   - Frontend fix path: T014 → T015 → T016 → T017
-   - May need BOTH paths depending on diagnosis
-3. **Verification (T018-T021)**: After implementation, verify all tests pass
-4. **Manual testing**: Confirm on production URL
+1. Types & API Clients (T027-T034) - can run in parallel
+2. Hooks (T035-T038) - depends on types/API clients
+3. Components (T039-T054) - depends on hooks
+4. Tests (T055-T058) - can run in parallel with components (TDD)
 
 ### Parallel Opportunities
 
-- **Phase 1**: T003 and T004 can run in parallel (different files)
-- **US1 Tests**: T006-T010 can all run in parallel (different test files)
-- **US1 Backend Fix**: T011 and T012 sequential, T013 parallel after T011
-- **Verification**: T019-T021 can run in parallel (independent manual tests)
+**Types & API Clients** (all [P]):
+```
+T027, T028, T029, T030 - Types (parallel)
+T031, T032, T033, T034 - API Clients (parallel)
+```
 
----
+**Hooks** (all [P]):
+```
+T035, T036, T037, T038 - Hooks (parallel after types)
+```
 
-## Parallel Example: User Story 1 Tests
-
-```bash
-# Launch all E2E tests for US1 in parallel:
-Task: "E2E test: Login flow redirects to dashboard in frontend/e2e/auth.spec.ts"
-Task: "E2E test: Page refresh maintains login state in frontend/e2e/auth.spec.ts"
-Task: "E2E test: Back button redirects to dashboard in frontend/e2e/auth.spec.ts"
-
-# Launch all unit tests for US1 in parallel:
-Task: "Unit test: AuthContext login method in frontend/src/__tests__/contexts/AuthContext.test.tsx"
-Task: "Unit test: Middleware redirects in frontend/src/__tests__/middleware.test.ts"
+**Components** (grouped by feature, [P] within groups):
+```
+Notifications: T039, T040, T041 (parallel) -> T042 (integration)
+Messages: T043, T044, T045 (parallel) -> T046 (page)
+Clients: T047, T048, T049 (parallel) -> T050 (page)
+Detectives: T051, T052, T053 (parallel) -> T054 (page)
 ```
 
 ---
@@ -177,22 +219,22 @@ Task: "Unit test: Middleware redirects in frontend/src/__tests__/middleware.test
 
 ### MVP First (User Story 1 Only)
 
-1. Complete Phase 1: Setup (Diagnosis) - ~30 min
-2. Complete Phase 2: User Story 1 - ~2-4 hours
+1. Complete Phase 1: Setup (Diagnosis) - DONE
+2. Complete Phase 2: User Story 1 - IN PROGRESS
 3. **STOP and VALIDATE**: Test on production URL
-4. Create PR if all success criteria pass
+4. Create PR if SC-001 through SC-004 pass
 
-### Root Cause Based Approach
+### Incremental Delivery (User Story 2)
 
-Based on research.md findings:
+After US1 is complete:
 
-| Root Cause | Likelihood | Tasks to Execute |
-|------------|------------|------------------|
-| Cross-Origin Cookie Config | High | T011, T012, T013 |
-| Race Condition | Medium | T014, T015 |
-| Middleware Sync | Low | T016, T017 |
-
-**Recommended**: Start with Cookie Config (highest likelihood), then verify if additional fixes needed.
+1. **Backend first** (H - leaf446): T022-T026 (DB + APIs)
+2. **Frontend parallel** (P): Types/Clients -> Hooks -> Components -> Tests
+3. Feature-by-feature delivery:
+   - Notifications (T039-T042)
+   - Messages (T043-T046)
+   - Clients (T047-T050)
+   - Detectives (T051-T054)
 
 ### Success Criteria Mapping
 
@@ -202,6 +244,41 @@ Based on research.md findings:
 | SC-002: State maintained on refresh | T020 |
 | SC-003: < 3 seconds | T018 (observe timing) |
 | SC-004: No login loop | T021 |
+| SC-005: Notifications accessible | T042 verification |
+| SC-006: Messages CRUD works | T046 verification |
+| SC-007: Client add button works | T050 verification |
+| SC-008: Detective add button works | T054 verification |
+
+---
+
+## Task Summary
+
+| Phase | Task Range | Total | Completed | Pending |
+|-------|-----------|-------|-----------|---------|
+| Phase 1: Setup | T001-T005 | 5 | 5 | 0 |
+| Phase 2: US1 | T006-T021 | 16 | 8 | 8 |
+| Phase 3: US2 | T022-T058 | 37 | 0 | 37 |
+| Phase 4: Polish | T059-T062 | 4 | 0 | 4 |
+| **Total** | T001-T062 | **62** | **13** | **49** |
+
+### Frontend Tasks (P - Prometheus-P)
+
+| Category | Tasks | Count |
+|----------|-------|-------|
+| US1 Unit Tests | T009, T010 | 2 |
+| US2 Types | T027-T030 | 4 |
+| US2 API Clients | T031-T034 | 4 |
+| US2 Hooks | T035-T038 | 4 |
+| US2 Components | T039-T054 | 16 |
+| US2 Tests | T055-T058 | 4 |
+| **Frontend Total** | | **34** |
+
+### Backend Tasks (H - leaf446)
+
+| Category | Tasks | Count |
+|----------|-------|-------|
+| US2 DB/APIs | T022-T026 | 5 |
+| **Backend Total** | | **5** |
 
 ---
 
@@ -210,7 +287,6 @@ Based on research.md findings:
 - [P] tasks = different files, no dependencies
 - [US1] / [US2] labels map tasks to user stories
 - TDD: Write tests first, verify they fail, then implement
-- Root cause diagnosis (Phase 1) determines which fix tasks to prioritize
-- US2 is intentionally placeholder - will be populated after US1 completion
+- Backend tasks already have GitHub issues (#294-#298) assigned to H
+- Frontend focus per user input - 34 frontend tasks identified
 - Commit after each logical task group
-- All verification must pass before PR creation

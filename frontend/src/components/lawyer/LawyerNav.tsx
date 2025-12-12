@@ -1,8 +1,9 @@
 /**
  * LawyerNav Component
  * 003-role-based-ui Feature - US2
+ * Updated: 011-production-bug-fixes - US2 (T042)
  *
- * Navigation sidebar for lawyer portal.
+ * Navigation sidebar for lawyer portal with notification dropdown.
  */
 
 'use client';
@@ -10,6 +11,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useRole } from '@/hooks/useRole';
+import { NotificationDropdown } from '@/components/shared/NotificationDropdown';
 
 interface NavItem {
   label: string;
@@ -126,7 +128,7 @@ export function LawyerNav({ collapsed = false, onItemClick }: LawyerNavProps) {
         </Link>
       </div>
 
-      {/* User Info */}
+      {/* User Info with Notification */}
       {!collapsed && (
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
@@ -141,6 +143,8 @@ export function LawyerNav({ collapsed = false, onItemClick }: LawyerNavProps) {
               </p>
               <p className="text-xs text-gray-500">{roleDisplayName}</p>
             </div>
+            {/* T042 - FR-007: 알림 드롭다운 */}
+            <NotificationDropdown />
           </div>
         </div>
       )}
