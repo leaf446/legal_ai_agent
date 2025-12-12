@@ -61,8 +61,8 @@ export function useNotifications(
       if (response.error) {
         setError(response.error);
       } else if (response.data) {
-        setNotifications(response.data.notifications);
-        setUnreadCount(response.data.unreadCount);
+        setNotifications(response.data.notifications || []);
+        setUnreadCount(response.data.unreadCount ?? 0);
       }
     } catch {
       setError('알림을 불러오는 중 오류가 발생했습니다.');
