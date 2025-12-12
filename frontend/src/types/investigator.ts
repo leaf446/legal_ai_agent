@@ -79,16 +79,18 @@ export interface WorkItem {
 /**
  * Detective contact for lawyer's address book
  * Separate from User accounts - these are contacts managed by lawyers
+ * NOTE: Field names must match backend DetectiveContactResponse schema (snake_case)
  */
 export interface DetectiveContact {
   id: string;
+  lawyer_id: string;
   name: string;
   phone?: string;
   email?: string;
   specialty?: string;
   memo?: string;
-  createdAt: string; // ISO 8601
-  updatedAt: string;
+  created_at: string; // ISO 8601
+  updated_at: string;
 }
 
 export interface DetectiveContactCreate {
@@ -108,7 +110,7 @@ export interface DetectiveContactUpdate {
 }
 
 export interface DetectiveContactListResponse {
-  detectives: DetectiveContact[];
+  items: DetectiveContact[];  // NOTE: Backend uses 'items', not 'detectives'
   total: number;
   page: number;
   limit: number;

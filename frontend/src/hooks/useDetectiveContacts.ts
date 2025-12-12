@@ -70,7 +70,7 @@ export function useDetectiveContacts(
       if (response.error) {
         setError(response.error);
       } else if (response.data) {
-        setContacts(response.data.detectives);
+        setContacts(response.data.items);  // Backend uses 'items' field
         setTotal(response.data.total);
       }
     } catch {

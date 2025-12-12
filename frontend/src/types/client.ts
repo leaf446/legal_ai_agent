@@ -72,15 +72,17 @@ export interface ClientStats {
 /**
  * Client contact for lawyer's address book
  * Separate from User accounts - these are contacts managed by lawyers
+ * NOTE: Field names must match backend ClientContactResponse schema (snake_case)
  */
 export interface ClientContact {
   id: string;
+  lawyer_id: string;
   name: string;
   phone?: string;
   email?: string;
   memo?: string;
-  createdAt: string; // ISO 8601
-  updatedAt: string;
+  created_at: string; // ISO 8601
+  updated_at: string;
 }
 
 export interface ClientContactCreate {
@@ -98,7 +100,7 @@ export interface ClientContactUpdate {
 }
 
 export interface ClientContactListResponse {
-  clients: ClientContact[];
+  items: ClientContact[];  // NOTE: Backend uses 'items', not 'clients'
   total: number;
   page: number;
   limit: number;

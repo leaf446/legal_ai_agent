@@ -25,7 +25,7 @@ function formatDate(dateString: string): string {
 }
 
 export function ClientCard({ client, onEdit, onDelete }: ClientCardProps) {
-  const { name, phone, email, memo, createdAt } = client;
+  const { name, phone, email, memo, created_at } = client;
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -44,7 +44,7 @@ export function ClientCard({ client, onEdit, onDelete }: ClientCardProps) {
           </div>
           <div>
             <h3 className="font-semibold text-gray-900">{name}</h3>
-            <p className="text-xs text-gray-400">등록일: {formatDate(createdAt)}</p>
+            <p className="text-xs text-gray-400">등록일: {formatDate(created_at)}</p>
           </div>
         </div>
         <div className="flex gap-1">

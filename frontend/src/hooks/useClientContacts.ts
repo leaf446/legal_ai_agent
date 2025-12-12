@@ -70,7 +70,7 @@ export function useClientContacts(
       if (response.error) {
         setError(response.error);
       } else if (response.data) {
-        setContacts(response.data.clients);
+        setContacts(response.data.items);  // Backend uses 'items' field
         setTotal(response.data.total);
       }
     } catch {
