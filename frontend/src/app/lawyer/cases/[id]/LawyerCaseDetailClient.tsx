@@ -13,6 +13,8 @@ import Link from 'next/link';
 import { apiClient } from '@/lib/api/client';
 import ExplainerCard from '@/components/cases/ExplainerCard';
 import ShareSummaryModal from '@/components/cases/ShareSummaryModal';
+import EditCaseModal from '@/components/cases/EditCaseModal';
+import { ApiCase } from '@/lib/api/cases';
 
 interface CaseDetail {
   id: string;
@@ -80,6 +82,7 @@ export default function LawyerCaseDetailClient({ id }: LawyerCaseDetailClientPro
   const [activeTab, setActiveTab] = useState<'evidence' | 'timeline' | 'members'>('evidence');
   const [showSummaryCard, setShowSummaryCard] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     const fetchCaseDetail = async () => {
@@ -211,7 +214,8 @@ export default function LawyerCaseDetailClient({ id }: LawyerCaseDetailClientPro
             </Link>
             <button
               type="button"
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+              onClick={() => setShowEditModal(true)}
+              className="px-4 py-2 border border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-neutral-700"
             >
               수정
             </button>
@@ -427,6 +431,31 @@ export default function LawyerCaseDetailClient({ id }: LawyerCaseDetailClientPro
         caseTitle={caseDetail.title}
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
+      />
+
+      {/* Edit Case Modal */}
+      <EditCaseModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        caseData={{
+          id: caseDetail.id,
+          title: caseDetail.title,
+          clientName: caseDetail.clientName,
+          description: caseDetail.description,
+        }}
+        onSuccess={(updatedCase: ApiCase) => {
+          setCaseDetail((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  title: updatedCase.title,
+                  clientName: updatedCase.client_name,
+                  description: updatedCase.description,
+                  updatedAt: updatedCase.updated_at,
+                }
+              : null
+          );
+        }}
       />
     </div>
   );

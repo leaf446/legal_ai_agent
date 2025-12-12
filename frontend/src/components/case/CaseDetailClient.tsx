@@ -19,7 +19,8 @@ import {
   getEvidence,
   UploadProgress
 } from '@/lib/api/evidence';
-import { getCase, Case } from '@/lib/api/cases';
+import { getCase, Case, ApiCase } from '@/lib/api/cases';
+import EditCaseModal from '@/components/cases/EditCaseModal';
 import { generateDraftPreview, DraftCitation as ApiDraftCitation } from '@/lib/api/draft';
 import { mapApiEvidenceToEvidence, mapApiEvidenceListToEvidence } from '@/lib/utils/evidenceMapper';
 
@@ -78,6 +79,7 @@ export default function CaseDetailClient({ id, defaultReturnUrl = '/lawyer/cases
         completed: 0,
         total: 0,
     });
+    const [showEditModal, setShowEditModal] = useState(false);
 
     const caseId = id || '';
 
@@ -339,12 +341,21 @@ export default function CaseDetailClient({ id, defaultReturnUrl = '/lawyer/cases
                             <ArrowLeft className="w-6 h-6" />
                         </Link>
                         <div>
-                            <h1 className="text-xl font-bold text-secondary">
+                            <h1 className="text-xl font-bold text-secondary dark:text-gray-100">
                                 {isLoadingCase ? '로딩 중...' : caseData?.title || '사건 정보 없음'}
                             </h1>
-                            <p className="text-xs text-gray-500">Case ID: {id}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Case ID: {id}</p>
                         </div>
                     </div>
+                    {caseData && (
+                        <button
+                            type="button"
+                            onClick={() => setShowEditModal(true)}
+                            className="px-4 py-2 border border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors"
+                        >
+                            수정
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -579,6 +590,29 @@ export default function CaseDetailClient({ id, defaultReturnUrl = '/lawyer/cases
                 onGenerate={handleGenerateDraft}
                 evidenceList={evidenceList}
             />
+
+            {/* Edit Case Modal */}
+            {caseData && (
+                <EditCaseModal
+                    isOpen={showEditModal}
+                    onClose={() => setShowEditModal(false)}
+                    caseData={{
+                        id: caseData.id,
+                        title: caseData.title,
+                        clientName: caseData.client_name,
+                        description: caseData.description,
+                    }}
+                    onSuccess={(updatedCase: ApiCase) => {
+                        setCaseData({
+                            ...caseData,
+                            title: updatedCase.title,
+                            client_name: updatedCase.client_name,
+                            description: updatedCase.description,
+                            updated_at: updatedCase.updated_at,
+                        });
+                    }}
+                />
+            )}
         </div>
     );
 }

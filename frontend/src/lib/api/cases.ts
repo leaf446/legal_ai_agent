@@ -30,6 +30,12 @@ export interface CreateCaseRequest {
   description?: string;
 }
 
+export interface UpdateCaseRequest {
+  title?: string;
+  client_name?: string;
+  description?: string;
+}
+
 export interface CaseListResponse {
   cases: ApiCase[];
   total: number;
@@ -110,5 +116,21 @@ export async function updateCaseStatus(
 export async function deleteCase(caseId: string): Promise<ApiResponse<void>> {
   return apiRequest<void>(`/cases/${caseId}`, {
     method: 'DELETE',
+  });
+}
+
+/**
+ * Update case details (title, client_name, description)
+ */
+export async function updateCase(
+  caseId: string,
+  data: UpdateCaseRequest
+): Promise<ApiResponse<ApiCase>> {
+  return apiRequest<ApiCase>(`/cases/${caseId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
   });
 }
