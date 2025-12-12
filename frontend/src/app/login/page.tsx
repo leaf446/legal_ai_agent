@@ -23,7 +23,7 @@ import LandingNav from '@/components/landing/LandingNav';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user, logout } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -60,7 +60,12 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <LandingNav isScrolled={isScrolled} />
+      <LandingNav
+        isScrolled={isScrolled}
+        isAuthenticated={isAuthenticated}
+        authLoading={isLoading}
+        onLogout={logout}
+      />
 
       <main
         id="main-content"

@@ -12,16 +12,20 @@
 
 import { useCallback, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
 
 interface LandingNavProps {
   isScrolled?: boolean;
+  isAuthenticated?: boolean;
+  authLoading?: boolean;
+  onLogout?: () => Promise<void> | void;
 }
 
-export default function LandingNav({ isScrolled = false }: LandingNavProps) {
-  const router = useRouter();
-  const { isAuthenticated, logout, isLoading } = useAuth();
+export default function LandingNav({
+  isScrolled = false,
+  isAuthenticated = false,
+  authLoading = false,
+  onLogout,
+}: LandingNavProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, sectionId: string) => {
@@ -33,17 +37,16 @@ export default function LandingNav({ isScrolled = false }: LandingNavProps) {
   };
 
   const handleLogout = useCallback(async () => {
-    if (isLoggingOut) return;
+    if (!onLogout || isLoggingOut) return;
     setIsLoggingOut(true);
     try {
-      await logout();
-      router.push('/login');
+      await onLogout();
     } catch (error) {
       console.error('로그아웃 실패', error);
     } finally {
       setIsLoggingOut(false);
     }
-  }, [isLoggingOut, logout, router]);
+  }, [isLoggingOut, onLogout]);
 
   return (
     <nav
@@ -103,7 +106,7 @@ export default function LandingNav({ isScrolled = false }: LandingNavProps) {
             <button
               type="button"
               onClick={handleLogout}
-              disabled={isLoggingOut || isLoading}
+              disabled={isLoggingOut || authLoading}
               className="btn-primary text-sm px-4 py-2 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60"
               aria-label="로그아웃"
             >
