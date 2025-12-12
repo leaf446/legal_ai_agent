@@ -393,11 +393,32 @@ describe('InvoiceForm Component', () => {
     });
   });
 
-  describe('Amount Input', () => {
-    test('should show won symbol', () => {
-      render(<InvoiceForm cases={mockCases} clients={mockClients} onSubmit={jest.fn()} />);
+    describe('Amount Input', () => {
 
-      expect(screen.getByText('원')).toBeInTheDocument();
+      test('should show won symbol', () => {
+
+        render(<InvoiceForm cases={mockCases} clients={mockClients} onSubmit={jest.fn()} />);
+
+  
+
+        expect(screen.getByText('원')).toBeInTheDocument();
+
+      });
+
+  
+
+      test('should show placeholder for amount', () => {
+
+        render(<InvoiceForm cases={mockCases} clients={mockClients} onSubmit={jest.fn()} />);
+
+        const amountInput = screen.getByLabelText(/금액/);
+
+        expect(amountInput).toHaveAttribute('placeholder', '500000');
+
+      });
+
     });
 
-    test('should show placeholder for amount', () => {. No edits made. The exact text in old_string was not found. Ensure you're not escaping content incorrectly and check whitespace, indentation, and context. Use read_file tool to verify.
+  });
+
+  

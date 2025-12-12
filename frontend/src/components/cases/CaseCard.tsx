@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Case } from '@/types/case';
 import { FileText, Clock, AlertCircle, CheckCircle2, ChevronDown, Trash2 } from 'lucide-react';
 import { deleteCase } from '@/lib/api/cases';
+import { getCaseDetailPath } from '@/lib/portalPaths';
 
 interface CaseCardProps {
   caseData: Case;
@@ -93,7 +94,7 @@ export default function CaseCard({ caseData, href, onStatusChange, onDelete }: C
     setShowDeleteConfirm(false);
   };
 
-  const resolvedHref = href ?? `/lawyer/cases/${caseData.id}`;
+  const resolvedHref = href ?? getCaseDetailPath('lawyer', caseData.id);
 
   return (
     <Link href={resolvedHref}>

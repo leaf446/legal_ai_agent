@@ -47,6 +47,7 @@ jest.mock('@/lib/api/client-portal', () => ({
 
 // Import component after mocks
 import ClientCasesPage from '@/app/client/cases/page';
+import { getCaseDetailPath } from '@/lib/portalPaths';
 
 // Mock data
 const mockCasesData = {
@@ -161,7 +162,7 @@ describe('Client Cases Page', () => {
 
       // Reverted to role-specific paths (IA fix: /cases is now legacy redirect)
       await waitFor(() => {
-        const links = document.querySelectorAll('a[href^="/client/cases/"]');
+        const links = document.querySelectorAll('a[href^="/client/cases/detail"]');
         expect(links.length).toBe(3);
       });
     });
@@ -172,13 +173,19 @@ describe('Client Cases Page', () => {
       // Reverted to role-specific paths (IA fix: /cases is now legacy redirect)
       await waitFor(() => {
         expect(
-          document.querySelector('a[href="/client/cases/case-1"]')
+          document.querySelector(
+            `a[href="${getCaseDetailPath('client', 'case-1')}"]`
+          )
         ).toBeInTheDocument();
         expect(
-          document.querySelector('a[href="/client/cases/case-2"]')
+          document.querySelector(
+            `a[href="${getCaseDetailPath('client', 'case-2')}"]`
+          )
         ).toBeInTheDocument();
         expect(
-          document.querySelector('a[href="/client/cases/case-3"]')
+          document.querySelector(
+            `a[href="${getCaseDetailPath('client', 'case-3')}"]`
+          )
         ).toBeInTheDocument();
       });
     });

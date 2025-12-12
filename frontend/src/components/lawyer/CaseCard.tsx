@@ -8,6 +8,7 @@
  */
 
 import Link from 'next/link';
+import { getCaseDetailPath, getLawyerCasePath } from '@/lib/portalPaths';
 
 interface CaseCardProps {
   id: string;
@@ -84,7 +85,7 @@ export function CaseCard({
       </div>
 
       {/* Title */}
-      <Link href={`/lawyer/cases/${id}`} className="block group">
+      <Link href={getCaseDetailPath('lawyer', id)} className="block group">
         <h3 className="font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] line-clamp-2">
           {title}
         </h3>
@@ -120,7 +121,7 @@ export function CaseCard({
       {/* Quick Actions */}
       <div className="mt-3 pt-3 border-t border-gray-100 dark:border-neutral-700 flex items-center justify-center gap-2">
         <Link
-          href={`/lawyer/cases/${id}/procedure`}
+          href={getLawyerCasePath('procedure', id)}
           className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-neutral-700 rounded transition-colors"
           title="절차 진행"
         >
@@ -130,7 +131,7 @@ export function CaseCard({
           절차
         </Link>
         <Link
-          href={`/lawyer/cases/${id}/assets`}
+          href={getLawyerCasePath('assets', id)}
           className="flex items-center gap-1 px-2 py-1 text-xs text-green-600 hover:bg-green-50 dark:hover:bg-neutral-700 rounded transition-colors"
           title="재산분할"
         >

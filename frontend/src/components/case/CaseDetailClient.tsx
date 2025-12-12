@@ -54,6 +54,10 @@ interface CaseDetailClientProps {
   apiBasePath?: string;
 }
 
+function isValidCaseDetailTab(value: string): value is CaseDetailTab {
+  return value === 'evidence' || value === 'opponent' || value === 'timeline' || value === 'draft';
+}
+
 export default function CaseDetailClient({ id, defaultReturnUrl = '/lawyer/cases', apiBasePath = '/lawyer' }: CaseDetailClientProps) {
     // Issue #290: Support returnUrl for proper back navigation
     const searchParams = useSearchParams();
@@ -80,6 +84,13 @@ export default function CaseDetailClient({ id, defaultReturnUrl = '/lawyer/cases
         total: 0,
     });
     const [showEditModal, setShowEditModal] = useState(false);
+
+    useEffect(() => {
+      const tabParam = searchParams.get('tab');
+      if (tabParam && isValidCaseDetailTab(tabParam) && tabParam !== activeTab) {
+        setActiveTab(tabParam);
+      }
+    }, [searchParams, activeTab]);
 
     const caseId = id || '';
 

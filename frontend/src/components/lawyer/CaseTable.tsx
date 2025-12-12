@@ -9,6 +9,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { getLawyerCasePath } from '@/lib/portalPaths';
 
 interface CaseItem {
   id: string;
@@ -155,7 +156,7 @@ export function CaseTable({
               </td>
               <td className="px-4 py-3">
                 <Link
-                  href={`/lawyer/cases/${caseItem.id}`}
+                  href={getLawyerCasePath('detail', caseItem.id)}
                   className="font-medium text-[var(--color-text-primary)] hover:text-[var(--color-primary)]"
                 >
                   {caseItem.title}
@@ -194,7 +195,7 @@ export function CaseTable({
               <td className="px-4 py-3">
                 <div className="flex items-center gap-1">
                   <Link
-                    href={`/lawyer/cases/${caseItem.id}/procedure`}
+                    href={getLawyerCasePath('procedure', caseItem.id)}
                     className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-neutral-700 rounded transition-colors"
                     title="절차 진행"
                   >
@@ -203,7 +204,7 @@ export function CaseTable({
                     </svg>
                   </Link>
                   <Link
-                    href={`/lawyer/cases/${caseItem.id}/assets`}
+                    href={getLawyerCasePath('assets', caseItem.id)}
                     className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-neutral-700 rounded transition-colors"
                     title="재산분할"
                   >

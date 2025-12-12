@@ -14,6 +14,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getClientDashboard } from '@/lib/api/client-portal';
+import { getCaseDetailPath } from '@/lib/portalPaths';
 import ProgressTracker, { ProgressBar } from '@/components/client/ProgressTracker';
 import type { ClientDashboardResponse, RecentActivity } from '@/types/client-portal';
 
@@ -161,8 +162,8 @@ export default function ClientDashboardPage() {
           <div className="p-4 border-b border-[var(--color-border-default)] flex items-center justify-between">
             <h2 className="font-semibold text-[var(--color-text-primary)]">케이스 진행 상황</h2>
             {case_summary && (
-              <Link
-                href={`/client/cases/${case_summary.id}`}
+                <Link
+                  href={getCaseDetailPath('client', case_summary.id)}
                 className="text-sm text-[var(--color-primary)] hover:underline"
               >
                 상세보기
@@ -257,7 +258,7 @@ export default function ClientDashboardPage() {
       {case_summary && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Link
-            href={`/client/cases/${case_summary.id}`}
+            href={getCaseDetailPath('client', case_summary.id)}
             className="bg-white rounded-xl shadow-sm border border-[var(--color-border-default)] p-4 hover:shadow-md hover:border-[var(--color-primary)] transition-all"
           >
             <svg className="w-8 h-8 text-[var(--color-primary)] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

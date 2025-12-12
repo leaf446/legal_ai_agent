@@ -15,6 +15,7 @@ import ExplainerCard from '@/components/cases/ExplainerCard';
 import ShareSummaryModal from '@/components/cases/ShareSummaryModal';
 import EditCaseModal from '@/components/cases/EditCaseModal';
 import { ApiCase } from '@/lib/api/cases';
+import { getCaseDetailPath, getLawyerCasePath } from '@/lib/portalPaths';
 
 interface CaseDetail {
   id: string;
@@ -75,6 +76,9 @@ interface LawyerCaseDetailClientProps {
 export default function LawyerCaseDetailClient({ id }: LawyerCaseDetailClientProps) {
   const router = useRouter();
   const caseId = id;
+  const detailPath = caseId ? getCaseDetailPath('lawyer', caseId) : '/lawyer/cases/detail';
+  const procedurePath = caseId ? getLawyerCasePath('procedure', caseId) : '/lawyer/cases/procedure';
+  const assetsPath = caseId ? getLawyerCasePath('assets', caseId) : '/lawyer/cases/assets';
 
   const [caseDetail, setCaseDetail] = useState<CaseDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -195,7 +199,7 @@ export default function LawyerCaseDetailClient({ id }: LawyerCaseDetailClientPro
           </div>
           <div className="flex gap-2">
             <Link
-              href={`/lawyer/cases/${caseId}/procedure`}
+              href={procedurePath}
               className="px-4 py-2 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-400 rounded-lg text-sm hover:bg-blue-50 dark:hover:bg-blue-900/30 flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -204,7 +208,7 @@ export default function LawyerCaseDetailClient({ id }: LawyerCaseDetailClientPro
               절차 진행
             </Link>
             <Link
-              href={`/lawyer/cases/${caseId}/assets`}
+              href={assetsPath}
               className="px-4 py-2 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-400 rounded-lg text-sm hover:bg-green-50 dark:hover:bg-green-900/30 flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -343,7 +347,7 @@ export default function LawyerCaseDetailClient({ id }: LawyerCaseDetailClientPro
                   </div>
                 ))}
                 <Link
-                  href={`/lawyer/cases/${caseId}`}
+                  href={detailPath}
                   className="inline-flex items-center gap-2 text-[var(--color-primary)] hover:underline"
                 >
                   전체 증거 자료 보기

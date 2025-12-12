@@ -26,6 +26,7 @@ import { RiskFlagCard } from '@/components/lawyer/RiskFlagCard';
 import { AIRecommendationCard } from '@/components/lawyer/AIRecommendationCard';
 import { DashboardSkeleton } from '@/components/shared/LoadingSkeletons';
 import { useRole } from '@/hooks/useRole';
+import { getCaseDetailPath } from '@/lib/portalPaths';
 
 // Icons for stats cards
 const BriefcaseIcon = () => (
@@ -217,7 +218,7 @@ export default function LawyerDashboardPage() {
                 <RecentCaseItem
                   key={caseItem.id}
                   {...caseItem}
-                  onClick={() => router.push(`/lawyer/cases/${caseItem.id}`)}
+                  onClick={() => router.push(getCaseDetailPath('lawyer', caseItem.id))}
                 />
               ))
             ) : (
