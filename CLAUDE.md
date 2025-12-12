@@ -416,6 +416,8 @@ When implementing features, files typically go in:
 - Python 3.11+ (Backend/AI Worker), TypeScript 5.x (Frontend) + FastAPI, Next.js 14, boto3, qdrant-client, openai, react-hot-toast (009-mvp-gap-closure)
 - Python 3.11+ (Backend), TypeScript 5.x (Frontend) + FastAPI, Next.js 14, jose (JWT), Tailwind CSS (011-production-bug-fixes)
 - PostgreSQL (RDS), HTTP-only Cookies (JWT 토큰), CloudFront /api proxy (011-production-bug-fixes)
+- Python 3.11+ (Backend), TypeScript 5.x (Frontend) + FastAPI, Next.js 14, React 18, Tailwind CSS, jose (JWT) (011-production-bug-fixes)
+- PostgreSQL (RDS), HTTP-only Cookies (JWT) (011-production-bug-fixes)
 
 ## Recent Changes
 - 009-mvp-gap-closure: (PLANNING) MVP production readiness. AI Worker 100% code complete (awaiting S3 IAM permissions), Backend RAG/Draft 90% complete (fully functional), Frontend error handling 70% (needs toast + retry). CI coverage at 65% (target 80%). Key tasks: S3 permission setup, enable AI Worker deployment, unify error handling, increase test coverage.
