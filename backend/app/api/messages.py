@@ -32,6 +32,12 @@ from app.schemas.message import (
     ConversationListResponse,
     UnreadCountResponse,
 )
+from app.db.schemas import (
+    MessageCreate as MessageCreateV2,
+    MessageResponse as MessageResponseV2,
+    MessageListResponse as MessageListResponseV2,
+)
+from app.core.dependencies import get_current_user_id
 
 router = APIRouter()
 
@@ -364,3 +370,135 @@ async def websocket_endpoint(
         manager.disconnect(websocket, user_id)
     except Exception:
         manager.disconnect(websocket, user_id)
+
+
+# ============================================
+# Issue #296 - FR-008: New Message Endpoints
+# ============================================
+@router.get("/v2/inbox", response_model=MessageListResponseV2)
+def get_inbox_v2(
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(20, ge=1, le=100, description="Items per page"),
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Get received messages (inbox) - Issue #296 FR-008.
+
+    - Returns messages where current user is recipient
+    - Excludes soft-deleted messages
+    - Ordered by newest first
+    """
+    service = MessageService(db)
+    return service.get_inbox_v2(user_id=user_id, page=page, limit=limit)
+
+
+@router.get("/v2/sent", response_model=MessageListResponseV2)
+def get_sent_v2(
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(20, ge=1, le=100, description="Items per page"),
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Get sent messages - Issue #296 FR-008.
+
+    - Returns messages where current user is sender
+    - Excludes soft-deleted messages
+    - Ordered by newest first
+    """
+    service = MessageService(db)
+    return service.get_sent_v2(user_id=user_id, page=page, limit=limit)
+
+
+@router.post("/v2", response_model=MessageResponseV2, status_code=201)
+async def send_message_v2(
+    data: MessageCreateV2,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Send a new message - Issue #296 FR-008.
+
+    - recipient_id is required
+    - subject is optional
+    - case_id is optional (can send messages without a case)
+    """
+    service = MessageService(db)
+    try:
+        message = service.send_message_v2(sender_id=user_id, data=data)
+
+        # Broadcast via WebSocket to recipient if online
+        await manager.send_to_user(
+            data.recipient_id,
+            {
+                "type": "new_message",
+                "payload": message.model_dump(mode="json"),
+            },
+        )
+
+        return message
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/v2/{message_id}", response_model=MessageResponseV2)
+def get_message_v2(
+    message_id: str,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Get a specific message - Issue #296 FR-008.
+
+    - Returns message details
+    - Automatically marks as read if user is recipient
+    """
+    service = MessageService(db)
+    try:
+        return service.get_message_v2(message_id=message_id, user_id=user_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Message not found")
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Not authorized to access this message")
+
+
+@router.delete("/v2/{message_id}", status_code=204)
+def delete_message_v2(
+    message_id: str,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Delete a message (soft delete) - Issue #296 FR-008.
+
+    - Marks as deleted for the current user only
+    - Message remains visible for the other party
+    """
+    service = MessageService(db)
+    try:
+        service.delete_message_v2(message_id=message_id, user_id=user_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Message not found")
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this message")
+
+
+@router.patch("/v2/{message_id}/read", response_model=MessageResponseV2)
+def mark_message_read_v2(
+    message_id: str,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Mark a message as read - Issue #296 FR-008.
+
+    - Only recipient can mark as read
+    """
+    service = MessageService(db)
+    try:
+        return service.mark_as_read_v2(message_id=message_id, user_id=user_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Message not found")
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Only recipient can mark message as read")

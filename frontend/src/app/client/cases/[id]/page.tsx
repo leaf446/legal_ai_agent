@@ -1,29 +1,18 @@
+'use client';
+
 /**
- * Client Case Detail Page - Server Component
+ * Client Case Detail Page - Client Component
  * 003-role-based-ui Feature - US4 (T075)
  *
- * Server component wrapper for static export compatibility.
+ * Client component wrapper for static export with SPA fallback.
  */
 
+import { useParams } from 'next/navigation';
 import ClientCaseDetailClient from './ClientCaseDetailClient';
 
-// Required for static export with dynamic routes
-// Pre-render sample case pages; additional routes are handled at request time
-export function generateStaticParams() {
-  return [
-    { id: '1' },
-    { id: '2' },
-    { id: '3' },
-  ];
-}
+export default function ClientCaseDetailPage() {
+  const params = useParams();
+  const id = params?.id as string || '';
 
-// Allow dynamic routes not listed in generateStaticParams
-export const dynamicParams = true;
-
-interface PageProps {
-  params: { id: string };
-}
-
-export default function ClientCaseDetailPage({ params }: PageProps) {
-  return <ClientCaseDetailClient caseId={params.id} />;
+  return <ClientCaseDetailClient caseId={id} />;
 }

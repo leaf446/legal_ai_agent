@@ -1,30 +1,16 @@
+'use client';
+
 /**
  * Relationship Visualization Page
  * Displays person relationship graph for a case
  */
 
-import { Metadata } from 'next';
+import { useParams } from 'next/navigation';
 import RelationshipClient from './RelationshipClient';
 
-export const metadata: Metadata = {
-  title: '인물 관계도 - Legal Evidence Hub',
-  description: '사건 관련 인물들의 관계를 시각적으로 표시합니다',
-};
+export default function RelationshipPage() {
+  const params = useParams();
+  const id = params?.id as string || '';
 
-// Required for static export with dynamic routes
-export function generateStaticParams() {
-  return [{ id: '1' }, { id: '2' }, { id: '3' }];
-}
-
-// Allow dynamic routes not listed in generateStaticParams
-export const dynamicParams = true;
-
-interface RelationshipPageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default function RelationshipPage({ params }: RelationshipPageProps) {
-  return <RelationshipClient caseId={params.id} />;
+  return <RelationshipClient caseId={id} />;
 }
