@@ -63,10 +63,10 @@ export function NotificationDropdown({ className = '' }: NotificationDropdownPro
       <NotificationBadge count={unreadCount} onClick={handleToggle} />
 
       {isOpen && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-lg border border-gray-200 bg-white shadow-lg">
+        <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 shadow-lg">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-            <h3 className="font-semibold text-gray-900">알림</h3>
+          <div className="flex items-center justify-between border-b border-gray-100 dark:border-neutral-700 px-4 py-3">
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">알림</h3>
             {unreadCount > 0 && (
               <button
                 type="button"
@@ -93,7 +93,7 @@ export function NotificationDropdown({ className = '' }: NotificationDropdownPro
             )}
 
             {!isLoading && !error && notifications.length === 0 && (
-              <div className="px-4 py-8 text-center text-sm text-gray-500">
+              <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                 알림이 없습니다
               </div>
             )}
@@ -110,10 +110,10 @@ export function NotificationDropdown({ className = '' }: NotificationDropdownPro
           </div>
 
           {/* Footer */}
-          <div className="border-t border-gray-100 px-4 py-2">
+          <div className="border-t border-gray-100 dark:border-neutral-700 px-4 py-2">
             <a
               href="/lawyer/notifications"
-              className="block text-center text-sm text-gray-600 hover:text-gray-800"
+              className="block text-center text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-200"
             >
               모든 알림 보기
             </a>

@@ -651,13 +651,13 @@ export default function DraftPreviewPanel({
     };
 
     return (
-        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6" aria-label="Draft editor">
+        <section className="bg-white dark:bg-neutral-800 rounded-2xl shadow-sm border border-gray-100 dark:border-neutral-700 p-6 space-y-6" aria-label="Draft editor">
             <div className="flex items-start justify-between gap-4">
                 <div>
                     <p className="text-sm text-neutral-600 leading-relaxed">
                         이 문서는 AI가 생성한 초안이며, 최종 책임은 변호사에게 있습니다.
                     </p>
-                    <p className="text-xs text-gray-400 mt-2">
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
                         실제 제출 전 반드시 모든 내용을 검토하고 사실 관계를 확인해 주세요.
                     </p>
                 </div>
@@ -667,14 +667,14 @@ export default function DraftPreviewPanel({
                 </div>
             </div>
 
-            <div className="flex flex-col gap-3 rounded-xl border border-gray-100 bg-neutral-50/60 p-4">
+            <div className="flex flex-col gap-3 rounded-xl border border-gray-100 dark:border-neutral-700 bg-neutral-50/60 dark:bg-neutral-900/60 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2">
                         <button
                             type="button"
                             onClick={handleManualSave}
                             disabled={isSaving}
-                            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-secondary hover:border-accent hover:text-accent transition-colors disabled:opacity-60"
+                            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-secondary dark:text-gray-200 hover:border-accent hover:text-accent transition-colors disabled:opacity-60"
                         >
                             <Save className="w-4 h-4" />
                             저장
@@ -682,7 +682,7 @@ export default function DraftPreviewPanel({
                         <button
                             type="button"
                             onClick={() => setIsHistoryOpen(true)}
-                            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-secondary hover:border-accent hover:text-accent transition-colors"
+                            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-secondary dark:text-gray-200 hover:border-accent hover:text-accent transition-colors"
                         >
                             <History className="w-4 h-4" />
                             버전 히스토리
@@ -690,7 +690,7 @@ export default function DraftPreviewPanel({
                         <button
                             type="button"
                             onClick={() => setIsTemplateModalOpen(true)}
-                            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-secondary hover:border-accent hover:text-accent transition-colors"
+                            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-secondary dark:text-gray-200 hover:border-accent hover:text-accent transition-colors"
                         >
                             <LayoutTemplate className="w-4 h-4" />
                             템플릿 적용
@@ -698,7 +698,7 @@ export default function DraftPreviewPanel({
                         <button
                             type="button"
                             onClick={() => setIsCitationModalOpen(true)}
-                            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-secondary hover:border-accent hover:text-accent transition-colors"
+                            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-secondary dark:text-gray-200 hover:border-accent hover:text-accent transition-colors"
                         >
                             <Quote className="w-4 h-4" />
                             증거 인용 삽입
@@ -708,8 +708,8 @@ export default function DraftPreviewPanel({
                             onClick={handleTrackChangeToggle}
                             className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
                                 isTrackChangesEnabled
-                                    ? 'border-accent bg-accent/10 text-secondary'
-                                    : 'border-gray-200 bg-white text-secondary hover:border-accent hover:text-accent'
+                                    ? 'border-accent bg-accent/10 text-secondary dark:text-gray-200'
+                                    : 'border-gray-200 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-secondary dark:text-gray-200 hover:border-accent hover:text-accent'
                             }`}
                         >
                             <GitBranch className="w-4 h-4" />
@@ -717,7 +717,7 @@ export default function DraftPreviewPanel({
                         </button>
                         {saveMessage && <span className="text-xs text-accent">{saveMessage}</span>}
                     </div>
-                    <div className="inline-flex flex-col text-xs text-gray-500 items-end gap-1" data-testid="autosave-indicator">
+                    <div className="inline-flex flex-col text-xs text-gray-500 dark:text-gray-400 items-end gap-1" data-testid="autosave-indicator">
                         <div className="inline-flex items-center">
                             <Clock3 className="w-4 h-4 mr-1" />
                             {formatAutosaveStatus(lastSavedAt)}
@@ -733,16 +733,16 @@ export default function DraftPreviewPanel({
                 </div>
                 <div
                     data-testid="draft-toolbar-panel"
-                    className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs text-gray-500 tracking-wide"
+                    className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-4 py-2 text-xs text-gray-500 dark:text-gray-400 tracking-wide"
                 >
                     <div className="flex items-center gap-2">
                         <FileText className="w-4 h-4 text-secondary" />
-                        <div className="h-4 w-px bg-gray-300 mx-2" />
+                        <div className="h-4 w-px bg-gray-300 dark:bg-neutral-600 mx-2" />
                         <button
                             type="button"
                             aria-label="Bold"
                             onClick={() => handleFormat('bold')}
-                            className="p-1 hover:bg-gray-200 rounded transition-colors"
+                            className="p-1 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded transition-colors"
                         >
                             <Bold className="w-4 h-4 text-neutral-700" />
                         </button>
@@ -750,7 +750,7 @@ export default function DraftPreviewPanel({
                             type="button"
                             aria-label="Italic"
                             onClick={() => handleFormat('italic')}
-                            className="p-1 hover:bg-gray-200 rounded transition-colors"
+                            className="p-1 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded transition-colors"
                         >
                             <Italic className="w-4 h-4 text-neutral-700" />
                         </button>
@@ -758,16 +758,16 @@ export default function DraftPreviewPanel({
                             type="button"
                             aria-label="Underline"
                             onClick={() => handleFormat('underline')}
-                            className="p-1 hover:bg-gray-200 rounded transition-colors"
+                            className="p-1 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded transition-colors"
                         >
                             <Underline className="w-4 h-4 text-neutral-700" />
                         </button>
-                        <div className="h-4 w-px bg-gray-300 mx-2" />
+                        <div className="h-4 w-px bg-gray-300 dark:bg-neutral-600 mx-2" />
                         <button
                             type="button"
                             aria-label="List"
                             onClick={() => handleFormat('insertUnorderedList')}
-                            className="p-1 hover:bg-gray-200 rounded transition-colors"
+                            className="p-1 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded transition-colors"
                         >
                             <List className="w-4 h-4 text-neutral-700" />
                         </button>
@@ -819,7 +819,7 @@ export default function DraftPreviewPanel({
             <div
                 data-testid="draft-editor-surface"
                 data-zen-mode="true"
-                className="relative rounded-2xl border border-gray-100 bg-white shadow-inner focus-within:border-deep-trust-blue transition-colors"
+                className="relative rounded-2xl border border-gray-100 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-inner focus-within:border-deep-trust-blue transition-colors"
             >
                 <div
                     ref={editorRef}
@@ -830,7 +830,7 @@ export default function DraftPreviewPanel({
                     onClick={handleEditorClick}
                     onBeforeInput={handleBeforeInput}
                     onInput={handleEditorInput}
-                    className="w-full min-h-[320px] bg-transparent p-6 text-gray-800 leading-relaxed focus:outline-none overflow-auto cursor-pointer [&_.evidence-ref]:underline [&_.evidence-ref]:text-secondary [&_.evidence-ref]:cursor-pointer [&_.evidence-ref:hover]:text-accent [&_.evidence-ref]:decoration-dotted"
+                    className="w-full min-h-[320px] bg-transparent p-6 text-gray-800 dark:text-gray-200 leading-relaxed focus:outline-none overflow-auto cursor-pointer [&_.evidence-ref]:underline [&_.evidence-ref]:text-secondary [&_.evidence-ref]:cursor-pointer [&_.evidence-ref:hover]:text-accent [&_.evidence-ref]:decoration-dotted"
                     dangerouslySetInnerHTML={{ __html: editorHtml }}
                 />
             </div>
@@ -851,36 +851,36 @@ export default function DraftPreviewPanel({
                         <span>{buttonLabel}</span>
                     )}
                 </button>
-                <div className="text-sm text-gray-500">
+                <div className="text-sm text-gray-500 dark:text-gray-400">
                     최신 초안 기준 <span className="font-semibold text-secondary">실제 증거 인용</span> {citations.length}건
                 </div>
             </div>
 
-            <div className="border-t border-gray-100 pt-4 space-y-6">
+            <div className="border-t border-gray-100 dark:border-neutral-700 pt-4 space-y-6">
                 <div>
                     <h4 className="text-sm font-semibold text-neutral-700 mb-3">Citations</h4>
                     <div className="space-y-3">
                         {citations.map((citation) => (
-                            <div key={citation.evidenceId} className="rounded-lg border border-gray-100 bg-neutral-50/60 p-3">
-                                <p className="text-xs text-gray-500 mb-1">{citation.title}</p>
+                            <div key={citation.evidenceId} className="rounded-lg border border-gray-100 dark:border-neutral-700 bg-neutral-50/60 dark:bg-neutral-900/60 p-3">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{citation.title}</p>
                                 <p className="text-sm text-neutral-700 leading-relaxed">&ldquo;{citation.quote}&rdquo;</p>
                             </div>
                         ))}
-                        {citations.length === 0 && <p className="text-sm text-gray-400">아직 연결된 증거가 없습니다.</p>}
+                        {citations.length === 0 && <p className="text-sm text-gray-400 dark:text-gray-500">아직 연결된 증거가 없습니다.</p>}
                     </div>
                 </div>
 
-                <div className="rounded-2xl border border-gray-100 bg-white p-4 space-y-3">
+                <div className="rounded-2xl border border-gray-100 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-4 space-y-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <MessageSquare className="w-4 h-4 text-secondary" />
-                            <h4 className="text-sm font-semibold text-neutral-700">코멘트</h4>
+                            <h4 className="text-sm font-semibold text-neutral-700 dark:text-gray-200">코멘트</h4>
                         </div>
-                        <span className="text-xs text-gray-400">선택한 텍스트에 코멘트를 남길 수 있습니다.</span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500">선택한 텍스트에 코멘트를 남길 수 있습니다.</span>
                     </div>
                     <textarea
                         aria-label="코멘트 작성"
-                        className="w-full rounded-xl border border-gray-200 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full rounded-xl border border-gray-200 dark:border-neutral-600 bg-white dark:bg-neutral-900 text-gray-900 dark:text-gray-100 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                         placeholder="선택한 부분에 대한 코멘트를 입력하세요."
                         value={newCommentText}
                         onChange={(event) => setNewCommentText(event.target.value)}
@@ -893,10 +893,10 @@ export default function DraftPreviewPanel({
                         코멘트 추가
                     </button>
                     <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
-                        {comments.length === 0 && <p className="text-sm text-gray-400">아직 코멘트가 없습니다.</p>}
+                        {comments.length === 0 && <p className="text-sm text-gray-400 dark:text-gray-500">아직 코멘트가 없습니다.</p>}
                         {comments.map((comment) => (
-                            <div key={comment.id} className="rounded-xl border border-gray-100 bg-neutral-50/80 p-3 space-y-1">
-                                <p className="text-xs text-gray-400">{formatTimestamp(comment.createdAt)}</p>
+                            <div key={comment.id} className="rounded-xl border border-gray-100 dark:border-neutral-700 bg-neutral-50/80 dark:bg-neutral-900/80 p-3 space-y-1">
+                                <p className="text-xs text-gray-400 dark:text-gray-500">{formatTimestamp(comment.createdAt)}</p>
                                 <p className="text-xs text-secondary">&ldquo;{comment.quote}&rdquo;</p>
                                 <p className="text-sm text-neutral-700">{comment.text}</p>
                                 <button
@@ -913,17 +913,17 @@ export default function DraftPreviewPanel({
                     </div>
                 </div>
 
-                <div className="rounded-2xl border border-gray-100 bg-white p-4 space-y-3">
+                <div className="rounded-2xl border border-gray-100 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-4 space-y-3">
                     <div className="flex items-center gap-2">
                         <GitBranch className="w-4 h-4 text-secondary" />
-                        <h4 className="text-sm font-semibold text-neutral-700">변경 추적</h4>
+                        <h4 className="text-sm font-semibold text-neutral-700 dark:text-gray-200">변경 추적</h4>
                     </div>
                     <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
-                        {changeLog.length === 0 && <p className="text-sm text-gray-400">기록된 변경 사항이 없습니다.</p>}
+                        {changeLog.length === 0 && <p className="text-sm text-gray-400 dark:text-gray-500">기록된 변경 사항이 없습니다.</p>}
                         {changeLog.map((entry) => (
-                            <div key={entry.id} className="rounded-xl border border-gray-100 bg-neutral-50/80 p-3">
-                                <p className="text-xs text-gray-400">{formatTimestamp(entry.createdAt)}</p>
-                                <p className="text-sm font-semibold text-gray-900">{entry.action.toUpperCase()}</p>
+                            <div key={entry.id} className="rounded-xl border border-gray-100 dark:border-neutral-700 bg-neutral-50/80 dark:bg-neutral-900/80 p-3">
+                                <p className="text-xs text-gray-400 dark:text-gray-500">{formatTimestamp(entry.createdAt)}</p>
+                                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{entry.action.toUpperCase()}</p>
                                 <p className="text-sm text-neutral-700 truncate">{entry.snippet}</p>
                             </div>
                         ))}
@@ -939,32 +939,32 @@ export default function DraftPreviewPanel({
 
             {isHistoryOpen && (
                 <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/30 px-4 pb-6 sm:items-center" role="dialog" aria-label="버전 히스토리 패널">
-                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" data-testid="version-history-panel">
+                    <div className="w-full max-w-md rounded-2xl bg-white dark:bg-neutral-800 p-6 shadow-2xl" data-testid="version-history-panel">
                         <div className="flex items-center justify-between mb-4">
                             <div>
-                                <p className="text-base font-semibold text-gray-900">버전 히스토리</p>
-                                <p className="text-xs text-gray-500 mt-1">최대 {HISTORY_LIMIT}개의 버전이 보관됩니다.</p>
+                                <p className="text-base font-semibold text-gray-900 dark:text-gray-100">버전 히스토리</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">최대 {HISTORY_LIMIT}개의 버전이 보관됩니다.</p>
                             </div>
                             <button
                                 type="button"
                                 aria-label="버전 히스토리 닫기"
                                 onClick={() => setIsHistoryOpen(false)}
-                                className="rounded-full p-2 text-gray-500 hover:bg-gray-100"
+                                className="rounded-full p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700"
                             >
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
                         <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
-                            {versionHistory.length === 0 && <p className="text-sm text-gray-500">저장된 버전이 없습니다.</p>}
+                            {versionHistory.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">저장된 버전이 없습니다.</p>}
                             {versionHistory.map((version) => (
                                 <button
                                     key={version.id}
                                     type="button"
                                     onClick={() => handleRestoreVersion(version.id)}
-                                    className="w-full rounded-xl border border-gray-200 bg-white p-3 text-left hover:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
+                                    className="w-full rounded-xl border border-gray-200 dark:border-neutral-600 bg-white dark:bg-neutral-900 p-3 text-left hover:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
                                 >
-                                    <p className="text-sm font-semibold text-gray-900">{formatVersionReason(version.reason)}</p>
-                                    <p className="text-xs text-gray-500">{formatTimestamp(version.savedAt)}</p>
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{formatVersionReason(version.reason)}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{formatTimestamp(version.savedAt)}</p>
                                 </button>
                             ))}
                         </div>
@@ -974,23 +974,23 @@ export default function DraftPreviewPanel({
 
             {isTemplateModalOpen && (
                 <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 px-4" role="dialog" aria-label="템플릿 선택">
-                    <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl space-y-4">
+                    <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-neutral-800 p-6 shadow-2xl space-y-4">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-gray-900">법률 문서 템플릿</h3>
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">법률 문서 템플릿</h3>
                             <button
                                 type="button"
                                 aria-label="템플릿 모달 닫기"
                                 onClick={() => setIsTemplateModalOpen(false)}
-                                className="rounded-full p-2 text-gray-500 hover:bg-gray-100"
+                                className="rounded-full p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700"
                             >
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
                         <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
                             {DOCUMENT_TEMPLATES.map((template) => (
-                                <div key={template.id} className="rounded-xl border border-gray-200 p-4 bg-neutral-50/40">
-                                    <p className="text-sm font-semibold text-gray-900">{template.name}</p>
-                                    <p className="text-xs text-gray-500 mb-3">{template.description}</p>
+                                <div key={template.id} className="rounded-xl border border-gray-200 dark:border-neutral-600 p-4 bg-neutral-50/40 dark:bg-neutral-900/40">
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{template.name}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{template.description}</p>
                                     <button
                                         type="button"
                                         onClick={() => handleApplyTemplate(template.content)}
@@ -1007,29 +1007,29 @@ export default function DraftPreviewPanel({
 
             {isCitationModalOpen && (
                 <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 px-4" role="dialog" aria-label="증거 인용 삽입">
-                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-4">
+                    <div className="w-full max-w-md rounded-2xl bg-white dark:bg-neutral-800 p-6 shadow-2xl space-y-4">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-gray-900">증거 인용 선택</h3>
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">증거 인용 선택</h3>
                             <button
                                 type="button"
                                 aria-label="증거 인용 모달 닫기"
                                 onClick={() => setIsCitationModalOpen(false)}
-                                className="rounded-full p-2 text-gray-500 hover:bg-gray-100"
+                                className="rounded-full p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700"
                             >
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
                         <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-                            {citations.length === 0 && <p className="text-sm text-gray-500">현재 인용 가능한 증거가 없습니다.</p>}
+                            {citations.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">현재 인용 가능한 증거가 없습니다.</p>}
                             {citations.map((citation) => (
                                 <button
                                     key={citation.evidenceId}
                                     type="button"
                                     onClick={() => handleInsertCitation(citation)}
-                                    className="w-full rounded-xl border border-gray-200 bg-white p-3 text-left hover:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
+                                    className="w-full rounded-xl border border-gray-200 dark:border-neutral-600 bg-white dark:bg-neutral-900 p-3 text-left hover:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
                                 >
-                                    <p className="text-sm font-semibold text-gray-900">{citation.title}</p>
-                                    <p className="text-xs text-gray-500 truncate">{citation.quote}</p>
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{citation.title}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{citation.quote}</p>
                                 </button>
                             ))}
                         </div>

@@ -59,9 +59,9 @@ export function CaseCard({
   return (
     <div
       className={`
-        relative p-4 bg-white border rounded-lg shadow-sm transition-all
+        relative p-4 bg-white dark:bg-neutral-800 border rounded-lg shadow-sm transition-all
         hover:shadow-md hover:border-[var(--color-primary)]
-        ${selected ? 'border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20' : 'border-gray-200'}
+        ${selected ? 'border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20' : 'border-gray-200 dark:border-neutral-700'}
       `}
     >
       {/* Selection Checkbox */}
@@ -103,7 +103,7 @@ export function CaseCard({
           <span>진행률</span>
           <span>{progress}%</span>
         </div>
-        <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+        <div className="w-full h-1.5 bg-gray-200 dark:bg-neutral-700 rounded-full overflow-hidden">
           <div
             className="h-full bg-[var(--color-primary)] rounded-full transition-all"
             style={{ width: `${progress}%` }}
@@ -112,16 +112,16 @@ export function CaseCard({
       </div>
 
       {/* Footer */}
-      <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
+      <div className="mt-3 pt-3 border-t border-gray-100 dark:border-neutral-700 flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
         <span>증거 {evidenceCount}건</span>
         <span>{new Date(updatedAt).toLocaleDateString('ko-KR')}</span>
       </div>
 
       {/* Quick Actions */}
-      <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-center gap-2">
+      <div className="mt-3 pt-3 border-t border-gray-100 dark:border-neutral-700 flex items-center justify-center gap-2">
         <Link
           href={`/lawyer/cases/${id}/procedure`}
-          className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded transition-colors"
+          className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-neutral-700 rounded transition-colors"
           title="절차 진행"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -131,7 +131,7 @@ export function CaseCard({
         </Link>
         <Link
           href={`/lawyer/cases/${id}/assets`}
-          className="flex items-center gap-1 px-2 py-1 text-xs text-green-600 hover:bg-green-50 rounded transition-colors"
+          className="flex items-center gap-1 px-2 py-1 text-xs text-green-600 hover:bg-green-50 dark:hover:bg-neutral-700 rounded transition-colors"
           title="재산분할"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -143,7 +143,7 @@ export function CaseCard({
           <button
             type="button"
             onClick={() => onAction(id, 'ai-analyze')}
-            className="flex items-center gap-1 px-2 py-1 text-xs text-purple-600 hover:bg-purple-50 rounded transition-colors"
+            className="flex items-center gap-1 px-2 py-1 text-xs text-purple-600 hover:bg-purple-50 dark:hover:bg-neutral-700 rounded transition-colors"
             title="AI 분석"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

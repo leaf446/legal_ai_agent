@@ -34,7 +34,7 @@ export function LawyerReviewCheckbox({
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4">
+    <div className="rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-4">
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0 pt-0.5">
           <input
@@ -43,20 +43,20 @@ export function LawyerReviewCheckbox({
             checked={isConfirmed}
             onChange={(e) => onConfirmChange(e.target.checked)}
             disabled={disabled}
-            className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50"
+            className="h-5 w-5 rounded border-gray-300 dark:border-neutral-600 text-primary focus:ring-primary disabled:opacity-50 dark:bg-neutral-700"
           />
         </div>
         <div className="flex-1">
           <label
             htmlFor="lawyer-review-confirm"
-            className="block font-medium text-gray-900 cursor-pointer"
+            className="block font-medium text-gray-900 dark:text-gray-100 cursor-pointer"
           >
             <span className="flex items-center gap-2">
               <Scale className="w-4 h-4 text-primary" />
               변호사 검토 완료 확인
             </span>
           </label>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             본 AI 생성 초안의 내용을 검토하였으며, 사실관계 및 법률적 정확성을 확인하였습니다.
           </p>
 
@@ -79,7 +79,7 @@ export function LawyerReviewCheckbox({
           )}
 
           {isExpanded && (
-            <div className="mt-3 p-3 rounded-lg bg-gray-50 text-xs text-gray-600 space-y-2">
+            <div className="mt-3 p-3 rounded-lg bg-gray-50 dark:bg-neutral-900 text-xs text-gray-600 dark:text-gray-400 space-y-2">
               <p>
                 <strong>1. AI 생성물 고지:</strong> 본 문서는 AI(인공지능)가 생성한 초안이며,
                 법률 전문가의 검토 없이 사용될 경우 법적 문제가 발생할 수 있습니다.
@@ -104,13 +104,13 @@ export function LawyerReviewCheckbox({
       {/* Confirmation Status */}
       <div className="mt-4 flex items-center gap-2">
         {isConfirmed ? (
-          <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-3 py-2 rounded-lg">
+          <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg">
             <CheckCircle2 className="w-4 h-4" />
             <span>검토 완료 확인됨</span>
             <FileCheck className="w-4 h-4 ml-2" />
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 px-3 py-2 rounded-lg">
+          <div className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-lg">
             <AlertCircle className="w-4 h-4" />
             <span>다운로드 전 검토 확인이 필요합니다</span>
           </div>
