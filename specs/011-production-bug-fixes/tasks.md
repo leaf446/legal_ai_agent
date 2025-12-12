@@ -52,9 +52,9 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T006 [P] [US1] E2E test: Login flow redirects to dashboard in frontend/e2e/auth.spec.ts
-- [ ] T007 [P] [US1] E2E test: Page refresh maintains login state in frontend/e2e/auth.spec.ts
-- [ ] T008 [P] [US1] E2E test: Back button from dashboard redirects back to dashboard in frontend/e2e/auth.spec.ts
+- [x] T006 [P] [US1] E2E test: Login flow redirects to dashboard in frontend/e2e/auth.spec.ts
+- [x] T007 [P] [US1] E2E test: Page refresh maintains login state in frontend/e2e/auth.spec.ts
+- [x] T008 [P] [US1] E2E test: Back button from dashboard redirects back to dashboard in frontend/e2e/auth.spec.ts
 - [ ] T009 [P] [US1] Unit test: AuthContext login method stores state correctly in frontend/src/__tests__/contexts/AuthContext.test.tsx
 - [ ] T010 [P] [US1] Unit test: Middleware redirects authenticated user from /login in frontend/src/__tests__/middleware.test.ts
 
