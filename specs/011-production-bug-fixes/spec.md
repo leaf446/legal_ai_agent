@@ -2,7 +2,7 @@
 
 **Feature Branch**: `011-production-bug-fixes`
 **Created**: 2025-12-11
-**Status**: Verification
+**Status**: Complete
 **Input**: 배포된 사이트의 모든 버그들 관련해서 고치고싶어
 
 ## User Scenarios & Testing *(mandatory)*
