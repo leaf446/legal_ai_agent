@@ -125,10 +125,16 @@ def test_env():
     For local development, uses SQLite database
     """
     import os as os_module
+    import gc
 
     # Clean up any existing test database (for local SQLite)
+    gc.collect()  # Force garbage collection to release file handles
     if os_module.path.exists("./test.db"):
-        os_module.remove("./test.db")
+        try:
+            os_module.remove("./test.db")
+        except PermissionError:
+            # Windows file locking - will be overwritten
+            pass
 
     # Default test values - only used if not already set in environment
     # Use SQLite for local testing, PostgreSQL for CI
@@ -182,23 +188,72 @@ def test_env():
             os.environ[key] = original_value
 
     # Clean up test database file (for local SQLite)
+    # Note: On Windows, SQLite file may be locked by another process
+    import gc
+    gc.collect()  # Force garbage collection to release file handles
+
     if os_module.path.exists("./test.db"):
-        os_module.remove("./test.db")
+        try:
+            os_module.remove("./test.db")
+        except PermissionError:
+            # Windows file locking - file will be overwritten on next run
+            pass
+
+
+class APITestClient:
+    """
+    Wrapper for TestClient that automatically adds /api prefix to all requests.
+    This ensures tests work correctly with the /api prefix added to all backend routes.
+    """
+    def __init__(self, client: TestClient):
+        self._client = client
+
+    def _add_prefix(self, url: str) -> str:
+        """Add /api prefix if not already present"""
+        if url.startswith("/api") or url.startswith("http"):
+            return url
+        return f"/api{url}"
+
+    def get(self, url: str, **kwargs):
+        return self._client.get(self._add_prefix(url), **kwargs)
+
+    def post(self, url: str, **kwargs):
+        return self._client.post(self._add_prefix(url), **kwargs)
+
+    def put(self, url: str, **kwargs):
+        return self._client.put(self._add_prefix(url), **kwargs)
+
+    def patch(self, url: str, **kwargs):
+        return self._client.patch(self._add_prefix(url), **kwargs)
+
+    def delete(self, url: str, **kwargs):
+        return self._client.delete(self._add_prefix(url), **kwargs)
+
+    def options(self, url: str, **kwargs):
+        return self._client.options(self._add_prefix(url), **kwargs)
+
+    def head(self, url: str, **kwargs):
+        return self._client.head(self._add_prefix(url), **kwargs)
+
+    # Pass through other attributes to the underlying client
+    def __getattr__(self, name):
+        return getattr(self._client, name)
 
 
 @pytest.fixture(scope="function")
 def client(test_env):
     """
-    FastAPI TestClient fixture
+    FastAPI TestClient fixture with automatic /api prefix
 
     Creates a fresh TestClient for each test function.
     Automatically uses test environment variables.
+    All requests are prefixed with /api to match backend route configuration.
     """
     # Import here to ensure test_env is loaded first
     from app.main import app
 
     with TestClient(app) as test_client:
-        yield test_client
+        yield APITestClient(test_client)
 
 
 @pytest.fixture(scope="function")
