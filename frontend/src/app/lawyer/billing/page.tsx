@@ -7,19 +7,39 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useBilling } from '@/hooks/useBilling';
+import { getLawyerCases, type CaseListItem } from '@/lib/api/lawyer';
+import { getClients } from '@/lib/api/clients';
 import InvoiceList from '@/components/lawyer/InvoiceList';
 import InvoiceForm from '@/components/lawyer/InvoiceForm';
 import type { Invoice, InvoiceStatus, InvoiceCreateRequest, InvoiceUpdateRequest } from '@/types/billing';
+import type { ClientItem } from '@/types/client';
 
 type ViewMode = 'list' | 'create' | 'edit';
+
+interface CaseOption {
+  id: string;
+  title: string;
+  client_name?: string;
+  client_id?: string;
+}
+
+interface ClientOption {
+  id: string;
+  name: string;
+  email?: string;
+}
 
 export default function LawyerBillingPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [caseOptions, setCaseOptions] = useState<CaseOption[]>([]);
+  const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
+  const [optionsLoading, setOptionsLoading] = useState(true);
+  const [optionError, setOptionError] = useState<string | null>(null);
 
   const {
     invoices,
@@ -35,12 +55,64 @@ export default function LawyerBillingPage() {
     remove,
   } = useBilling();
 
-  // Mock cases for demo (in real app, fetch from API)
-  const mockCases = [
-    { id: 'case_001', title: '김○○ 이혼 소송', client_id: 'client_001', client_name: '김철수' },
-    { id: 'case_002', title: '이○○ 재산분할', client_id: 'client_002', client_name: '이영희' },
-    { id: 'case_003', title: '박○○ 양육권 분쟁', client_id: 'client_003', client_name: '박민수' },
-  ];
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadOptions() {
+      setOptionsLoading(true);
+      setOptionError(null);
+
+      try {
+        const [casesResponse, clientsResponse] = await Promise.all([
+          getLawyerCases({ page: 1, limit: 100, sort_by: 'updated_at' }),
+          getClients({ page: 1, page_size: 100, status: 'active' }),
+        ]);
+
+        if (!isMounted) return;
+
+        if (casesResponse.error || !casesResponse.data) {
+          setCaseOptions([]);
+          setOptionError('사건 목록을 불러오지 못했습니다.');
+        } else {
+          setCaseOptions(
+            casesResponse.data.cases.map((caseItem: CaseListItem) => ({
+              id: caseItem.id,
+              title: caseItem.title,
+              client_name: caseItem.client_name,
+            }))
+          );
+        }
+
+        if (clientsResponse.error || !clientsResponse.data) {
+          setClientOptions([]);
+          setOptionError((prev) => prev || '의뢰인 목록을 불러오지 못했습니다.');
+        } else {
+          setClientOptions(
+            clientsResponse.data.items.map((client: ClientItem) => ({
+              id: client.id,
+              name: client.name,
+              email: client.email,
+            }))
+          );
+        }
+      } catch (error) {
+        if (!isMounted) return;
+        setCaseOptions([]);
+        setClientOptions([]);
+        setOptionError('청구서 발행에 필요한 데이터를 불러오는 중 오류가 발생했습니다.');
+      } finally {
+        if (isMounted) {
+          setOptionsLoading(false);
+        }
+      }
+    }
+
+    loadOptions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleFilterChange = useCallback(
     (status: InvoiceStatus | null) => {
@@ -189,11 +261,17 @@ export default function LawyerBillingPage() {
           <div className="p-6 border-b border-[var(--color-border)]">
             <h2 className="text-xl font-semibold">새 청구서 발행</h2>
           </div>
+          {optionError && (
+            <div className="mx-6 mt-4 mb-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-[var(--color-error)]">
+              {optionError}
+            </div>
+          )}
           <InvoiceForm
-            cases={mockCases}
+            cases={caseOptions}
+            clients={clientOptions}
             onSubmit={handleCreate as (data: InvoiceCreateRequest | InvoiceUpdateRequest) => Promise<void>}
             onCancel={handleCancel}
-            loading={formLoading}
+            loading={formLoading || optionsLoading}
           />
         </div>
       )}

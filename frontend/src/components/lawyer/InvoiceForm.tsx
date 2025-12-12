@@ -13,6 +13,7 @@ import type { Invoice, InvoiceCreateRequest, InvoiceStatus } from '@/types/billi
 interface InvoiceFormProps {
   invoice?: Invoice | null;
   cases?: Array<{ id: string; title: string; client_id?: string; client_name?: string }>;
+  clients?: Array<{ id: string; name: string; email?: string }>;
   onSubmit: (data: InvoiceCreateRequest | { amount?: string; description?: string; status?: InvoiceStatus; due_date?: string }) => Promise<void>;
   onCancel?: () => void;
   loading?: boolean;
@@ -37,6 +38,7 @@ interface FormErrors {
 export default function InvoiceForm({
   invoice,
   cases = [],
+  clients = [],
   onSubmit,
   onCancel,
   loading = false,
@@ -54,15 +56,30 @@ export default function InvoiceForm({
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
-  // Update client_id when case_id changes
+  // Update client_id when case_id changes (auto-select when mapping available)
   useEffect(() => {
-    if (!isEdit && formData.case_id) {
-      const selectedCase = cases.find((c) => c.id === formData.case_id);
-      if (selectedCase?.client_id) {
-        setFormData((prev) => ({ ...prev, client_id: selectedCase.client_id || '' }));
+    if (isEdit) return;
+
+    if (!formData.case_id) {
+      if (formData.client_id) {
+        setFormData((prev) => ({ ...prev, client_id: '' }));
+      }
+      return;
+    }
+
+    const selectedCase = cases.find((c) => c.id === formData.case_id);
+    if (selectedCase?.client_id && formData.client_id !== selectedCase.client_id) {
+      setFormData((prev) => ({ ...prev, client_id: selectedCase.client_id || '' }));
+      return;
+    }
+
+    if (selectedCase?.client_name && !formData.client_id) {
+      const match = clients.find((client) => client.name === selectedCase.client_name);
+      if (match) {
+        setFormData((prev) => ({ ...prev, client_id: match.id }));
       }
     }
-  }, [formData.case_id, cases, isEdit]);
+  }, [cases, clients, formData.case_id, formData.client_id, isEdit]);
 
   const handleInputChange = useCallback(
     (field: keyof FormData) =>
@@ -131,7 +148,7 @@ export default function InvoiceForm({
     [formData, validate, onSubmit, isEdit]
   );
 
-  const selectedCase = cases.find((c) => c.id === formData.case_id);
+  const selectedClient = clients.find((client) => client.id === formData.client_id);
 
   return (
     <form onSubmit={handleSubmit} className={`bg-white rounded-lg ${className}`}>
@@ -166,16 +183,50 @@ export default function InvoiceForm({
           </div>
         )}
 
+        {/* Client Selection */}
+        {!isEdit && (
+          <div>
+            <label
+              htmlFor="invoice-client"
+              className="block text-sm font-medium text-[var(--color-text-primary)] mb-2"
+            >
+              청구 대상 의뢰인 <span className="text-[var(--color-error)]">*</span>
+            </label>
+            <select
+              id="invoice-client"
+              value={formData.client_id}
+              onChange={handleInputChange('client_id')}
+              disabled={clients.length === 0}
+              className={`w-full px-4 py-3 border rounded-lg
+                focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent
+                ${errors.client_id ? 'border-[var(--color-error)]' : 'border-[var(--color-border)]'}`}
+            >
+              <option value="">{clients.length ? '의뢰인을 선택하세요' : '등록된 의뢰인이 없습니다'}</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.name}
+                  {client.email ? ` (${client.email})` : ''}
+                </option>
+              ))}
+            </select>
+            {errors.client_id && (
+              <p className="mt-1 text-sm text-[var(--color-error)]">{errors.client_id}</p>
+            )}
+          </div>
+        )}
+
         {/* Client Info (read-only) */}
-        {!isEdit && selectedCase && (
+        {!isEdit && selectedClient && (
           <div>
             <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
-              의뢰인
+              의뢰인 정보
             </label>
             <div className="px-4 py-3 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg">
-              {selectedCase.client_name || '의뢰인 정보 없음'}
+              <p className="font-medium text-[var(--color-text-primary)]">{selectedClient.name}</p>
+              {selectedClient.email && (
+                <p className="text-sm text-[var(--color-text-secondary)]">{selectedClient.email}</p>
+              )}
             </div>
-            <input type="hidden" value={formData.client_id} />
           </div>
         )}
 
