@@ -43,13 +43,19 @@ export async function apiRequest<T>(
     // Add /api prefix to all endpoints (backend routes are prefixed with /api)
     const url = `${API_BASE_URL}${API_PREFIX}${endpoint}`;
 
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(url, {
       ...options,
       credentials: 'include', // Include HTTP-only cookies
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers,
     });
 
     // Handle empty responses (e.g., 204 No Content)
