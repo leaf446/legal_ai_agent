@@ -43,6 +43,7 @@ class CaseStatus(str, enum.Enum):
     ACTIVE = "active"
     OPEN = "open"              # 진행 중 (open and active)
     IN_PROGRESS = "in_progress"  # 검토 대기 (being actively worked)
+    REVIEW = "review"          # 변호사 검토 단계
     CLOSED = "closed"
 
 

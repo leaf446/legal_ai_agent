@@ -1,15 +1,13 @@
+'use client';
+
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import Link from 'next/link';
 import CaseAssetsClient from '../[id]/assets/CaseAssetsClient';
 
-interface PageProps {
-  searchParams?: {
-    caseId?: string;
-    [key: string]: string | string[] | undefined;
-  };
-}
-
-export default function LawyerCaseAssetsByQuery({ searchParams }: PageProps) {
-  const caseId = typeof searchParams?.caseId === 'string' ? searchParams.caseId : undefined;
+function LawyerCaseAssetsContent() {
+  const searchParams = useSearchParams();
+  const caseId = searchParams.get('caseId');
 
   if (!caseId) {
     return (
@@ -28,4 +26,12 @@ export default function LawyerCaseAssetsByQuery({ searchParams }: PageProps) {
   }
 
   return <CaseAssetsClient caseId={caseId} />;
+}
+
+export default function LawyerCaseAssetsByQuery() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>}>
+      <LawyerCaseAssetsContent />
+    </Suspense>
+  );
 }

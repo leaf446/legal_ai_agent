@@ -1,16 +1,14 @@
+'use client';
+
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import Link from 'next/link';
 import CaseDetailClient from '@/components/case/CaseDetailClient';
 
-interface PageProps {
-  searchParams?: {
-    caseId?: string;
-    returnUrl?: string;
-    [key: string]: string | string[] | undefined;
-  };
-}
-
-export default function LawyerCaseDetailByQuery({ searchParams }: PageProps) {
-  const caseId = typeof searchParams?.caseId === 'string' ? searchParams.caseId : undefined;
+function LawyerCaseDetailContent() {
+  const searchParams = useSearchParams();
+  const caseId = searchParams.get('caseId');
+  const returnUrl = searchParams.get('returnUrl');
 
   if (!caseId) {
     return (
@@ -32,7 +30,15 @@ export default function LawyerCaseDetailByQuery({ searchParams }: PageProps) {
     <CaseDetailClient
       id={caseId}
       apiBasePath="/lawyer"
-      defaultReturnUrl={typeof searchParams?.returnUrl === 'string' ? searchParams.returnUrl : '/lawyer/cases'}
+      defaultReturnUrl={returnUrl || '/lawyer/cases'}
     />
+  );
+}
+
+export default function LawyerCaseDetailByQuery() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>}>
+      <LawyerCaseDetailContent />
+    </Suspense>
   );
 }

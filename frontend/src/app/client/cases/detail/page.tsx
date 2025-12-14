@@ -1,15 +1,13 @@
+'use client';
+
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import Link from 'next/link';
 import ClientCaseDetailClient from '../[id]/ClientCaseDetailClient';
 
-interface PageProps {
-  searchParams?: {
-    caseId?: string;
-    [key: string]: string | string[] | undefined;
-  };
-}
-
-export default function ClientCaseDetailByQuery({ searchParams }: PageProps) {
-  const caseId = typeof searchParams?.caseId === 'string' ? searchParams.caseId : undefined;
+function ClientCaseDetailContent() {
+  const searchParams = useSearchParams();
+  const caseId = searchParams.get('caseId');
 
   if (!caseId) {
     return (
@@ -28,4 +26,12 @@ export default function ClientCaseDetailByQuery({ searchParams }: PageProps) {
   }
 
   return <ClientCaseDetailClient caseId={caseId} />;
+}
+
+export default function ClientCaseDetailByQuery() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>}>
+      <ClientCaseDetailContent />
+    </Suspense>
+  );
 }
