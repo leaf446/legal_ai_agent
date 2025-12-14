@@ -45,8 +45,9 @@ interface AuthProviderProps {
 }
 
 const USER_CACHE_KEY = 'userCache';
-const ACCESS_TOKEN_KEY = 'accessToken';
 const JUST_LOGGED_IN_KEY = 'justLoggedIn';
+// Note: Authentication is handled via HTTP-only cookies, NOT localStorage
+// The userCache is only for display purposes (name, email) and is NOT used for auth
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const router = useRouter();
@@ -168,10 +169,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           // Set flag to prevent checkAuth race condition after redirect
           sessionStorage.setItem(JUST_LOGGED_IN_KEY, 'true');
           localStorage.setItem(USER_CACHE_KEY, JSON.stringify(userData));
-          // Store access token for Authorization header (cross-origin support)
-          if (response.data.access_token) {
-            localStorage.setItem(ACCESS_TOKEN_KEY, response.data.access_token);
-          }
+          // Note: Authentication token is handled via HTTP-only cookie (set by backend)
+          // We do NOT store the access_token in localStorage (XSS protection)
 
           // Set user_data cookie for middleware
           const userDisplayData = {
@@ -204,10 +203,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Call logout API to clear HTTP-only cookies
       await apiLogout();
     } finally {
-      // Clear all local auth data
+      // Clear all local display data (auth is handled via HTTP-only cookies)
       localStorage.removeItem(USER_CACHE_KEY);
-      localStorage.removeItem(ACCESS_TOKEN_KEY);  // Clear access token for cross-origin support
-      // Clear legacy tokens if any (migration)
+      // Clear any legacy tokens that might exist from old versions
+      localStorage.removeItem('accessToken');
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
       // Clear display cookie

@@ -10,7 +10,7 @@ import logging  # noqa: E402
 from contextlib import asynccontextmanager  # noqa: E402
 from datetime import datetime, timezone  # noqa: E402
 
-from fastapi import FastAPI  # noqa: E402
+from fastapi import FastAPI, Depends  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import JSONResponse  # noqa: E402
 from mangum import Mangum  # noqa: E402 - AWS Lambda handler
@@ -294,18 +294,28 @@ except ImportError:
 # ============================================
 # TEMPORARY: Database Debug Endpoints
 # Remove after migration is complete
+# SECURITY: Admin-only access required
 # ============================================
+from app.core.dependencies import require_admin
+
+
 @app.get("/admin/check-roles", tags=["Admin"])
-async def check_roles():
-    """Check current role values in database and enum type definition."""
+async def check_roles(admin_user=Depends(require_admin)):
+    """
+    Check current role values in database and enum type definition.
+    ADMIN ONLY - requires admin authentication.
+    """
     from app.db.session import get_db
     from sqlalchemy import text
 
     db = next(get_db())
     try:
-        # Check users
+        # Check users (exclude sensitive data - only show id, email prefix, role)
         result = db.execute(text("SELECT id, email, role::text as role FROM users"))
-        users = [{"id": r[0], "email": r[1], "role": r[2]} for r in result.fetchall()]
+        users = [
+            {"id": r[0], "email": r[1].split("@")[0] + "@***", "role": r[2]}
+            for r in result.fetchall()
+        ]
 
         # Check enum type definition
         enum_result = db.execute(text("""
@@ -326,14 +336,17 @@ async def check_roles():
 
 
 @app.post("/admin/migrate-enums", tags=["Admin"])
-async def migrate_enums_to_lowercase():
+async def migrate_enums_to_lowercase(admin_user=Depends(require_admin)):
     """
     Migrate all enum values from uppercase to lowercase.
     Handles: userrole, userstatus, and other enums.
+    ADMIN ONLY - requires admin authentication.
     """
     from app.db.session import get_db
     from sqlalchemy import text
+    import logging
 
+    logger = logging.getLogger(__name__)
     db = next(get_db())
     try:
         steps = []
@@ -351,7 +364,9 @@ async def migrate_enums_to_lowercase():
                     db.execute(text(f"ALTER TYPE {enum_type} ADD VALUE IF NOT EXISTS '{val}'"))
                     steps.append(f"Added {enum_type}.{val}")
                 except Exception as e:
-                    steps.append(f"Skipped {enum_type}.{val}: {str(e)}")
+                    # Log error details server-side only
+                    logger.warning(f"Enum migration skipped: {enum_type}.{val}")
+                    steps.append(f"Skipped {enum_type}.{val}")
             db.commit()
 
             # Step 2: Update from UPPERCASE to lowercase
@@ -365,7 +380,8 @@ async def migrate_enums_to_lowercase():
                     steps.append(f"Updated {result.rowcount} rows: {table}.{column} {upper_val} -> {val}")
                 except Exception as e:
                     db.rollback()
-                    steps.append(f"Error {table}.{column} {upper_val}: {str(e)}")
+                    logger.error(f"Enum migration error: {table}.{column} {upper_val}")
+                    steps.append(f"Error {table}.{column} {upper_val}")
 
         # Verify
         check_result = db.execute(text("SELECT DISTINCT role::text, status::text FROM users"))
@@ -378,16 +394,17 @@ async def migrate_enums_to_lowercase():
         }
     except Exception as e:
         db.rollback()
-        return {"status": "error", "message": str(e)}
+        logger.exception("Enum migration failed")
+        return {"status": "error", "message": "Migration failed. Check server logs."}
     finally:
         db.close()
 
 
 # Keep old endpoint for backwards compatibility
 @app.post("/admin/migrate-roles", tags=["Admin"])
-async def migrate_roles_redirect():
-    """Redirects to migrate-enums endpoint."""
-    return await migrate_enums_to_lowercase()
+async def migrate_roles_redirect(admin_user=Depends(require_admin)):
+    """Redirects to migrate-enums endpoint. ADMIN ONLY."""
+    return await migrate_enums_to_lowercase(admin_user)
 
 
 # Note: Timeline router removed (002-evidence-timeline feature incomplete)

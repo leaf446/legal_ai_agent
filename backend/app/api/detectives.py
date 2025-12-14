@@ -5,8 +5,11 @@ Issue #298 - FR-011~012, FR-016
 API endpoints for detective contact management.
 """
 
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from app.core.dependencies import get_db, get_current_user_id
 from app.services.detective_contact_service import DetectiveContactService
@@ -55,7 +58,8 @@ async def get_detectives(
             limit=limit,
         )
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        logger.warning(f"Permission denied for user {user_id}: {e}")
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
 
 
 @router.post(
@@ -84,9 +88,11 @@ async def create_detective(
     try:
         return service.create_detective(lawyer_id=user_id, data=data)
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        logger.warning(f"Permission denied for user {user_id} creating detective: {e}")
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.warning(f"Validation error creating detective: {e}")
+        raise HTTPException(status_code=400, detail="탐정 연락처 생성에 실패했습니다. 입력값을 확인해주세요")
 
 
 @router.get(
@@ -110,9 +116,10 @@ async def get_detective(
     try:
         return service.get_detective(detective_id=detective_id, lawyer_id=user_id)
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        logger.warning(f"Permission denied for user {user_id} accessing detective {detective_id}: {e}")
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
     except KeyError:
-        raise HTTPException(status_code=404, detail="Detective not found")
+        raise HTTPException(status_code=404, detail="탐정 연락처를 찾을 수 없습니다")
 
 
 @router.put(
@@ -142,11 +149,13 @@ async def update_detective(
             data=data,
         )
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        logger.warning(f"Permission denied for user {user_id} updating detective {detective_id}: {e}")
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
     except KeyError:
-        raise HTTPException(status_code=404, detail="Detective not found")
+        raise HTTPException(status_code=404, detail="탐정 연락처를 찾을 수 없습니다")
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.warning(f"Validation error updating detective {detective_id}: {e}")
+        raise HTTPException(status_code=400, detail="탐정 연락처 수정에 실패했습니다. 입력값을 확인해주세요")
 
 
 @router.delete(
@@ -171,6 +180,7 @@ async def delete_detective(
     try:
         result = service.delete_detective(detective_id=detective_id, lawyer_id=user_id)
         if not result:
-            raise HTTPException(status_code=404, detail="Detective not found")
+            raise HTTPException(status_code=404, detail="탐정 연락처를 찾을 수 없습니다")
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        logger.warning(f"Permission denied for user {user_id} deleting detective {detective_id}: {e}")
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")

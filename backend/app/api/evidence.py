@@ -9,10 +9,13 @@ POST /evidence/{evidence_id}/retry - Retry failed evidence processing
 Note: GET /cases/{case_id}/evidence is in cases.py (follows REST resource nesting)
 """
 
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from app.db.session import get_db
 from app.db.schemas import (
@@ -198,9 +201,11 @@ def get_evidence_status(
         result = evidence_service.get_evidence_status(evidence_id, user_id)
         return EvidenceStatusResponse(**result)
     except NotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        logger.warning(f"Evidence not found: {evidence_id}: {e}")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="증거를 찾을 수 없습니다")
     except PermissionError as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        logger.warning(f"Permission denied for evidence {evidence_id}: {e}")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="증거에 접근할 권한이 없습니다")
 
 
 @router.post("/{evidence_id}/retry", response_model=RetryResponse, status_code=status.HTTP_200_OK)
@@ -242,8 +247,11 @@ def retry_evidence_processing(
         result = evidence_service.retry_processing(evidence_id, user_id)
         return RetryResponse(**result)
     except NotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        logger.warning(f"Evidence not found for retry: {evidence_id}: {e}")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="증거를 찾을 수 없습니다")
     except PermissionError as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        logger.warning(f"Permission denied for evidence retry {evidence_id}: {e}")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="증거에 접근할 권한이 없습니다")
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        logger.warning(f"Evidence retry validation error {evidence_id}: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="증거 재처리를 시도할 수 없습니다")

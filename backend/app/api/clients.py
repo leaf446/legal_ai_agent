@@ -5,8 +5,11 @@ Issue #297 - FR-009~010, FR-015
 API endpoints for client contact management.
 """
 
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from app.core.dependencies import get_db, get_current_user_id
 from app.services.client_contact_service import ClientContactService
@@ -55,7 +58,8 @@ async def get_clients(
             limit=limit,
         )
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        logger.warning(f"Permission denied for user {user_id}: {e}")
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
 
 
 @router.post(
@@ -84,9 +88,11 @@ async def create_client(
     try:
         return service.create_client(lawyer_id=user_id, data=data)
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        logger.warning(f"Permission denied for user {user_id} creating client: {e}")
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.warning(f"Validation error creating client: {e}")
+        raise HTTPException(status_code=400, detail="의뢰인 생성에 실패했습니다. 입력값을 확인해주세요")
 
 
 @router.get(
@@ -110,9 +116,10 @@ async def get_client(
     try:
         return service.get_client(client_id=client_id, lawyer_id=user_id)
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        logger.warning(f"Permission denied for user {user_id} accessing client {client_id}: {e}")
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
     except KeyError:
-        raise HTTPException(status_code=404, detail="Client not found")
+        raise HTTPException(status_code=404, detail="의뢰인을 찾을 수 없습니다")
 
 
 @router.put(
@@ -142,11 +149,13 @@ async def update_client(
             data=data,
         )
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        logger.warning(f"Permission denied for user {user_id} updating client {client_id}: {e}")
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
     except KeyError:
-        raise HTTPException(status_code=404, detail="Client not found")
+        raise HTTPException(status_code=404, detail="의뢰인을 찾을 수 없습니다")
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.warning(f"Validation error updating client {client_id}: {e}")
+        raise HTTPException(status_code=400, detail="의뢰인 수정에 실패했습니다. 입력값을 확인해주세요")
 
 
 @router.delete(
@@ -171,6 +180,7 @@ async def delete_client(
     try:
         result = service.delete_client(client_id=client_id, lawyer_id=user_id)
         if not result:
-            raise HTTPException(status_code=404, detail="Client not found")
+            raise HTTPException(status_code=404, detail="의뢰인을 찾을 수 없습니다")
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        logger.warning(f"Permission denied for user {user_id} deleting client {client_id}: {e}")
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")

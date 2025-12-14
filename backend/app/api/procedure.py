@@ -5,9 +5,12 @@ US3 - 절차 단계 관리 (Procedure Stage Tracking)
 Endpoints for managing litigation procedure stages
 """
 
+import logging
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from app.core.dependencies import get_db, get_current_user_id, verify_case_read_access, verify_case_write_access
 from app.services.procedure_service import ProcedureService
@@ -83,7 +86,8 @@ async def create_procedure_stage(
         record = service.create_stage(case_id, data, user_id)
         return ProcedureStageResponse.from_orm_with_labels(record)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        logger.warning(f"Procedure stage create failed for case {case_id}: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="절차 단계 생성에 실패했습니다")
 
 
 @router.get("/stages/{stage_id}", response_model=ProcedureStageResponse)
@@ -203,7 +207,8 @@ async def complete_procedure_stage(
         record = service.complete_stage(stage_id, outcome)
         return ProcedureStageResponse.from_orm_with_labels(record)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        logger.warning(f"Procedure stage complete failed for stage {stage_id}: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="절차 단계 완료 처리에 실패했습니다")
 
 
 @router.post("/stages/{stage_id}/skip", response_model=ProcedureStageResponse)
@@ -236,7 +241,8 @@ async def skip_procedure_stage(
         record = service.skip_stage(stage_id, reason)
         return ProcedureStageResponse.from_orm_with_labels(record)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        logger.warning(f"Procedure stage skip failed for stage {stage_id}: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="절차 단계 건너뛰기에 실패했습니다")
 
 
 @router.post("/transition", response_model=dict)
@@ -265,7 +271,8 @@ async def transition_to_next_stage(
 
         return result
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        logger.warning(f"Procedure transition failed for case {case_id}: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="다음 단계로 이동에 실패했습니다")
 
 
 @router.get("/next-stages", response_model=List[dict])

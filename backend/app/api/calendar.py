@@ -10,11 +10,14 @@ Endpoints:
 - GET /calendar/reminders - Get due reminders
 """
 
+import logging
 from datetime import datetime
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 from app.core.dependencies import get_db, get_current_user_id
 from app.db.schemas import (
@@ -134,7 +137,8 @@ async def create_calendar_event(
     try:
         event = service.create_event(user_id=user_id, event_data=event_data)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        logger.warning(f"Calendar event creation failed: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="일정 생성에 실패했습니다. 입력값을 확인해주세요")
 
     # Audit log (T136)
     create_audit_log(
@@ -182,7 +186,8 @@ async def update_calendar_event(
             event_data=event_data
         )
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        logger.warning(f"Calendar event update failed for {event_id}: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="일정 수정에 실패했습니다. 입력값을 확인해주세요")
 
     # Audit log (T136)
     create_audit_log(

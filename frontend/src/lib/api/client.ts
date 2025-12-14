@@ -43,14 +43,12 @@ export async function apiRequest<T>(
     // Add /api prefix to all endpoints (backend routes are prefixed with /api)
     const url = `${API_BASE_URL}${API_PREFIX}${endpoint}`;
 
-    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    // Authentication is handled via HTTP-only cookies only
+    // No localStorage token - credentials: 'include' sends cookies automatically
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       ...options.headers,
     };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
 
     const response = await fetch(url, {
       ...options,
@@ -76,9 +74,11 @@ export async function apiRequest<T>(
       // Handle 401 Unauthorized - redirect to login (but not from /auth/me or if already on login)
       // Note: Cookie cleanup is handled by the logout endpoint
       if (response.status === 401 && typeof window !== 'undefined') {
-        // Clear any legacy localStorage tokens (migration)
+        // Clear any legacy localStorage tokens (migration cleanup)
         localStorage.removeItem('authToken');
         localStorage.removeItem('user');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('userCache');
         // Don't redirect if:
         // 1. We're checking auth status (/auth/me) - 401 is expected for unauthenticated users
         // 2. We're already on the login/signup page

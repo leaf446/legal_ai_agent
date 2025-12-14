@@ -13,11 +13,14 @@ WebSocket:
 - WS /messages/ws - Real-time message channel
 """
 
+import logging
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query
 from sqlalchemy.orm import Session
 from typing import Optional
 import asyncio
 from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
 
 from app.db.session import get_db
 from app.db.models import User
@@ -161,7 +164,8 @@ def get_messages(
             before_id=before_id,
         )
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        logger.warning(f"Permission denied for user {current_user.id} accessing messages: {e}")
+        raise HTTPException(status_code=403, detail="메시지에 접근할 권한이 없습니다")
 
 
 @router.post("", response_model=MessageResponse)
@@ -193,9 +197,11 @@ async def send_message(
 
         return message
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        logger.warning(f"Permission denied for user {current_user.id} sending message: {e}")
+        raise HTTPException(status_code=403, detail="메시지 전송 권한이 없습니다")
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.warning(f"Validation error sending message: {e}")
+        raise HTTPException(status_code=400, detail="메시지 전송에 실패했습니다. 입력값을 확인해주세요")
 
 
 @router.post("/read")
@@ -439,7 +445,8 @@ async def send_message_v2(
 
         return message
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.warning(f"Validation error sending message v2: {e}")
+        raise HTTPException(status_code=400, detail="메시지 전송에 실패했습니다. 입력값을 확인해주세요")
 
 
 @router.get("/v2/{message_id}", response_model=MessageResponseV2)
