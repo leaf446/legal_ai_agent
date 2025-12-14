@@ -206,6 +206,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       // Clear all local auth data
       localStorage.removeItem(USER_CACHE_KEY);
+      localStorage.removeItem(ACCESS_TOKEN_KEY);  // Clear access token for cross-origin support
       // Clear legacy tokens if any (migration)
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
