@@ -24,6 +24,7 @@ import {
 import { Evidence, EvidenceType } from '@/types/evidence';
 import { EvidenceStatusBadge } from './EvidenceStatusBadge';
 import { retryEvidence } from '@/lib/api/evidence';
+import { ConfidenceScore, LowConfidenceWarning } from '@/components/analysis';
 
 interface EvidenceCardProps {
   evidence: Evidence;
@@ -177,6 +178,24 @@ export function EvidenceCard({
                 </span>
               )}
             </div>
+          </div>
+        )}
+
+        {/* AI Confidence Score */}
+        {isCompleted && evidence.article840Tags && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500 dark:text-gray-400">AI 분석 신뢰도</span>
+              <ConfidenceScore score={evidence.article840Tags.confidence} size="sm" />
+            </div>
+            {evidence.article840Tags.confidence < 0.6 && (
+              <LowConfidenceWarning
+                confidence={evidence.article840Tags.confidence}
+                context="법적 태깅"
+                variant="inline"
+                dismissible={false}
+              />
+            )}
           </div>
         )}
       </div>
