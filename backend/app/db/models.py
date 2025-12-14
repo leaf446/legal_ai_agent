@@ -286,6 +286,7 @@ class User(Base):
     email = Column(String, unique=True, nullable=False, index=True)
     hashed_password = Column(String, nullable=False)
     name = Column(String, nullable=False)
+    phone = Column(String, nullable=True)  # 연락처
     role = Column(StrEnumColumn(UserRole), nullable=False, default=UserRole.LAWYER)
     status = Column(StrEnumColumn(UserStatus), nullable=False, default=UserStatus.ACTIVE)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
