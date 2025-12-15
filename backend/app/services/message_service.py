@@ -12,7 +12,7 @@ Handles:
 """
 
 from datetime import datetime, timezone
-from typing import Optional, List, Tuple
+from typing import Optional, List
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_, desc
 import json

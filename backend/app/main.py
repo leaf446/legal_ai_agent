@@ -40,6 +40,7 @@ from app.api import (  # noqa: E402
     messages,
     notifications,
     party,
+    precedent,
     procedure,
     properties,
     relationships,
@@ -48,6 +49,7 @@ from app.api import (  # noqa: E402
     staff_progress,
     summary,
 )
+from app.core.dependencies import require_admin  # noqa: E402
 from app.middleware import (  # noqa: E402
     register_exception_handlers,
     SecurityHeadersMiddleware,
@@ -275,7 +277,6 @@ app.include_router(calendar.router, prefix=API_PREFIX, tags=["Calendar"])
 app.include_router(summary.router, prefix=API_PREFIX, tags=["Summary"])
 
 # 012-precedent-integration: Precedent Search 라우터 (T023)
-from app.api import precedent
 app.include_router(precedent.router, prefix=API_PREFIX, tags=["Precedent"])
 
 # Admin 라우터 (User Management & Audit Log)
@@ -300,7 +301,6 @@ except ImportError:
 # Remove after migration is complete
 # SECURITY: Admin-only access required
 # ============================================
-from app.core.dependencies import require_admin
 
 
 @app.get("/admin/check-roles", tags=["Admin"])
@@ -367,7 +367,7 @@ async def migrate_enums_to_lowercase(admin_user=Depends(require_admin)):
                 try:
                     db.execute(text(f"ALTER TYPE {enum_type} ADD VALUE IF NOT EXISTS '{val}'"))
                     steps.append(f"Added {enum_type}.{val}")
-                except Exception as e:
+                except Exception:
                     # Log error details server-side only
                     logger.warning(f"Enum migration skipped: {enum_type}.{val}")
                     steps.append(f"Skipped {enum_type}.{val}")
@@ -382,7 +382,7 @@ async def migrate_enums_to_lowercase(admin_user=Depends(require_admin)):
                     )
                     db.commit()
                     steps.append(f"Updated {result.rowcount} rows: {table}.{column} {upper_val} -> {val}")
-                except Exception as e:
+                except Exception:
                     db.rollback()
                     logger.error(f"Enum migration error: {table}.{column} {upper_val}")
                     steps.append(f"Error {table}.{column} {upper_val}")
@@ -396,7 +396,7 @@ async def migrate_enums_to_lowercase(admin_user=Depends(require_admin)):
             "steps": steps,
             "final_values": final_values
         }
-    except Exception as e:
+    except Exception:
         db.rollback()
         logger.exception("Enum migration failed")
         return {"status": "error", "message": "Migration failed. Check server logs."}

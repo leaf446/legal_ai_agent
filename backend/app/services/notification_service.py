@@ -5,10 +5,10 @@ Issue #295 - FR-007
 Business logic for notification operations.
 """
 
-from typing import List, Optional
+from typing import Optional
 from sqlalchemy.orm import Session
 
-from app.db.models import Notification, NotificationType
+from app.db.models import NotificationType
 from app.repositories.notification_repository import NotificationRepository
 from app.db.schemas import (
     NotificationResponse,

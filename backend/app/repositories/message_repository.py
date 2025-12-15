@@ -8,9 +8,8 @@ Data access layer for message operations.
 from typing import List, Optional, Tuple
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, and_
 
-from app.db.models import Message, User
+from app.db.models import Message
 
 
 class MessageRepository:
