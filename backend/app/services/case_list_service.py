@@ -201,8 +201,9 @@ class CaseListService:
 
     def _get_status_counts(self, user_id: str) -> dict:
         """Get case counts by status"""
+        # Use distinct count to avoid duplicates from outer join
         results = (
-            self.db.query(Case.status, func.count(Case.id))
+            self.db.query(Case.status, func.count(func.distinct(Case.id)))
             .join(
                 CaseMember,
                 and_(
