@@ -16,6 +16,7 @@ import ShareSummaryModal from '@/components/cases/ShareSummaryModal';
 import EditCaseModal from '@/components/cases/EditCaseModal';
 import { ApiCase } from '@/lib/api/cases';
 import { getCaseDetailPath, getLawyerCasePath } from '@/lib/portalPaths';
+import { PrecedentPanel } from '@/components/precedent';
 
 interface CaseDetail {
   id: string;
@@ -299,6 +300,9 @@ export default function LawyerCaseDetailClient({ id }: LawyerCaseDetailClientPro
           <p className="text-purple-900 dark:text-purple-200">{caseDetail.aiSummary}</p>
         </div>
       )}
+
+      {/* 012-precedent-integration: T029 - Similar Precedents Panel */}
+      <PrecedentPanel caseId={caseId} />
 
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-neutral-700">

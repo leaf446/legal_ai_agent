@@ -180,6 +180,7 @@ const DASHBOARD_PATHS: Record<UserRole, string> = {
 1. **Cookie Configuration**: SameSite, Secure 설정 검증/수정
 2. **State Sync Logic**: localStorage/sessionStorage 저장 순서
 3. **Middleware Logic**: user_data 쿠키 파싱 및 리다이렉트
+<<<<<<< HEAD
 
 ---
 
@@ -480,3 +481,5 @@ CREATE TABLE detectives (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 ```
+=======
+>>>>>>> origin/dev
