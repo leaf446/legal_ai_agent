@@ -7,10 +7,9 @@ Endpoints for managing litigation procedure stages
 
 import logging
 from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-
-logger = logging.getLogger(__name__)
 
 from app.core.dependencies import get_db, get_current_user_id, verify_case_read_access, verify_case_write_access
 from app.services.procedure_service import ProcedureService
@@ -23,6 +22,8 @@ from app.schemas.procedure import (
     UpcomingDeadlinesResponse,
     STAGE_LABELS,
 )
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter(prefix="/cases/{case_id}/procedure", tags=["Procedure"])

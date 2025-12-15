@@ -6,10 +6,9 @@ API endpoints for client portal including dashboard, case viewing, and evidence 
 """
 
 import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-
-logger = logging.getLogger(__name__)
 
 from app.core.dependencies import get_db, require_role
 from app.services.client_portal_service import ClientPortalService
@@ -22,6 +21,8 @@ from app.schemas.client_portal import (
     EvidenceConfirmRequest,
     EvidenceConfirmResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/client", tags=["client-portal"])
 

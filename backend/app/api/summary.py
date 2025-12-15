@@ -7,15 +7,16 @@ Endpoints for generating and sharing case summary cards
 
 import logging
 from io import BytesIO
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-logger = logging.getLogger(__name__)
-
 from app.core.dependencies import get_db, verify_case_read_access
 from app.services.summary_card_service import SummaryCardService
 from app.schemas.summary import CaseSummaryResponse
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter(prefix="/cases/{case_id}/summary", tags=["Summary"])

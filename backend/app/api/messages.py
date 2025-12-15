@@ -13,18 +13,17 @@ WebSocket:
 - WS /messages/ws - Real-time message channel
 """
 
+import asyncio
 import logging
+from datetime import datetime, timedelta
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query
 from sqlalchemy.orm import Session
-from typing import Optional
-import asyncio
-from datetime import datetime, timedelta
-
-logger = logging.getLogger(__name__)
 
 from app.db.session import get_db
 from app.db.models import User
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_current_user_id
 from app.core.security import decode_access_token, create_access_token
 from app.services.message_service import MessageService
 from app.schemas.message import (
@@ -40,7 +39,8 @@ from app.db.schemas import (
     MessageResponse as MessageResponseV2,
     MessageListResponse as MessageListResponseV2,
 )
-from app.core.dependencies import get_current_user_id
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 

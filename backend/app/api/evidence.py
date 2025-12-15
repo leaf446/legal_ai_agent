@@ -10,12 +10,11 @@ Note: GET /cases/{case_id}/evidence is in cases.py (follows REST resource nestin
 """
 
 import logging
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Optional
-
-logger = logging.getLogger(__name__)
 
 from app.db.session import get_db
 from app.db.schemas import (
@@ -28,6 +27,8 @@ from app.db.schemas import (
 from app.services.evidence_service import EvidenceService
 from app.core.dependencies import get_current_user_id
 from app.middleware import NotFoundError, PermissionError
+
+logger = logging.getLogger(__name__)
 
 
 # Response models for new endpoints

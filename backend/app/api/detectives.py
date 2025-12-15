@@ -6,10 +6,9 @@ API endpoints for detective contact management.
 """
 
 import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-
-logger = logging.getLogger(__name__)
 
 from app.core.dependencies import get_db, get_current_user_id
 from app.services.detective_contact_service import DetectiveContactService
@@ -19,6 +18,8 @@ from app.db.schemas import (
     DetectiveContactResponse,
     DetectiveContactListResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/detectives", tags=["detectives"])
 

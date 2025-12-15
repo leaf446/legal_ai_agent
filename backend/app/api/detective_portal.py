@@ -8,14 +8,13 @@ field records, reports, and earnings.
 
 import logging
 from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db, require_role
 from app.services.detective_portal_service import DetectivePortalService
 from app.services.audit_log_service import AuditLogService
-
-logger = logging.getLogger(__name__)
 from app.schemas.detective_portal import (
     DetectiveDashboardResponse,
     CaseListResponse,
@@ -29,6 +28,8 @@ from app.schemas.detective_portal import (
     EarningsResponse,
     EarningsSummary,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/detective", tags=["detective-portal"])
 
