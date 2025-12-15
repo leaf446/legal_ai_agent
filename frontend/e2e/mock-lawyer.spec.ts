@@ -3,6 +3,7 @@ import { MOCK_USERS, MOCK_AUTH_RESPONSE, MOCK_CASES, MOCK_CASE_DETAIL } from './
 
 test.describe('Lawyer Flow (Mocked)', () => {
   test.beforeEach(async ({ page }) => {
+    page.on('console', msg => console.log(`BROWSER LOG: ${msg.text()}`));
     // 1. Intercept Auth/Me (Session Checks)
     await page.route('**/api/auth/me', async (route) => {
       // Initially 401 (not logged in), then user after login usually
@@ -21,27 +22,55 @@ test.describe('Lawyer Flow (Mocked)', () => {
     await page.route('**/api/auth/login', async (route) => {
       const json = MOCK_AUTH_RESPONSE('lawyer');
       // Simulated Set-Cookie for user_data
-      const userData = encodeURIComponent(JSON.stringify({ role: 'lawyer', ...MOCK_USERS.lawyer }));
+      const userData = encodeURIComponent(JSON.stringify({ ...MOCK_USERS.lawyer }));
       
       await page.unroute('**/api/auth/me'); 
-      await page.route('**/api/auth/me', async (r) => r.fulfill({ json: MOCK_USERS.lawyer }));
+      await page.route('**/api/auth/me', async (r) => r.fulfill({ 
+        json: MOCK_USERS.lawyer,
+        headers: {
+          'Access-Control-Allow-Origin': 'http://localhost:3000',
+          'Access-Control-Allow-Credentials': 'true',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        }
+      }));
       
       await route.fulfill({ 
         json,
         headers: {
           'Set-Cookie': `user_data=${userData}; Path=/;`,
+          'Access-Control-Allow-Origin': 'http://localhost:3000',
+          'Access-Control-Allow-Credentials': 'true',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
         }
       });
     });
 
     // 3. Intercept Cases
     await page.route('**/api/cases', async (route) => {
-      await route.fulfill({ json: { data: MOCK_CASES, total: 2, page: 1, size: 10 } });
+      await route.fulfill({ 
+        json: { data: MOCK_CASES, total: 2, page: 1, size: 10 },
+        headers: {
+          'Access-Control-Allow-Origin': 'http://localhost:3000',
+          'Access-Control-Allow-Credentials': 'true',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        }
+      });
     });
 
     // 4. Intercept Case Detail
     await page.route('**/api/cases/case_001', async (route) => {
-      await route.fulfill({ json: MOCK_CASE_DETAIL });
+      await route.fulfill({ 
+        json: MOCK_CASE_DETAIL,
+        headers: {
+          'Access-Control-Allow-Origin': 'http://localhost:3000',
+          'Access-Control-Allow-Credentials': 'true',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        }
+      });
     });
 
     // Clear storage
@@ -71,7 +100,7 @@ test.describe('Lawyer Flow (Mocked)', () => {
   test('should view case list and navigate to detail', async ({ page, context }) => {
     // Setup: Already logged in
     // 1. Set Cookie
-    const userData = encodeURIComponent(JSON.stringify({ role: 'lawyer', ...MOCK_USERS.lawyer }));
+    const userData = encodeURIComponent(JSON.stringify({ ...MOCK_USERS.lawyer }));
     await context.addCookies([{
       name: 'user_data',
       value: userData,
@@ -80,7 +109,15 @@ test.describe('Lawyer Flow (Mocked)', () => {
 
     // 2. Mock /me
     await page.unroute('**/api/auth/me');
-    await page.route('**/api/auth/me', async (r) => r.fulfill({ json: MOCK_USERS.lawyer }));
+    await page.route('**/api/auth/me', async (r) => r.fulfill({ 
+      json: MOCK_USERS.lawyer,
+      headers: {
+        'Access-Control-Allow-Origin': 'http://localhost:3000',
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      }
+    }));
     
     await page.goto('/cases');
     
