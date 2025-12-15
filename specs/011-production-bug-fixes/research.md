@@ -219,7 +219,6 @@ test('complete login flow', async ({ page }) => {
 1. 먼저 Production 환경의 쿠키 설정 검증 (브라우저 DevTools Network 탭)
 2. 쿠키가 전달되지 않으면 Backend 설정 수정
 3. 쿠키가 전달되면 Race Condition 재검증
-<<<<<<< HEAD
 
 ---
 
@@ -309,5 +308,3 @@ React Query (TanStack Query) + Context API 조합
 | 메시지 | RDS + REST CRUD | 기존 인프라 활용 |
 | 연락처 | 별도 Client/Detective 테이블 | User와 분리 |
 | 상태관리 | React Query + Context | 기존 패턴 유지 |
-=======
->>>>>>> origin/dev

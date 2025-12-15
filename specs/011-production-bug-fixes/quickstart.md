@@ -165,11 +165,7 @@ PLAYWRIGHT_BASE_URL="http://localhost:3000" npx playwright test auth.spec.ts
 PLAYWRIGHT_BASE_URL="https://dpbf86zqulqfy.cloudfront.net" npx playwright test auth.spec.ts
 ```
 
-<<<<<<< HEAD
 ## Success Checklist (US1 - Login Bug)
-=======
-## Success Checklist
->>>>>>> origin/dev
 
 - [ ] 로그인 API가 올바른 Set-Cookie 헤더 반환
 - [ ] 쿠키가 브라우저에 저장됨 (Application 탭)
@@ -178,7 +174,6 @@ PLAYWRIGHT_BASE_URL="https://dpbf86zqulqfy.cloudfront.net" npx playwright test a
 - [ ] 뒤로가기 시 대시보드로 리다이렉트
 - [ ] 로그아웃 후 모든 쿠키/스토리지 정리됨
 - [ ] 모든 역할에서 정상 작동
-<<<<<<< HEAD
 
 ---
 
@@ -357,5 +352,3 @@ PLAYWRIGHT_BASE_URL="https://dpbf86zqulqfy.cloudfront.net" \
 
 **Cause**: Backend API 미구현 또는 라우터 미등록
 **Fix**: `backend/app/main.py`에 라우터 등록 확인
-=======
->>>>>>> origin/dev
