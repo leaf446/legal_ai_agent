@@ -5,7 +5,7 @@ TDD - Improving test coverage for evidence_service.py
 
 import pytest
 from datetime import datetime, timezone
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import uuid
 
 from app.services.evidence_service import EvidenceService
