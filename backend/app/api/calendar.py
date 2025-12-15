@@ -13,11 +13,10 @@ Endpoints:
 import logging
 from datetime import datetime
 from typing import Optional, List
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-
-logger = logging.getLogger(__name__)
 
 from app.core.dependencies import get_db, get_current_user_id
 from app.db.schemas import (
@@ -25,6 +24,8 @@ from app.db.schemas import (
     CalendarEventUpdate,
 )
 from app.services.calendar_service import CalendarService, create_audit_log
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/calendar", tags=["calendar"])
 
