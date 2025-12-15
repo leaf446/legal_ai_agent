@@ -5,7 +5,7 @@ TDD - Improving test coverage for evidence_service.py
 
 import pytest
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import uuid
 
 from app.services.evidence_service import EvidenceService
@@ -16,6 +16,14 @@ from app.db.schemas import (
 )
 from app.db.models import Case, CaseMember, User, CaseStatus, CaseMemberRole
 from app.middleware import NotFoundError, PermissionError
+
+
+# Common mock targets for evidence service tests
+MOCK_SAVE_METADATA = 'app.services.evidence_service.save_evidence_metadata'
+MOCK_INVOKE_AI = 'app.services.evidence_service.invoke_ai_worker'
+MOCK_UPDATE_STATUS = 'app.services.evidence_service.update_evidence_status'
+MOCK_GET_EVIDENCE = 'app.services.evidence_service.get_evidence_by_id'
+MOCK_GET_EVIDENCE_BY_CASE = 'app.services.evidence_service.get_evidence_by_case'
 
 
 class TestParseArticle840Tags:
@@ -252,10 +260,16 @@ class TestGenerateUploadPresignedUrl:
 class TestHandleUploadComplete:
     """Unit tests for handle_upload_complete method"""
 
-    def test_upload_complete_success(self, test_env):
+    @patch(MOCK_UPDATE_STATUS)
+    @patch(MOCK_INVOKE_AI)
+    @patch(MOCK_SAVE_METADATA)
+    def test_upload_complete_success(self, mock_save, mock_invoke, mock_update, test_env):
         """Successful upload completion handling"""
         from app.db.session import get_db
         from app.core.security import hash_password
+
+        # Setup mocks
+        mock_invoke.return_value = {"StatusCode": 200}
 
         db = next(get_db())
         unique_id = uuid.uuid4().hex[:8]
@@ -295,19 +309,16 @@ class TestHandleUploadComplete:
             note="Test note"
         )
 
-        with patch('app.services.evidence_service.save_evidence_metadata') as mock_save, \
-             patch('app.services.evidence_service.invoke_ai_worker') as mock_invoke, \
-             patch('app.services.evidence_service.update_evidence_status'):
+        result = service.handle_upload_complete(request, user.id)
 
-            mock_invoke.return_value = {"StatusCode": 200}
-
-            result = service.handle_upload_complete(request, user.id)
-
-            assert result.evidence_id == "test123"
-            assert result.case_id == case.id
-            assert result.status == "processing"
-            mock_save.assert_called_once()
-            mock_invoke.assert_called_once()
+        assert result.evidence_id == "test123"
+        assert result.case_id == case.id
+        # Status is "processing" when invoke_ai_worker succeeds (no exception)
+        assert result.status == "processing"
+        mock_save.assert_called_once()
+        mock_invoke.assert_called_once()
+        # Verify update_evidence_status was called with "processing"
+        mock_update.assert_called_with("test123", "processing")
 
         # Cleanup
         db.query(CaseMember).filter(CaseMember.case_id == case.id).delete()
@@ -732,7 +743,10 @@ class TestGetEvidenceDetail:
 class TestRetryProcessing:
     """Unit tests for retry_processing method"""
 
-    def test_retry_processing_success(self, test_env):
+    @patch(MOCK_INVOKE_AI)
+    @patch(MOCK_UPDATE_STATUS)
+    @patch(MOCK_GET_EVIDENCE)
+    def test_retry_processing_success(self, mock_get, mock_update, mock_invoke, test_env):
         """Successfully retry processing"""
         from app.db.session import get_db
         from app.core.security import hash_password
@@ -766,24 +780,20 @@ class TestRetryProcessing:
         db.add(member)
         db.commit()
 
+        # Setup mocks
+        mock_get.return_value = {
+            "evidence_id": "ev1",
+            "case_id": case.id,
+            "status": "failed",
+            "s3_key": f"cases/{case.id}/raw/ev1_photo.jpg"
+        }
+        mock_invoke.return_value = {"StatusCode": 200}
+
         service = EvidenceService(db)
+        result = service.retry_processing("ev1", user.id)
 
-        with patch('app.services.evidence_service.get_evidence_by_id') as mock_get, \
-             patch('app.services.evidence_service.update_evidence_status'), \
-             patch('app.services.evidence_service.invoke_ai_worker') as mock_invoke:
-
-            mock_get.return_value = {
-                "evidence_id": "ev1",
-                "case_id": case.id,
-                "status": "failed",
-                "s3_key": f"cases/{case.id}/raw/ev1_photo.jpg"
-            }
-            mock_invoke.return_value = {"StatusCode": 200}
-
-            result = service.retry_processing("ev1", user.id)
-
-            assert result["success"] is True
-            assert result["status"] == "processing"
+        assert result["success"] is True
+        assert result["status"] == "processing"
 
         # Cleanup
         db.query(CaseMember).filter(CaseMember.case_id == case.id).delete()
