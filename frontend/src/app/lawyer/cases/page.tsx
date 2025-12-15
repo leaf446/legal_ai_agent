@@ -14,7 +14,6 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useCaseList } from '@/hooks/useCaseList';
 import { CaseCard } from '@/components/lawyer/CaseCard';
 import { CaseTable } from '@/components/lawyer/CaseTable';
-import { CaseFilter } from '@/components/lawyer/CaseFilter';
 import { BulkActionBar } from '@/components/lawyer/BulkActionBar';
 import AddCaseModal from '@/components/cases/AddCaseModal';
 
@@ -30,10 +29,7 @@ export default function LawyerCasesPage() {
     error,
     pagination,
     setPage,
-    filters,
     statusCounts,
-    setFilters,
-    resetFilters,
     sort,
     setSort,
     selectedIds,
@@ -157,16 +153,6 @@ export default function LawyerCasesPage() {
           )}
         </button>
       </div>
-
-      {/* Filters (hide status filter when showing closed) */}
-      {!showClosed && (
-        <CaseFilter
-          filters={filters}
-          statusCounts={statusCounts}
-          onFilterChange={setFilters}
-          onReset={resetFilters}
-        />
-      )}
 
       {/* Error State */}
       {error && (
