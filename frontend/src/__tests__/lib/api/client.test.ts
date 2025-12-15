@@ -19,29 +19,37 @@ jest.mock('react-hot-toast', () => ({
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
-// Mock window.location - delete first then assign
-const mockLocation = {
-  href: '',
-  pathname: '/dashboard',
-  assign: jest.fn(),
-  replace: jest.fn(),
-  reload: jest.fn(),
-};
-// @ts-expect-error - delete location for mocking in jsdom
-delete window.location;
-// @ts-expect-error - assigning mock location
-window.location = mockLocation;
+// Store original location
+const originalLocation = window.location;
 
 describe('apiRequest', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockLocation.href = '';
-    mockLocation.pathname = '/dashboard';
+    // Reset location mock using Object.defineProperty
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      value: {
+        href: '',
+        pathname: '/dashboard',
+        assign: jest.fn(),
+        replace: jest.fn(),
+        reload: jest.fn(),
+        startsWith: (prefix: string) => '/dashboard'.startsWith(prefix),
+      },
+    });
     try {
       localStorage.clear();
     } catch {
       // Ignore localStorage errors in test environment
     }
+  });
+
+  afterAll(() => {
+    // Restore original location
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      value: originalLocation,
+    });
   });
 
   describe('successful responses', () => {
@@ -95,7 +103,7 @@ describe('apiRequest', () => {
   });
 
   describe('401 Unauthorized handling (FR-008)', () => {
-    it('should show toast on 401 for regular endpoints', async () => {
+    it('should redirect to login on 401 for regular endpoints', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 401,
@@ -107,11 +115,11 @@ describe('apiRequest', () => {
 
       expect(result.status).toBe(401);
       expect(result.error).toBe('Unauthorized');
-      expect(toast.error).toHaveBeenCalledWith('세션이 만료되었습니다. 다시 로그인해 주세요.');
-      // Note: redirect behavior is verified manually - JSDOM doesn't support navigation
+      // Should redirect to login with expired flag
+      expect(window.location.href).toBe('/login?expired=true');
     });
 
-    it('should NOT show toast on 401 for /auth/me endpoint', async () => {
+    it('should NOT redirect on 401 for /auth/me endpoint', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 401,
@@ -122,7 +130,36 @@ describe('apiRequest', () => {
       const result = await apiRequest('/auth/me');
 
       expect(result.status).toBe(401);
-      expect(toast.error).not.toHaveBeenCalled();
+      // Should NOT redirect for auth check
+      expect(window.location.href).toBe('');
+    });
+
+    it('should NOT redirect on 401 when already on login page', async () => {
+      // Set location to login page
+      Object.defineProperty(window, 'location', {
+        writable: true,
+        value: {
+          href: '',
+          pathname: '/login',
+          assign: jest.fn(),
+          replace: jest.fn(),
+          reload: jest.fn(),
+          startsWith: (prefix: string) => '/login'.startsWith(prefix),
+        },
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        text: () => Promise.resolve('{"detail": "Unauthorized"}'),
+      });
+
+      const result = await apiRequest('/protected');
+
+      expect(result.status).toBe(401);
+      // Should NOT redirect when already on login page
+      expect(window.location.href).toBe('');
     });
 
     it('should clear legacy localStorage tokens on 401', async () => {
