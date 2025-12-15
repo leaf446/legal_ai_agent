@@ -561,10 +561,10 @@ class AuditLogListResponse(BaseModel):
 
 
 # ============================================
-# Messaging Schemas
+# Messaging Schemas (Legacy - for case-based messaging)
 # ============================================
-class MessageCreate(BaseModel):
-    """Message creation request schema"""
+class MessageCreateLegacy(BaseModel):
+    """Message creation request schema (case-based)"""
     case_id: str
     recipient_id: str
     content: str = Field(..., min_length=1)
@@ -588,8 +588,8 @@ class MessageOut(BaseModel):
         from_attributes = True
 
 
-class MessageListResponse(BaseModel):
-    """Message list response schema"""
+class MessageListResponseLegacy(BaseModel):
+    """Message list response schema (case-based)"""
     messages: List[MessageOut]
     total: int
     unread_count: int = 0
