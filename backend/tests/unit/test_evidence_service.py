@@ -19,6 +19,7 @@ from app.middleware import NotFoundError, PermissionError
 
 
 # Common mock targets for evidence service tests
+# Patch at the destination module where the function is used (evidence_service)
 MOCK_SAVE_METADATA = 'app.services.evidence_service.save_evidence_metadata'
 MOCK_INVOKE_AI = 'app.services.evidence_service.invoke_ai_worker'
 MOCK_UPDATE_STATUS = 'app.services.evidence_service.update_evidence_status'
@@ -302,21 +303,42 @@ class TestHandleUploadComplete:
             note="Test note"
         )
 
-        # Use nested context managers to ensure all mocks are applied before service call
-        with patch(MOCK_SAVE_METADATA) as mock_save, \
-             patch(MOCK_INVOKE_AI, return_value={"StatusCode": 200}) as mock_invoke, \
-             patch(MOCK_UPDATE_STATUS):
+        # Patch at the destination module and force module reload
+        import sys
+        import importlib
+        import app.services.evidence_service as ev_module
 
-            service = EvidenceService(db)
-            result = service.handle_upload_complete(request, user.id)
+        # Save original module reference
+        original_module = sys.modules.get('app.services.evidence_service')
 
-            assert result.evidence_id == "test123"
-            assert result.case_id == case.id
-            # Status is "processing" when invoke_ai_worker succeeds (no exception)
-            assert result.status == "processing"
-            # Verify mocks were called
-            assert mock_save.called
-            assert mock_invoke.called
+        # Remove the module from cache to force fresh import with mocks
+        if 'app.services.evidence_service' in sys.modules:
+            del sys.modules['app.services.evidence_service']
+
+        try:
+            with patch(MOCK_SAVE_METADATA) as mock_save, \
+                 patch(MOCK_INVOKE_AI, return_value={"status": "invoked"}) as mock_invoke, \
+                 patch(MOCK_UPDATE_STATUS):
+
+                # Import after mocks are set up
+                from app.services.evidence_service import EvidenceService as FreshService
+                service = FreshService(db)
+                result = service.handle_upload_complete(request, user.id)
+
+                assert result.evidence_id == "test123"
+                assert result.case_id == case.id
+                # Status is "processing" when invoke_ai_worker succeeds (no exception)
+                assert result.status == "processing"
+                # Verify mocks were called
+                assert mock_save.called
+                assert mock_invoke.called
+        finally:
+            # Restore original module
+            if original_module:
+                sys.modules['app.services.evidence_service'] = original_module
+            else:
+                # Re-import to restore clean state
+                importlib.reload(ev_module)
 
         # Cleanup
         db.query(CaseMember).filter(CaseMember.case_id == case.id).delete()
@@ -775,7 +797,11 @@ class TestRetryProcessing:
         db.add(member)
         db.commit()
 
-        # Use nested context managers to ensure all mocks are applied before service call
+        # Patch at the destination module and force module reload
+        import sys
+        import importlib
+        import app.services.evidence_service as ev_module
+
         mock_evidence = {
             "evidence_id": "ev1",
             "case_id": case.id,
@@ -783,18 +809,35 @@ class TestRetryProcessing:
             "s3_key": f"cases/{case.id}/raw/ev1_photo.jpg"
         }
 
-        with patch(MOCK_GET_EVIDENCE, return_value=mock_evidence) as mock_get, \
-             patch(MOCK_INVOKE_AI, return_value={"StatusCode": 200}) as mock_invoke, \
-             patch(MOCK_UPDATE_STATUS):
+        # Save original module reference
+        original_module = sys.modules.get('app.services.evidence_service')
 
-            service = EvidenceService(db)
-            result = service.retry_processing("ev1", user.id)
+        # Remove the module from cache to force fresh import with mocks
+        if 'app.services.evidence_service' in sys.modules:
+            del sys.modules['app.services.evidence_service']
 
-            assert result["success"] is True
-            assert result["status"] == "processing"
-            # Verify mocks were called
-            assert mock_get.called
-            assert mock_invoke.called
+        try:
+            with patch(MOCK_GET_EVIDENCE, return_value=mock_evidence) as mock_get, \
+                 patch(MOCK_INVOKE_AI, return_value={"status": "invoked"}) as mock_invoke, \
+                 patch(MOCK_UPDATE_STATUS):
+
+                # Import after mocks are set up
+                from app.services.evidence_service import EvidenceService as FreshService
+                service = FreshService(db)
+                result = service.retry_processing("ev1", user.id)
+
+                assert result["success"] is True
+                assert result["status"] == "processing"
+                # Verify mocks were called
+                assert mock_get.called
+                assert mock_invoke.called
+        finally:
+            # Restore original module
+            if original_module:
+                sys.modules['app.services.evidence_service'] = original_module
+            else:
+                # Re-import to restore clean state
+                importlib.reload(ev_module)
 
         # Cleanup
         db.query(CaseMember).filter(CaseMember.case_id == case.id).delete()
