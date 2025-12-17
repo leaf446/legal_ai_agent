@@ -3,7 +3,7 @@ Asset Schemas (US2 - 재산분할표)
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List
 from datetime import datetime
 from app.db.models import AssetCategory, AssetOwnership, AssetNature
 

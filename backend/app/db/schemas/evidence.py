@@ -3,7 +3,7 @@ Evidence Schemas - Upload, Analysis, Review
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime
 from enum import Enum
 

@@ -3,7 +3,7 @@ Party Graph Models (v1 Lawyer Portal)
 """
 
 from sqlalchemy import Column, String, DateTime, ForeignKey, Integer, Float, Boolean, Text, JSON
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 import uuid
 
