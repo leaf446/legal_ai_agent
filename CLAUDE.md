@@ -45,6 +45,12 @@ These rules must NEVER be violated under any circumstances:
      - Backend: `--assignee leaf446`
      - Frontend: `--assignee Prometheus-P`
 
+6. **테스트 환경 (Testing Environment)**
+   - 사용자가 "테스트"를 요청하면 **항상 Staging 서버**에서 테스트
+   - **Staging URL**: `https://dpbf86zqulqfy.cloudfront.net/`
+   - 로컬 서버 실행하지 말 것 (uvicorn, npm run dev 등)
+   - API 테스트 시 staging API 엔드포인트 사용
+
 ## Common Development Commands
 
 ### Backend (FastAPI)
@@ -418,6 +424,8 @@ When implementing features, files typically go in:
 - PostgreSQL (RDS), HTTP-only Cookies (JWT 토큰), CloudFront /api proxy (011-production-bug-fixes)
 - Python 3.11+ (Backend), TypeScript 5.x (Frontend) + FastAPI, Next.js 14, React 18, Tailwind CSS, jose (JWT) (011-production-bug-fixes)
 - PostgreSQL (RDS), HTTP-only Cookies (JWT) (011-production-bug-fixes)
+- TypeScript 5.x + Next.js 14, React 18, Tailwind CSS, Lucide-React, clsx, tailwind-merge (013-ui-upgrade)
+- N/A (frontend-only, no new data persistence) (013-ui-upgrade)
 
 ## Recent Changes
 - 012-precedent-integration: (COMPLETE) Precedent search and auto-extraction integration. Backend: PrecedentService with Qdrant vector search, DraftService precedent citation integration, auto-extract endpoints for parties/relationships. AI Worker: BackendAPIClient with retry logic, PersonExtractor/RelationshipInferrer integration. Frontend: PrecedentPanel with search/modal, PartyNode/PartyEdge auto-extraction badges with confidence indicators. Key features: 유사 판례 검색, 초안 판례 인용, 인물/관계 자동 추출.

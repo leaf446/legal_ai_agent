@@ -12,6 +12,11 @@ interface CasePathOptions {
   [key: string]: string | undefined;
 }
 
+/**
+ * Base paths for case pages using query parameters.
+ * Static hosting (CloudFront + S3) requires pre-built pages,
+ * so we use /cases/detail?caseId=xxx format instead of /cases/{id}
+ */
 const SECTION_BASE_PATH: Record<PortalRole, Partial<Record<CaseSection, string>>> = {
   lawyer: {
     detail: '/lawyer/cases/detail',
@@ -54,8 +59,9 @@ function buildCasePath(
     }
   });
 
-  const query = params.toString();
-  return query ? `${basePath}?${query}` : basePath;
+  // Add trailing slash before query params to prevent S3 301 redirect
+  // which would strip query parameters (trailingSlash: true in next.config.js)
+  return `${basePath}/?${params.toString()}`;
 }
 
 /**
