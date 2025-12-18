@@ -12,7 +12,6 @@ from datetime import datetime, timezone  # noqa: E402
 
 from fastapi import FastAPI, Depends  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from fastapi.responses import JSONResponse  # noqa: E402
 from mangum import Mangum  # noqa: E402 - AWS Lambda handler
 
 # Import configuration and middleware

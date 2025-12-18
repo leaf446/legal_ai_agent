@@ -160,7 +160,7 @@ class TestGetCorrelationIdFromRequest:
 
         client = TestClient(app)
         custom_id = "custom-test-id"
-        response = client.get(
+        client.get(
             "/test",
             headers={CORRELATION_ID_HEADER: custom_id}
         )
@@ -170,7 +170,6 @@ class TestGetCorrelationIdFromRequest:
     def test_returns_unknown_when_not_set(self):
         """Returns 'unknown' when correlation ID not in state"""
         from starlette.requests import Request
-        from starlette.testclient import TestClient as StarletteClient
 
         # Create a mock request without correlation ID in state
         app = FastAPI()

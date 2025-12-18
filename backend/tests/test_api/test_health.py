@@ -4,8 +4,8 @@ Unit tests for Health Check API
 Tests for liveness and readiness probes in app/api/health.py
 """
 import pytest
-from unittest.mock import patch, Mock, AsyncMock
-from fastapi import FastAPI, Depends
+from unittest.mock import patch, Mock
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
