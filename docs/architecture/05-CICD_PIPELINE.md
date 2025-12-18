@@ -117,14 +117,14 @@ guard:
     - uses: actions/checkout@v4
     - name: Check for merge conflict markers
       run: |
-        # 머지 충돌 마커 확인
-        if grep -rn "<<<<<<< HEAD" --include="*.py" --include="*.ts" .; then
+        # 머지 충돌 마커 확인 (7개의 < 또는 > 문자열 검출)
+        if grep -rn "^<\{7\}" --include="*.py" --include="*.ts" .; then
           echo "❌ Merge conflict markers found!"
           exit 1
         fi
 ```
 
-**역할**: 머지 충돌 마커 (`<<<<<<<`)가 있으면 즉시 실패
+**역할**: 머지 충돌 마커 (7개의 `<` 또는 `>` 문자)가 있으면 즉시 실패
 
 #### 2. Frontend 테스트
 
