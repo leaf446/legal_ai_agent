@@ -1,5 +1,12 @@
 'use client';
 
+/**
+ * Procedure Page (Query Parameter Route)
+ *
+ * Static-export-friendly procedure page using query parameters.
+ * URL format: /lawyer/cases/procedure/?caseId=xxx
+ */
+
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import Link from 'next/link';
@@ -16,7 +23,7 @@ function LawyerCaseProcedureContent() {
           조회할 사건 ID가 전달되지 않았습니다.
         </p>
         <Link
-          href="/lawyer/cases"
+          href="/lawyer/cases/"
           className="px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg hover:bg-[var(--color-primary-hover)] transition-colors"
         >
           케이스 목록으로 가기
@@ -30,7 +37,13 @@ function LawyerCaseProcedureContent() {
 
 export default function LawyerCaseProcedureByQuery() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        </div>
+      }
+    >
       <LawyerCaseProcedureContent />
     </Suspense>
   );

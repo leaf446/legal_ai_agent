@@ -160,8 +160,7 @@ describe('Client Cases Page', () => {
       render(<ClientCasesPage />);
 
       // Case cards should be rendered as links to detail pages
-      // Note: Next.js Link normalizes URLs differently in test environment
-      // so we check for links containing the case detail path pattern
+      // URL format: /client/cases/detail/?caseId=xxx (query param for static export)
       await waitFor(() => {
         const links = document.querySelectorAll('a[href*="/client/cases/detail"]');
         expect(links.length).toBe(3);
@@ -172,7 +171,7 @@ describe('Client Cases Page', () => {
       render(<ClientCasesPage />);
 
       // Verify each case has a link with correct caseId query parameter
-      // Note: Next.js Link component may normalize trailing slashes in test env
+      // URL format: /client/cases/detail/?caseId=xxx (query param for static export)
       await waitFor(() => {
         expect(
           document.querySelector('a[href*="caseId=case-1"]')
