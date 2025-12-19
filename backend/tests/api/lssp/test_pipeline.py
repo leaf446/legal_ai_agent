@@ -3,21 +3,18 @@ LSSP API Tests - Keypoint Pipeline (v2.10)
 """
 
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
 from datetime import datetime
 from decimal import Decimal
 
 from app.main import app
+from app.core.dependencies import get_current_user
+from app.db.session import get_db
 from app.db.models.lssp.pipeline import (
     KeypointRule,
     KeypointCandidate,
 )
-
-
-@pytest.fixture
-def client():
-    return TestClient(app)
 
 
 @pytest.fixture
@@ -31,6 +28,18 @@ def mock_user():
     user.id = "user-123"
     user.role = "lawyer"
     return user
+
+
+@pytest.fixture
+def client_with_mocks(mock_db, mock_user):
+    """TestClient with dependency overrides for auth and DB"""
+    app.dependency_overrides[get_current_user] = lambda: mock_user
+    app.dependency_overrides[get_db] = lambda: mock_db
+
+    with TestClient(app) as client:
+        yield client, mock_db, mock_user
+
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
@@ -110,14 +119,11 @@ def sample_candidates():
 class TestListPipelineRules:
     """GET /api/lssp/pipeline/rules"""
 
-    @patch("app.api.lssp.pipeline.get_db")
-    @patch("app.api.lssp.pipeline.get_current_user")
     def test_list_pipeline_rules_success(
-        self, mock_get_user, mock_get_db, client, mock_db, mock_user, sample_keypoint_rules
+        self, client_with_mocks, sample_keypoint_rules
     ):
-        mock_get_db.return_value = iter([mock_db])
-        mock_get_user.return_value = mock_user
-        mock_db.query.return_value.filter.return_value.all.return_value = sample_keypoint_rules
+        client, mock_db, _ = client_with_mocks
+        mock_db.query.return_value.filter.return_value.order_by.return_value.all.return_value = sample_keypoint_rules
 
         response = client.get("/api/lssp/pipeline/rules")
 
@@ -127,14 +133,11 @@ class TestListPipelineRules:
         assert data[0]["kind"] == "ADMISSION"
         assert data[1]["kind"] == "THREAT"
 
-    @patch("app.api.lssp.pipeline.get_db")
-    @patch("app.api.lssp.pipeline.get_current_user")
     def test_list_pipeline_rules_filter_by_evidence_type(
-        self, mock_get_user, mock_get_db, client, mock_db, mock_user, sample_keypoint_rules
+        self, client_with_mocks, sample_keypoint_rules
     ):
-        mock_get_db.return_value = iter([mock_db])
-        mock_get_user.return_value = mock_user
-        mock_db.query.return_value.filter.return_value.filter.return_value.all.return_value = [
+        client, mock_db, _ = client_with_mocks
+        mock_db.query.return_value.filter.return_value.filter.return_value.order_by.return_value.all.return_value = [
             sample_keypoint_rules[0]
         ]
 
@@ -148,14 +151,11 @@ class TestListPipelineRules:
 class TestListCandidates:
     """GET /api/lssp/pipeline/cases/{case_id}/candidates"""
 
-    @patch("app.api.lssp.pipeline.get_db")
-    @patch("app.api.lssp.pipeline.get_current_user")
     def test_list_candidates_success(
-        self, mock_get_user, mock_get_db, client, mock_db, mock_user, sample_candidates
+        self, client_with_mocks, sample_candidates
     ):
-        mock_get_db.return_value = iter([mock_db])
-        mock_get_user.return_value = mock_user
-        mock_db.query.return_value.filter.return_value.order_by.return_value.limit.return_value.offset.return_value.all.return_value = sample_candidates
+        client, mock_db, _ = client_with_mocks
+        mock_db.query.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = sample_candidates
 
         response = client.get("/api/lssp/pipeline/cases/case-123/candidates")
 
@@ -165,14 +165,11 @@ class TestListCandidates:
         assert data[0]["status"] == "CANDIDATE"
         assert data[1]["status"] == "ACCEPTED"
 
-    @patch("app.api.lssp.pipeline.get_db")
-    @patch("app.api.lssp.pipeline.get_current_user")
     def test_list_candidates_filter_by_status(
-        self, mock_get_user, mock_get_db, client, mock_db, mock_user, sample_candidates
+        self, client_with_mocks, sample_candidates
     ):
-        mock_get_db.return_value = iter([mock_db])
-        mock_get_user.return_value = mock_user
-        mock_db.query.return_value.filter.return_value.filter.return_value.order_by.return_value.limit.return_value.offset.return_value.all.return_value = [
+        client, mock_db, _ = client_with_mocks
+        mock_db.query.return_value.filter.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = [
             sample_candidates[0]
         ]
 
@@ -184,13 +181,10 @@ class TestListCandidates:
 class TestUpdateCandidate:
     """PATCH /api/lssp/pipeline/cases/{case_id}/candidates/{candidate_id}"""
 
-    @patch("app.api.lssp.pipeline.get_db")
-    @patch("app.api.lssp.pipeline.get_current_user")
     def test_update_candidate_accept(
-        self, mock_get_user, mock_get_db, client, mock_db, mock_user, sample_candidates
+        self, client_with_mocks, sample_candidates
     ):
-        mock_get_db.return_value = iter([mock_db])
-        mock_get_user.return_value = mock_user
+        client, mock_db, _ = client_with_mocks
         mock_db.query.return_value.filter.return_value.first.return_value = sample_candidates[0]
 
         response = client.patch(
@@ -201,13 +195,10 @@ class TestUpdateCandidate:
         assert response.status_code == 200
         mock_db.commit.assert_called_once()
 
-    @patch("app.api.lssp.pipeline.get_db")
-    @patch("app.api.lssp.pipeline.get_current_user")
     def test_update_candidate_reject_with_reason(
-        self, mock_get_user, mock_get_db, client, mock_db, mock_user, sample_candidates
+        self, client_with_mocks, sample_candidates
     ):
-        mock_get_db.return_value = iter([mock_db])
-        mock_get_user.return_value = mock_user
+        client, mock_db, _ = client_with_mocks
         mock_db.query.return_value.filter.return_value.first.return_value = sample_candidates[0]
 
         response = client.patch(
@@ -218,13 +209,10 @@ class TestUpdateCandidate:
         assert response.status_code == 200
         mock_db.commit.assert_called_once()
 
-    @patch("app.api.lssp.pipeline.get_db")
-    @patch("app.api.lssp.pipeline.get_current_user")
     def test_update_candidate_not_found(
-        self, mock_get_user, mock_get_db, client, mock_db, mock_user
+        self, client_with_mocks
     ):
-        mock_get_db.return_value = iter([mock_db])
-        mock_get_user.return_value = mock_user
+        client, mock_db, _ = client_with_mocks
         mock_db.query.return_value.filter.return_value.first.return_value = None
 
         response = client.patch(
@@ -238,13 +226,10 @@ class TestUpdateCandidate:
 class TestPromoteCandidates:
     """POST /api/lssp/pipeline/cases/{case_id}/promote"""
 
-    @patch("app.api.lssp.pipeline.get_db")
-    @patch("app.api.lssp.pipeline.get_current_user")
     def test_promote_candidates_success(
-        self, mock_get_user, mock_get_db, client, mock_db, mock_user, sample_candidates
+        self, client_with_mocks, sample_candidates
     ):
-        mock_get_db.return_value = iter([mock_db])
-        mock_get_user.return_value = mock_user
+        client, mock_db, _ = client_with_mocks
         # Return accepted candidate
         mock_db.query.return_value.filter.return_value.all.return_value = [sample_candidates[1]]
 
@@ -257,13 +242,11 @@ class TestPromoteCandidates:
         data = response.json()
         assert "promoted_count" in data
 
-    @patch("app.api.lssp.pipeline.get_db")
-    @patch("app.api.lssp.pipeline.get_current_user")
     def test_promote_candidates_empty_list(
-        self, mock_get_user, mock_get_db, client, mock_db, mock_user
+        self, client_with_mocks
     ):
-        mock_get_db.return_value = iter([mock_db])
-        mock_get_user.return_value = mock_user
+        client, mock_db, _ = client_with_mocks
+        mock_db.query.return_value.filter.return_value.all.return_value = []
 
         response = client.post(
             "/api/lssp/pipeline/cases/case-123/promote",
@@ -276,16 +259,13 @@ class TestPromoteCandidates:
 class TestPipelineStats:
     """GET /api/lssp/pipeline/cases/{case_id}/stats"""
 
-    @patch("app.api.lssp.pipeline.get_db")
-    @patch("app.api.lssp.pipeline.get_current_user")
     def test_get_pipeline_stats_success(
-        self, mock_get_user, mock_get_db, client, mock_db, mock_user
+        self, client_with_mocks
     ):
-        mock_get_db.return_value = iter([mock_db])
-        mock_get_user.return_value = mock_user
+        client, mock_db, _ = client_with_mocks
 
-        # Mock count queries
-        mock_db.query.return_value.filter.return_value.count.return_value = 5
+        # Mock count queries - scalar() returns the count
+        mock_db.query.return_value.filter.return_value.scalar.return_value = 5
 
         response = client.get("/api/lssp/pipeline/cases/case-123/stats")
 

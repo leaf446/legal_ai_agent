@@ -3,17 +3,14 @@ LSSP API Tests - Legal Grounds (v2.01)
 """
 
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
 from datetime import datetime
 
 from app.main import app
+from app.core.dependencies import get_current_user
+from app.db.session import get_db
 from app.db.models.lssp import LegalGround
-
-
-@pytest.fixture
-def client():
-    return TestClient(app)
 
 
 @pytest.fixture
@@ -27,6 +24,18 @@ def mock_user():
     user.id = "user-123"
     user.role = "lawyer"
     return user
+
+
+@pytest.fixture
+def client_with_mocks(mock_db, mock_user):
+    """TestClient with dependency overrides for auth and DB"""
+    app.dependency_overrides[get_current_user] = lambda: mock_user
+    app.dependency_overrides[get_db] = lambda: mock_db
+
+    with TestClient(app) as client:
+        yield client, mock_db, mock_user
+
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
@@ -56,13 +65,10 @@ def sample_legal_grounds():
 class TestListLegalGrounds:
     """GET /api/lssp/legal-grounds"""
 
-    @patch("app.api.lssp.legal_grounds.get_db")
-    @patch("app.api.lssp.legal_grounds.get_current_user")
     def test_list_legal_grounds_success(
-        self, mock_get_user, mock_get_db, client, mock_db, mock_user, sample_legal_grounds
+        self, client_with_mocks, sample_legal_grounds
     ):
-        mock_get_db.return_value = iter([mock_db])
-        mock_get_user.return_value = mock_user
+        client, mock_db, _ = client_with_mocks
         mock_db.query.return_value.order_by.return_value.all.return_value = sample_legal_grounds
 
         response = client.get("/api/lssp/legal-grounds")
@@ -77,13 +83,10 @@ class TestListLegalGrounds:
 class TestGetLegalGround:
     """GET /api/lssp/legal-grounds/{code}"""
 
-    @patch("app.api.lssp.legal_grounds.get_db")
-    @patch("app.api.lssp.legal_grounds.get_current_user")
     def test_get_legal_ground_success(
-        self, mock_get_user, mock_get_db, client, mock_db, mock_user, sample_legal_grounds
+        self, client_with_mocks, sample_legal_grounds
     ):
-        mock_get_db.return_value = iter([mock_db])
-        mock_get_user.return_value = mock_user
+        client, mock_db, _ = client_with_mocks
         mock_db.query.return_value.filter.return_value.first.return_value = sample_legal_grounds[0]
 
         response = client.get("/api/lssp/legal-grounds/G1")
@@ -94,13 +97,10 @@ class TestGetLegalGround:
         assert data["name_ko"] == "배우자의 부정행위"
         assert "불륜 행위" in data["elements"]
 
-    @patch("app.api.lssp.legal_grounds.get_db")
-    @patch("app.api.lssp.legal_grounds.get_current_user")
     def test_get_legal_ground_not_found(
-        self, mock_get_user, mock_get_db, client, mock_db, mock_user
+        self, client_with_mocks
     ):
-        mock_get_db.return_value = iter([mock_db])
-        mock_get_user.return_value = mock_user
+        client, mock_db, _ = client_with_mocks
         mock_db.query.return_value.filter.return_value.first.return_value = None
 
         response = client.get("/api/lssp/legal-grounds/G99")
@@ -111,13 +111,10 @@ class TestGetLegalGround:
 class TestCaseLegalGroundLinks:
     """POST/GET/DELETE /api/lssp/legal-grounds/cases/{case_id}/grounds"""
 
-    @patch("app.api.lssp.legal_grounds.get_db")
-    @patch("app.api.lssp.legal_grounds.get_current_user")
     def test_add_case_legal_ground(
-        self, mock_get_user, mock_get_db, client, mock_db, mock_user, sample_legal_grounds
+        self, client_with_mocks, sample_legal_grounds
     ):
-        mock_get_db.return_value = iter([mock_db])
-        mock_get_user.return_value = mock_user
+        client, mock_db, _ = client_with_mocks
         # Ground exists
         mock_db.query.return_value.filter.return_value.first.side_effect = [
             sample_legal_grounds[0],  # Ground lookup
@@ -138,13 +135,10 @@ class TestCaseLegalGroundLinks:
         mock_db.add.assert_called_once()
         mock_db.commit.assert_called_once()
 
-    @patch("app.api.lssp.legal_grounds.get_db")
-    @patch("app.api.lssp.legal_grounds.get_current_user")
     def test_add_case_legal_ground_invalid_code(
-        self, mock_get_user, mock_get_db, client, mock_db, mock_user
+        self, client_with_mocks
     ):
-        mock_get_db.return_value = iter([mock_db])
-        mock_get_user.return_value = mock_user
+        client, mock_db, _ = client_with_mocks
         mock_db.query.return_value.filter.return_value.first.return_value = None
 
         response = client.post(
@@ -155,13 +149,10 @@ class TestCaseLegalGroundLinks:
         assert response.status_code == 400
         assert "Invalid ground code" in response.json()["detail"]
 
-    @patch("app.api.lssp.legal_grounds.get_db")
-    @patch("app.api.lssp.legal_grounds.get_current_user")
     def test_get_case_legal_grounds(
-        self, mock_get_user, mock_get_db, client, mock_db, mock_user, sample_legal_grounds
+        self, client_with_mocks, sample_legal_grounds
     ):
-        mock_get_db.return_value = iter([mock_db])
-        mock_get_user.return_value = mock_user
+        client, mock_db, _ = client_with_mocks
 
         link = MagicMock()
         link.case_id = "case-123"
