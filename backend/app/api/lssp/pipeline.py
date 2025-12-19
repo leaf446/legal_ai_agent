@@ -1,5 +1,6 @@
 """
 LSSP v2.10 Keypoint Pipeline API
+
 규칙 기반 쟁점 추출 및 후보 관리
 """
 
