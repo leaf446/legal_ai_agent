@@ -45,7 +45,9 @@ describe('Landing Page Integration', () => {
       render(<LandingPage />);
 
       expect(screen.getByRole('navigation')).toBeInTheDocument();
-      expect(screen.getByText('LEH')).toBeInTheDocument();
+      // LEH text may be rendered as part of logo, check for its presence more flexibly
+      const nav = screen.getByRole('navigation');
+      expect(nav.textContent).toContain('LEH');
     });
 
     it('should render hero section', () => {
