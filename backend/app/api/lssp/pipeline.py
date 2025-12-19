@@ -135,7 +135,7 @@ async def list_rules(
     if kind:
         query = query.filter(KeypointRule.kind == kind.upper())
     if enabled_only:
-        query = query.filter(KeypointRule.is_enabled == True)
+        query = query.filter(KeypointRule.is_enabled.is_(True))
     
     return query.order_by(KeypointRule.evidence_type, KeypointRule.kind).all()
 
@@ -180,7 +180,7 @@ async def extract_keypoint_candidates(
             text_content = ""
         
         # 3. 규칙 조회
-        rule_query = db.query(KeypointRule).filter(KeypointRule.is_enabled == True)
+        rule_query = db.query(KeypointRule).filter(KeypointRule.is_enabled.is_(True))
         if request.evidence_type:
             rule_query = rule_query.filter(
                 KeypointRule.evidence_type == request.evidence_type.upper()
