@@ -148,19 +148,9 @@ import { downloadDraftAsDocx } from '@/services/documentService';
  * 3. Consider using MSW (Mock Service Worker) for more realistic API mocking
  */
 describe('Plan 3.6 - Draft Tab requirements on the case detail page', () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const renderCaseDetail = async () => {
-        let view: ReturnType<typeof render> | undefined;
-        await act(async () => {
-            // Phase C.4: Updated to use LawyerCaseDetailClient
-            view = render(<LawyerCaseDetailClient id="case-draft-tab" />);
-        });
-        // Wait for loading to complete and content to render
-        await waitFor(() => {
-            expect(screen.queryByText(/테스트 사건/i)).toBeInTheDocument();
-        }, { timeout: 3000 });
-        return view!;
-    };
+    // NOTE: renderCaseDetail was removed as part of CI fix.
+    // Integration tests are skipped pending proper mock infrastructure.
+    // See TODO comments in skipped describe blocks for recommended fixes.
 
     beforeEach(() => {
         jest.clearAllMocks();
