@@ -34,6 +34,9 @@ class LegalGroundResponse(BaseModel):
     limitation: Optional[LimitationSchema] = None
     notes: Optional[str] = None
     version: str
+    # NEW: Civil code reference and typical evidence types
+    civil_code_ref: Optional[str] = None
+    typical_evidence_types: List[str] = []
 
     class Config:
         from_attributes = True
