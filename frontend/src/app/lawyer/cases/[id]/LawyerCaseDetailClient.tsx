@@ -7,24 +7,27 @@
  * Client-side component for case detail view with evidence list and AI summary.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, RefreshCw, Filter, Sparkles, CheckCircle2, FileText } from 'lucide-react';
+import { Loader2, RefreshCw, Sparkles, CheckCircle2, FileText, Scale, Filter } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 import ExplainerCard from '@/components/cases/ExplainerCard';
 import ShareSummaryModal from '@/components/cases/ShareSummaryModal';
 import EditCaseModal from '@/components/cases/EditCaseModal';
 import { ApiCase } from '@/lib/api/cases';
 import { getCaseDetailPath, getLawyerCasePath } from '@/lib/portalPaths';
-import { PrecedentPanel } from '@/components/precedent';
 import { PartyGraph } from '@/components/party/PartyGraph';
-import { LSSPPanel } from '@/components/lssp';
 import { useCaseIdFromUrl } from '@/hooks/useCaseIdFromUrl';
+import { useDraft } from '@/hooks/useDraft';
+// New components for refactored UI
+import { AnalysisTab } from '@/components/case/AnalysisTab';
+import { CaseMembersDropdown } from '@/components/case/CaseMembersDropdown';
+import { EvidenceFilterDropdown } from '@/components/evidence/EvidenceFilterDropdown';
 // Evidence imports
 import EvidenceUpload from '@/components/evidence/EvidenceUpload';
 import EvidenceTable from '@/components/evidence/EvidenceTable';
-import { Evidence } from '@/types/evidence';
+import { Evidence, EvidenceType, EvidenceStatus } from '@/types/evidence';
 import {
   getPresignedUploadUrl,
   uploadToS3,
@@ -124,7 +127,7 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
   const [caseDetail, setCaseDetail] = useState<CaseDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'evidence' | 'timeline' | 'members' | 'relations' | 'draft'>('evidence');
+  const [activeTab, setActiveTab] = useState<'evidence' | 'timeline' | 'analysis' | 'relations' | 'draft'>('evidence');
   const [showSummaryCard, setShowSummaryCard] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -151,6 +154,20 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
     completed: 0,
     total: 0,
   });
+
+  // 증거 필터 상태
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [filterType, setFilterType] = useState<EvidenceType | 'all'>('all');
+  const [filterStatus, setFilterStatus] = useState<EvidenceStatus | 'all'>('all');
+
+  // 필터링된 증거 목록
+  const filteredEvidenceList = useMemo(() => {
+    return evidenceList.filter(item => {
+      const typeMatch = filterType === 'all' || item.type === filterType;
+      const statusMatch = filterStatus === 'all' || item.status === filterStatus;
+      return typeMatch && statusMatch;
+    });
+  }, [evidenceList, filterType, filterStatus]);
 
   // Race condition 방어를 위한 ID 검증 플래그 (hooks 이후에 위치해야 함)
   const isIdMissing = !id || id.trim() === '';
@@ -560,6 +577,10 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
                 {caseDetail.description}
               </p>
             )}
+            {/* Team Members Dropdown */}
+            <div className="mt-3">
+              <CaseMembersDropdown members={caseDetail.members} />
+            </div>
           </div>
           <div className="flex gap-2">
             <Link
@@ -664,26 +685,13 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
         </div>
       )}
 
-      {/* 012-precedent-integration: T029 - Similar Precedents Panel */}
-      <PrecedentPanel caseId={caseId} />
-
-      {/* LSSP: Legal Strategy & Structured Pleading Panel */}
-      <LSSPPanel
-        caseId={caseId}
-        evidenceCount={caseDetail.evidenceCount}
-        onDraftGenerate={(templateId) => {
-          // TODO: Navigate to draft editor or open modal
-          console.log('Generate draft with template:', templateId);
-        }}
-      />
-
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-neutral-700">
         <nav className="flex gap-6">
           {[
             { id: 'evidence', label: '증거 자료', count: evidenceList.length, icon: null },
             { id: 'timeline', label: '타임라인', count: caseDetail.recentActivities.length, icon: null },
-            { id: 'members', label: '팀원', count: caseDetail.members.length, icon: null },
+            { id: 'analysis', label: '법률 분석', count: null, icon: <Scale className="w-4 h-4 mr-1" /> },
             { id: 'relations', label: '관계도', count: null, icon: null },
             { id: 'draft', label: '초안 생성', count: null, icon: <FileText className="w-4 h-4 mr-1" /> },
           ].map((tab) => (
@@ -767,7 +775,9 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
-                    증거 목록 <span className="text-[var(--color-text-secondary)] text-sm font-normal">({evidenceList.length})</span>
+                    증거 목록 <span className="text-[var(--color-text-secondary)] text-sm font-normal">
+                      ({filteredEvidenceList.length}{(filterType !== 'all' || filterStatus !== 'all') && `/${evidenceList.length}`})
+                    </span>
                   </h2>
                   <p className="text-xs text-[var(--color-text-secondary)]">상태 컬럼을 통해 AI 분석 파이프라인의 진행 상황을 확인하세요.</p>
                 </div>
@@ -780,10 +790,69 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
                     <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingEvidence ? 'animate-spin' : ''}`} />
                     새로고침
                   </button>
-                  <button className="flex items-center text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-600 px-3 py-1.5 rounded-md shadow-sm">
-                    <Filter className="w-4 h-4 mr-2" />
-                    뷰 필터
-                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                      className={`flex items-center text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-white dark:bg-neutral-800 border px-3 py-1.5 rounded-md shadow-sm ${
+                        (filterType !== 'all' || filterStatus !== 'all')
+                          ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
+                          : 'border-gray-300 dark:border-neutral-600'
+                      }`}
+                    >
+                      <Filter className="w-4 h-4 mr-2" />
+                      필터{(filterType !== 'all' || filterStatus !== 'all') && ' (활성)'}
+                    </button>
+                    {showFilterDropdown && (
+                      <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-600 rounded-lg shadow-lg z-20 p-4">
+                        <div className="mb-3">
+                          <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">파일 타입</label>
+                          <select
+                            value={filterType}
+                            onChange={(e) => setFilterType(e.target.value as EvidenceType | 'all')}
+                            className="w-full text-sm border border-gray-300 dark:border-neutral-600 rounded-md px-2 py-1.5 bg-white dark:bg-neutral-700 text-[var(--color-text-primary)]"
+                          >
+                            <option value="all">전체</option>
+                            <option value="text">텍스트</option>
+                            <option value="image">이미지</option>
+                            <option value="audio">오디오</option>
+                            <option value="video">비디오</option>
+                            <option value="pdf">PDF</option>
+                          </select>
+                        </div>
+                        <div className="mb-3">
+                          <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">처리 상태</label>
+                          <select
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value as EvidenceStatus | 'all')}
+                            className="w-full text-sm border border-gray-300 dark:border-neutral-600 rounded-md px-2 py-1.5 bg-white dark:bg-neutral-700 text-[var(--color-text-primary)]"
+                          >
+                            <option value="all">전체</option>
+                            <option value="queued">대기중</option>
+                            <option value="processing">처리중</option>
+                            <option value="completed">완료</option>
+                            <option value="failed">실패</option>
+                          </select>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-neutral-700">
+                          <button
+                            onClick={() => {
+                              setFilterType('all');
+                              setFilterStatus('all');
+                            }}
+                            className="text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                          >
+                            필터 초기화
+                          </button>
+                          <button
+                            onClick={() => setShowFilterDropdown(false)}
+                            className="text-xs text-[var(--color-primary)] hover:underline"
+                          >
+                            닫기
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               {isLoadingEvidence && (
@@ -807,8 +876,24 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
                   size="sm"
                 />
               )}
-              {!isLoadingEvidence && !evidenceError && evidenceList.length > 0 && (
-                <EvidenceTable items={evidenceList} />
+              {!isLoadingEvidence && !evidenceError && evidenceList.length > 0 && filteredEvidenceList.length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-[var(--color-text-secondary)]">
+                    필터 조건에 맞는 증거가 없습니다.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setFilterType('all');
+                      setFilterStatus('all');
+                    }}
+                    className="mt-2 text-sm text-[var(--color-primary)] hover:underline"
+                  >
+                    필터 초기화
+                  </button>
+                </div>
+              )}
+              {!isLoadingEvidence && !evidenceError && filteredEvidenceList.length > 0 && (
+                <EvidenceTable items={filteredEvidenceList} />
               )}
             </section>
           </div>
@@ -838,33 +923,15 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
           </div>
         )}
 
-        {activeTab === 'members' && (
-          <div>
-            {caseDetail.members.length > 0 ? (
-              <div className="space-y-3">
-                {caseDetail.members.map((member, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-neutral-700 rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-white text-sm font-medium">
-                        {member.userName?.slice(0, 1) || '?'}
-                      </div>
-                      <span className="font-medium">{member.userName || member.userId}</span>
-                    </div>
-                    <span className="text-sm text-[var(--color-text-secondary)] capitalize">
-                      {member.role}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-[var(--color-text-secondary)] py-8">
-                팀원이 없습니다.
-              </p>
-            )}
-          </div>
+        {activeTab === 'analysis' && (
+          <AnalysisTab
+            caseId={caseId}
+            evidenceCount={caseDetail.evidenceCount}
+            onDraftGenerate={() => {
+              setActiveTab('draft');
+              setShowDraftModal(true);
+            }}
+          />
         )}
 
         {activeTab === 'relations' && (
