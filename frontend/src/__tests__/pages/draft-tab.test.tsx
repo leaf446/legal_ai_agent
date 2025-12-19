@@ -1,7 +1,8 @@
 import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import CaseDetailClient from '@/components/case/CaseDetailClient';
+// Phase C.4: Updated to use LawyerCaseDetailClient (CaseDetailClient is deprecated)
+import LawyerCaseDetailClient from '@/app/lawyer/cases/[id]/LawyerCaseDetailClient';
 import DraftPreviewPanel from '@/components/draft/DraftPreviewPanel';
 
 // Case detail page relies on the router param to know which case is open.
@@ -25,7 +26,8 @@ describe('Plan 3.6 - Draft Tab requirements on the case detail page', () => {
     const renderCaseDetail = async () => {
         let view: ReturnType<typeof render> | undefined;
         await act(async () => {
-            view = render(<CaseDetailClient id="case-draft-tab" />);
+            // Phase C.4: Updated to use LawyerCaseDetailClient
+            view = render(<LawyerCaseDetailClient id="case-draft-tab" />);
         });
         return view!;
     };
