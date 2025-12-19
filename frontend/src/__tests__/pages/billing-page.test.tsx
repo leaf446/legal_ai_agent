@@ -99,7 +99,7 @@ describe('Plan 3.16 - Billing Page (구독 현황 페이지)', () => {
       // 업그레이드/다운그레이드 버튼이 표시되어야 함
       const upgradeButton = screen.getByLabelText(/Upgrade plan/i);
       expect(upgradeButton).toBeInTheDocument();
-      expect(upgradeButton).toHaveClass('bg-accent');
+      expect(upgradeButton).toHaveClass('bg-primary');
     });
   });
 
