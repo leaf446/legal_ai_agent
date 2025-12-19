@@ -121,6 +121,11 @@ class TestCaseLegalGroundLinks:
             None,  # Not already linked
         ]
 
+        # Mock refresh to set assessed_at (normally set by DB default)
+        def mock_refresh(obj):
+            obj.assessed_at = datetime.utcnow()
+        mock_db.refresh.side_effect = mock_refresh
+
         response = client.post(
             "/api/lssp/legal-grounds/cases/case-123/grounds",
             json={
@@ -147,7 +152,10 @@ class TestCaseLegalGroundLinks:
         )
 
         assert response.status_code == 400
-        assert "Invalid ground code" in response.json()["detail"]
+        # Custom error handler uses {"error": {"message": ...}} format
+        resp_json = response.json()
+        error_msg = resp_json.get("error", {}).get("message", resp_json.get("detail", ""))
+        assert "Invalid ground code" in error_msg
 
     def test_get_case_legal_grounds(
         self, client_with_mocks, sample_legal_grounds
