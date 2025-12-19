@@ -6,7 +6,7 @@ LSSP v2.10 Keypoint Pipeline API
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from datetime import datetime
 from decimal import Decimal
 

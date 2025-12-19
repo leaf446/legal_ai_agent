@@ -3,7 +3,7 @@ LSSP Drafts API (v2.04/v2.06)
 블록 기반 초안 생성 및 관리
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel, Field
@@ -593,5 +593,5 @@ def _build_draft_detail(db: Session, draft: Draft) -> DraftDetailResponse:
         updated_at=draft.updated_at,
         block_instances=[_build_block_instance_response(db, inst) for inst in instances],
         template=DraftTemplateResponse.model_validate(template) if template else None,
-        precedent_ids=[l.precedent_id for l in precedent_links],
+        precedent_ids=[link.precedent_id for link in precedent_links],
     )

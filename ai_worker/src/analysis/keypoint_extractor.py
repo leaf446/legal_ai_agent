@@ -27,7 +27,6 @@ from src.schemas.keypoint import (
     EvidenceExtract,
     EvidenceExtractType,
     KeypointExtractionResult,
-    LEGAL_GROUND_CODES,
 )
 from src.prompts.tone_guidelines import OBJECTIVE_TONE_GUIDELINES
 

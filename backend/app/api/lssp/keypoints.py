@@ -306,7 +306,7 @@ async def update_keypoint_links(
     
     # Add extract links
     if data.extract_ids:
-        existing = {l.extract_id for l in db.query(KeypointExtractLink).filter(
+        existing = {link.extract_id for link in db.query(KeypointExtractLink).filter(
             KeypointExtractLink.keypoint_id == keypoint_id
         ).all()}
         
@@ -316,7 +316,7 @@ async def update_keypoint_links(
     
     # Add ground links
     if data.ground_codes:
-        existing = {l.ground_code for l in db.query(KeypointGroundLink).filter(
+        existing = {link.ground_code for link in db.query(KeypointGroundLink).filter(
             KeypointGroundLink.keypoint_id == keypoint_id
         ).all()}
         
@@ -378,8 +378,8 @@ def _build_keypoint_response(db: Session, keypoint: Keypoint) -> KeypointRespons
         created_by=keypoint.created_by,
         created_at=keypoint.created_at,
         updated_at=keypoint.updated_at,
-        extract_ids=[l.extract_id for l in extract_links],
-        ground_codes=[l.ground_code for l in ground_links],
+        extract_ids=[link.extract_id for link in extract_links],
+        ground_codes=[link.ground_code for link in ground_links],
     )
 
 

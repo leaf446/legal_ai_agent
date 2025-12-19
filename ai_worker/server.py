@@ -72,7 +72,6 @@ async def extract_keypoints(request: KeypointExtractionRequest):
     """
     from src.analysis.keypoint_extractor import KeypointExtractor
     from src.storage.metadata_store import MetadataStore
-    from src.schemas.evidence_chunk import EvidenceChunk
     
     errors = []
     extracted = []
