@@ -218,7 +218,7 @@ async def extract_keypoint_candidates(
                     db.add(candidate)
                     candidates_created += 1
                     
-            except re.error as e:
+            except re.error:
                 # 잘못된 정규식 건너뛰기
                 continue
         
