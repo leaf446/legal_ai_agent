@@ -3,7 +3,7 @@ LSSP Keypoint Models (v2.03)
 핵심 사실(Keypoint) 및 증거 발췌(Extract) 추적
 """
 
-from sqlalchemy import Column, String, DateTime, Date, ForeignKey, Text, JSON, Numeric, CheckConstraint
+from sqlalchemy import Column, String, DateTime, Date, ForeignKey, Text, JSON, Numeric
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 import uuid

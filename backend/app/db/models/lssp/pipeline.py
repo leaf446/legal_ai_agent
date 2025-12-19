@@ -4,7 +4,6 @@ LSSP v2.10 Keypoint Pipeline Models
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional, List
 
 from sqlalchemy import (
     Column, String, Text, Integer, BigInteger, Boolean,

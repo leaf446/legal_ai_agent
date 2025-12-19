@@ -12,7 +12,6 @@ from app.main import app
 from app.db.models.lssp.pipeline import (
     KeypointRule,
     KeypointCandidate,
-    KeypointExtractionRun,
 )
 
 

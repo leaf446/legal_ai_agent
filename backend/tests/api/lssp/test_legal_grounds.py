@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from datetime import datetime
 
 from app.main import app
-from app.db.models.lssp import LegalGround, CaseLegalGroundLink
+from app.db.models.lssp import LegalGround
 
 
 @pytest.fixture

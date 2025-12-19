@@ -8,12 +8,11 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
-from decimal import Decimal
 
 from app.db.session import get_db
 from app.db.models.lssp import (
     KeypointRule, KeypointExtractionRun, KeypointCandidate,
-    KeypointMergeGroup, KeypointCandidateLink, Keypoint, KeypointGroundLink
+    KeypointCandidateLink, Keypoint, KeypointGroundLink
 )
 from app.core.dependencies import get_current_user
 from app.db.models import User

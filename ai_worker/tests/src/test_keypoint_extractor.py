@@ -5,7 +5,7 @@ LSSP Keypoint 추출 모듈의 단위 테스트
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch, MagicMock
 import json
 
 from src.schemas.keypoint import (

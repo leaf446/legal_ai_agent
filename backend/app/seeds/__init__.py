@@ -7,7 +7,6 @@ import json
 from decimal import Decimal
 from pathlib import Path
 from sqlalchemy.orm import Session
-from sqlalchemy.dialects.postgresql import insert
 
 from app.db.models.lssp import (
     LegalGround,
