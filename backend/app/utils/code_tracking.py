@@ -2,6 +2,8 @@
 # PROPRIETARY AND CONFIDENTIAL - Unauthorized copying prohibited.
 # This file contains trade secrets and is protected by law.
 
+from __future__ import annotations
+
 """
 Code Tracking and Fingerprinting System
 

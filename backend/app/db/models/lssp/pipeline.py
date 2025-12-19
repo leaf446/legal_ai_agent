@@ -7,13 +7,41 @@ from decimal import Decimal
 from typing import Optional, List
 
 from sqlalchemy import (
-    Column, String, Text, Integer, BigInteger, Boolean, 
-    Numeric, DateTime, ForeignKey, JSON
+    Column, String, Text, Integer, BigInteger, Boolean,
+    Numeric, DateTime, ForeignKey, JSON, TypeDecorator
 )
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import relationship
 
 from app.db.models.base import Base
+
+
+class ArrayType(TypeDecorator):
+    """
+    Custom type that uses ARRAY for PostgreSQL and JSON for SQLite.
+    This allows tests to run with SQLite while production uses PostgreSQL.
+    """
+    impl = JSON
+    cache_ok = True
+
+    def __init__(self, item_type=Text):
+        super().__init__()
+        self._item_type = item_type
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(ARRAY(self._item_type))
+        return dialect.type_descriptor(JSON())
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return []
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return []
+        return value
 
 
 class KeypointRule(Base):
@@ -28,7 +56,7 @@ class KeypointRule(Base):
     pattern = Column(Text, nullable=False)  # Regex pattern
     flags = Column(String(40), default="")  # Regex flags: i, g, etc.
     value_template = Column(JSON, nullable=False, default=dict)
-    ground_tags = Column(ARRAY(Text), default=list)  # G1, G2, G3, etc.
+    ground_tags = Column(ArrayType(Text), default=list)  # G1, G2, G3, etc.
     base_confidence = Column(Numeric(4, 3), nullable=False, default=Decimal("0.500"))
     base_materiality = Column(Integer, nullable=False, default=40)
     is_enabled = Column(Boolean, nullable=False, default=True)
@@ -68,7 +96,7 @@ class KeypointCandidate(Base):
     kind = Column(String(40), nullable=False, index=True)  # ADMISSION, THREAT, etc.
     content = Column(Text, nullable=False)  # 추출된 텍스트
     value = Column(JSON, nullable=False, default=dict)  # 구조화된 값
-    ground_tags = Column(ARRAY(Text), default=list)
+    ground_tags = Column(ArrayType(Text), default=list)
     confidence = Column(Numeric(4, 3), nullable=False, default=Decimal("0.500"))
     materiality = Column(Integer, nullable=False, default=40)
     source_span = Column(JSON, nullable=False, default=dict)  # {"start": 0, "end": 100, "line": 5}
@@ -92,7 +120,7 @@ class KeypointMergeGroup(Base):
     case_id = Column(String, nullable=False, index=True)
     kind = Column(String(40), nullable=False)
     canonical_keypoint_id = Column(String, nullable=True)  # 승격된 정식 쟁점 ID
-    candidate_ids = Column(ARRAY(BigInteger), nullable=False, default=list)
+    candidate_ids = Column(ArrayType(BigInteger), nullable=False, default=list)
     merged_content = Column(Text, nullable=True)  # 병합된 내용
     created_by = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
