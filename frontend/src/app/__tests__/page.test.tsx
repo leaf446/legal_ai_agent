@@ -45,7 +45,9 @@ describe('Landing Page Integration', () => {
       render(<LandingPage />);
 
       expect(screen.getByRole('navigation')).toBeInTheDocument();
-      expect(screen.getByText('LEH')).toBeInTheDocument();
+      // CHAGOK is the current logo text
+      const nav = screen.getByRole('navigation');
+      expect(nav.textContent).toContain('CHAGOK');
     });
 
     it('should render hero section', () => {
