@@ -20,9 +20,8 @@ Usage:
 """
 
 import pytest
-from unittest.mock import Mock, MagicMock, patch
-from typing import Optional
-from uuid import UUID, uuid4
+from unittest.mock import Mock
+from uuid import uuid4
 
 
 # ============================================================================

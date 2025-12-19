@@ -19,7 +19,7 @@ Usage:
 """
 
 import pytest
-from unittest.mock import Mock, MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock
 from typing import List, Dict, Any
 import json
 
@@ -63,7 +63,7 @@ class MockAnalyzer:
             return AnalysisResult(summary="", labels=[], confidence=0.0)
 
         # Simulated analysis
-        combined_text = " ".join(m.get("content", "") for m in messages)
+        _ = " ".join(m.get("content", "") for m in messages)  # noqa: F841
         return AnalysisResult(
             summary=f"Analysis of {len(messages)} messages",
             labels=["sample_label"],
@@ -373,7 +373,7 @@ class TestOpenAIIntegration:
             body={}
         )
 
-        analyzer = MockAnalyzer(openai_client=mock_openai_client)
+        _ = MockAnalyzer(openai_client=mock_openai_client)  # noqa: F841
 
         # Real implementation should handle this error
         # For template, we just verify error handling exists
