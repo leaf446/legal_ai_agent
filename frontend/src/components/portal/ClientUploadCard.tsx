@@ -42,7 +42,7 @@ export default function ClientUploadCard({ status, uploadedCount, uploadedFiles,
     const feedback = FEEDBACK_TEXT[status](uploadedCount);
 
     return (
-        <div className="w-full max-w-2xl bg-white border border-gray-100 shadow-xl rounded-3xl p-10 space-y-8">
+        <div className="w-full max-w-2xl bg-white border border-neutral-200 shadow-sm rounded-lg p-10 space-y-8">
             <header className="text-center space-y-3">
                 <div className="inline-flex items-center justify-center px-4 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold tracking-[0.25em] uppercase">
                     {BRAND.name}
@@ -95,7 +95,7 @@ export default function ClientUploadCard({ status, uploadedCount, uploadedFiles,
                 {uploadedFiles.length > 0 ? (
                     <div
                         data-testid="uploaded-files-list"
-                        className="rounded-lg border border-gray-100 bg-white px-5 py-4"
+                        className="rounded-lg border border-neutral-200 bg-white px-5 py-4"
                     >
                         <p className="text-sm font-medium text-secondary mb-2">업로드된 파일</p>
                         <ul className="space-y-1 text-sm text-neutral-700">
