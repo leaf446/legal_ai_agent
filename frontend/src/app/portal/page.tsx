@@ -3,10 +3,11 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ClientUploadCard from '@/components/portal/ClientUploadCard';
+import { BRAND } from '@/config/brand';
 
 type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
 
-const DEFAULT_FIRM_NAME = 'Legal Evidence Hub 로펌';
+const DEFAULT_FIRM_NAME = BRAND.defaultFirmName;
 const DEFAULT_CASE_NAME = '의뢰인 사건';
 const UPLOAD_SIMULATION_DELAY_MS = 800;
 
@@ -77,7 +78,7 @@ function PortalContent() {
 
 export default function ClientEvidencePortalPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-calm-grey to-white flex items-center justify-center px-6 py-12">
+    <div className="min-h-screen bg-gradient-to-b from-neutral-50 to-white flex items-center justify-center px-6 py-12">
       <Suspense fallback={<div className="text-gray-500">로딩 중...</div>}>
         <PortalContent />
       </Suspense>

@@ -2,6 +2,7 @@
 Unit tests for Latency Logging Middleware
 """
 
+import pytest
 from unittest.mock import patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -167,12 +168,13 @@ class TestLatencyLoggingMiddleware:
         assert middleware_class is LatencyLoggingMiddleware
 
 
+@pytest.mark.integration
 class TestLatencyMiddlewareIntegration:
     """Integration tests with the main app"""
 
     def test_middleware_registered_in_app(self, raw_client):
         """Middleware is properly registered in the app"""
-        response = raw_client.get("/health")
+        response = raw_client.get("/api/health")
 
         assert response.status_code == 200
         assert "X-Response-Time" in response.headers
@@ -181,7 +183,7 @@ class TestLatencyMiddlewareIntegration:
         """All endpoints include latency header"""
         endpoints = [
             ("/", "GET"),
-            ("/health", "GET"),
+            ("/api/health", "GET"),
         ]
 
         for path, method in endpoints:

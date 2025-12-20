@@ -5,20 +5,44 @@
  * 003-role-based-ui Feature - US3
  *
  * Client-side component for case detail view with evidence list and AI summary.
+ *
+ * Phase C.1: Refactored to use shared hooks and components from Phase A and B.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Loader2, RefreshCw, Sparkles, CheckCircle2, FileText, Scale, Filter } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 import ExplainerCard from '@/components/cases/ExplainerCard';
 import ShareSummaryModal from '@/components/cases/ShareSummaryModal';
 import EditCaseModal from '@/components/cases/EditCaseModal';
 import { ApiCase } from '@/lib/api/cases';
 import { getCaseDetailPath, getLawyerCasePath } from '@/lib/portalPaths';
-import { PrecedentPanel } from '@/components/precedent';
 import { PartyGraph } from '@/components/party/PartyGraph';
-import { useCaseIdFromUrl } from '@/hooks/useCaseIdFromUrl';
+// Phase A: Shared Hooks
+import { useCaseIdValidation, useEvidenceUpload } from '@/hooks';
+// New components for refactored UI
+import { AnalysisTab } from '@/components/case/AnalysisTab';
+import { CaseMembersDropdown } from '@/components/case/CaseMembersDropdown';
+import { CaseActionsDropdown } from '@/components/case/CaseActionsDropdown';
+// Evidence imports
+import EvidenceUpload from '@/components/evidence/EvidenceUpload';
+import EvidenceTable from '@/components/evidence/EvidenceTable';
+import { Evidence, EvidenceType, EvidenceStatus } from '@/types/evidence';
+import { getEvidence } from '@/lib/api/evidence';
+import { mapApiEvidenceToEvidence, mapApiEvidenceListToEvidence } from '@/lib/utils/evidenceMapper';
+import { EvidenceEmptyState } from '@/components/evidence/EvidenceEmptyState';
+import { ErrorState } from '@/components/shared/EmptyState';
+import { logger } from '@/lib/logger';
+// Phase A.1: Status Config
+import { getCaseStatusConfig } from '@/lib/utils/statusConfig';
+// Draft imports
+import DraftGenerationModal from '@/components/draft/DraftGenerationModal';
+import DraftPreviewPanel from '@/components/draft/DraftPreviewPanel';
+import { generateDraftPreview } from '@/lib/api/draft';
+import { DraftCitation } from '@/types/draft';
+import { downloadDraftAsDocx, DraftDownloadFormat, DownloadResult } from '@/services/documentService';
 
 interface CaseDetail {
   id: string;
@@ -39,19 +63,7 @@ interface CaseDetail {
   members: { userId: string; userName?: string; role: string }[];
 }
 
-const statusColors: Record<string, string> = {
-  active: 'bg-blue-100 text-blue-800',
-  open: 'bg-green-100 text-green-800',
-  in_progress: 'bg-yellow-100 text-yellow-800',
-  closed: 'bg-gray-100 text-gray-800',
-};
-
-const statusLabels: Record<string, string> = {
-  active: '활성',
-  open: '진행 중',
-  in_progress: '검토 대기',
-  closed: '종료',
-};
+// Phase A.1: Status colors/labels now imported from @/lib/utils/statusConfig
 
 interface CaseDetailResponse {
   id: string;
@@ -69,21 +81,23 @@ interface CaseDetailResponse {
   ai_summary?: string;
   ai_labels?: string[];
   recent_activities?: { action: string; timestamp: string; user: string }[];
-  members?: { userId: string; userName?: string; role: string }[];
+  // API returns snake_case, we transform to camelCase
+  members?: { user_id: string; user_name?: string; role: string }[];
 }
 
 interface LawyerCaseDetailClientProps {
   id: string;
 }
 
+// Phase A.3: Upload types now imported from useEvidenceUpload hook
+
 export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetailClientProps) {
   const router = useRouter();
 
-  // Use URL path for case ID (handles static export fallback)
-  const id = useCaseIdFromUrl(paramId);
+  // Phase A.2: Use useCaseIdValidation hook for ID handling with timeout
+  const { caseId, isIdMissing, idWaitTimedOut } = useCaseIdValidation(paramId);
 
-  // caseId 설정 - 빈 값이면 빈 문자열 유지 (API 레벨에서 방어됨)
-  const caseId = id || '';
+  // Derived paths
   const detailPath = caseId ? getCaseDetailPath('lawyer', caseId) : '/lawyer/cases/detail';
   const procedurePath = caseId ? getLawyerCasePath('procedure', caseId) : '/lawyer/cases/procedure';
   const assetsPath = caseId ? getLawyerCasePath('assets', caseId) : '/lawyer/cases/assets';
@@ -91,31 +105,43 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
   const [caseDetail, setCaseDetail] = useState<CaseDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'evidence' | 'timeline' | 'members' | 'relations'>('evidence');
+  const [activeTab, setActiveTab] = useState<'evidence' | 'timeline' | 'analysis' | 'relations' | 'draft'>('evidence');
   const [showSummaryCard, setShowSummaryCard] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  // 무한 스피너 방지: ID 대기 타임아웃 상태
-  const [idWaitTimedOut, setIdWaitTimedOut] = useState(false);
 
-  // Race condition 방어를 위한 ID 검증 플래그 (hooks 이후에 위치해야 함)
-  const isIdMissing = !id || id.trim() === '';
+  // Draft state
+  const [showDraftModal, setShowDraftModal] = useState(false);
+  const [draftText, setDraftText] = useState('');
+  const [draftCitations, setDraftCitations] = useState<DraftCitation[]>([]);
+  const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
+  const [draftError, setDraftError] = useState<string | null>(null);
+  const [hasExistingDraft, setHasExistingDraft] = useState(false);
 
-  // 무한 스피너 방지: 2초 후에도 ID가 없으면 에러 상태로 전환
-  useEffect(() => {
-    if (!isIdMissing) {
-      setIdWaitTimedOut(false);
-      return;
-    }
+  // Evidence state
+  const [evidenceList, setEvidenceList] = useState<Evidence[]>([]);
+  const [isLoadingEvidence, setIsLoadingEvidence] = useState(true);
+  const [evidenceError, setEvidenceError] = useState<string | null>(null);
 
-    const timeout = setTimeout(() => {
-      if (isIdMissing) {
-        setIdWaitTimedOut(true);
-      }
-    }, 2000);
+  // AI Analysis state (Phase B.3)
+  const [lastAnalyzedAt, setLastAnalyzedAt] = useState<string | undefined>();
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-    return () => clearTimeout(timeout);
-  }, [isIdMissing]);
+  // 증거 필터 상태
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [filterType, setFilterType] = useState<EvidenceType | 'all'>('all');
+  const [filterStatus, setFilterStatus] = useState<EvidenceStatus | 'all'>('all');
+
+  // 필터링된 증거 목록
+  const filteredEvidenceList = useMemo(() => {
+    return evidenceList.filter(item => {
+      const typeMatch = filterType === 'all' || item.type === filterType;
+      const statusMatch = filterStatus === 'all' || item.status === filterStatus;
+      return typeMatch && statusMatch;
+    });
+  }, [evidenceList, filterType, filterStatus]);
+
+  // Phase A.2: ID validation is now handled by useCaseIdValidation hook
 
   // Fetch case data with race condition prevention
   useEffect(() => {
@@ -143,6 +169,12 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
         }
 
         const data = response.data;
+        // Transform members from snake_case to camelCase
+        const transformedMembers = (data.members || []).map((m) => ({
+          userId: m.user_id,
+          userName: m.user_name,
+          role: m.role,
+        }));
         setCaseDetail({
           id: data.id,
           title: data.title,
@@ -159,7 +191,7 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
           aiSummary: data.ai_summary,
           aiLabels: data.ai_labels || [],
           recentActivities: data.recent_activities || [],
-          members: data.members || [],
+          members: transformedMembers,
         });
       } catch (err) {
         if (isCancelled) return;
@@ -178,6 +210,164 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
       isCancelled = true;
     };
   }, [caseId, router]);
+
+  // Fetch evidence list from API
+  const fetchEvidence = useCallback(async () => {
+    if (!caseId) return;
+
+    setIsLoadingEvidence(true);
+    setEvidenceError(null);
+
+    try {
+      const response = await getEvidence(caseId);
+      if (response.error) {
+        setEvidenceError(response.error);
+        setEvidenceList([]);
+      } else if (response.data) {
+        const mappedEvidence = mapApiEvidenceListToEvidence(response.data.evidence);
+        setEvidenceList(mappedEvidence);
+      }
+    } catch (err) {
+      logger.error('Failed to fetch evidence:', err);
+      setEvidenceError('증거 목록을 불러오는데 실패했습니다.');
+      setEvidenceList([]);
+    } finally {
+      setIsLoadingEvidence(false);
+    }
+  }, [caseId]);
+
+  // Load evidence on mount
+  useEffect(() => {
+    fetchEvidence();
+  }, [fetchEvidence]);
+
+  // Auto-polling: silently check for status updates
+  useEffect(() => {
+    const hasProcessingItems = evidenceList.some(
+      e => e.status === 'processing' || e.status === 'queued' || e.status === 'uploading'
+    );
+
+    if (!hasProcessingItems || !caseId) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const result = await getEvidence(caseId);
+        if (result.data) {
+          const newList = result.data.evidence.map(e => mapApiEvidenceToEvidence(e));
+
+          setEvidenceList(prevList => {
+            let hasChanges = false;
+            const updatedList = prevList.map(prevItem => {
+              const newItem = newList.find(n => n.id === prevItem.id);
+              if (newItem && (newItem.status !== prevItem.status || newItem.summary !== prevItem.summary)) {
+                hasChanges = true;
+                return newItem;
+              }
+              return prevItem;
+            });
+
+            const newItems = newList.filter(n => !prevList.some(p => p.id === n.id));
+            if (newItems.length > 0) {
+              hasChanges = true;
+            }
+
+            return hasChanges ? [...updatedList, ...newItems] : prevList;
+          });
+        }
+      } catch {
+        // Silently ignore polling errors
+      }
+    }, 5000);
+
+    return () => clearInterval(pollInterval);
+  }, [evidenceList, caseId]);
+
+  // Phase A.3: Use useEvidenceUpload hook for file upload
+  const {
+    handleUpload,
+    uploadStatus,
+    uploadFeedback,
+    isUploading,
+  } = useEvidenceUpload(caseId, {
+    onUploadComplete: fetchEvidence,
+  });
+
+  // Draft generation handler
+  const handleGenerateDraft = useCallback(async (selectedEvidenceIds: string[]) => {
+    if (!caseId) return;
+
+    setIsGeneratingDraft(true);
+    setDraftError(null);
+
+    try {
+      const response = await generateDraftPreview(caseId, {
+        sections: ['청구취지', '청구원인'],
+        language: 'ko',
+        style: '법원 제출용_표준',
+      });
+
+      if (response.error || !response.data) {
+        throw new Error(response.error || '초안 생성에 실패했습니다.');
+      }
+
+      const { draft_text, citations } = response.data;
+
+      // Map API citations to component format
+      const mappedCitations: DraftCitation[] = citations.map(c => ({
+        evidenceId: c.evidence_id,
+        title: c.snippet.substring(0, 50) + (c.snippet.length > 50 ? '...' : ''),
+        quote: c.snippet,
+      }));
+
+      setDraftText(draft_text);
+      setDraftCitations(mappedCitations);
+      setHasExistingDraft(true);
+      setShowDraftModal(false);
+      setActiveTab('draft');
+    } catch (err) {
+      logger.error('Draft generation error:', err);
+      setDraftError(err instanceof Error ? err.message : '초안 생성에 실패했습니다.');
+    } finally {
+      setIsGeneratingDraft(false);
+    }
+  }, [caseId]);
+
+  // Draft download handler
+  const handleDraftDownload = useCallback(async (data: { format: DraftDownloadFormat; content: string }): Promise<DownloadResult> => {
+    try {
+      const result = await downloadDraftAsDocx(data.content, caseId, data.format);
+      return result;
+    } catch (err) {
+      logger.error('Draft download error:', err);
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : '다운로드에 실패했습니다.',
+      };
+    }
+  }, [caseId]);
+
+  // Draft re-generate handler (opens modal)
+  const handleDraftRegenerate = useCallback(() => {
+    setShowDraftModal(true);
+  }, []);
+
+  // Phase B.3: AI Analysis request handler
+  const handleRequestAnalysis = useCallback(async () => {
+    if (!caseId) return;
+
+    setIsAnalyzing(true);
+    try {
+      // Trigger keypoint extraction from evidence
+      const response = await apiClient.post(`/lssp/cases/${caseId}/extract-keypoints`, {});
+      if (!response.error) {
+        setLastAnalyzedAt(new Date().toISOString());
+      }
+    } catch (err) {
+      logger.error('AI analysis request failed:', err);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [caseId]);
 
   // Race condition 방어: ID가 없으면 로딩 스피너 또는 에러 표시
   if (isIdMissing) {
@@ -241,8 +431,8 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
     );
   }
 
-  const statusColor = statusColors[caseDetail.status] || statusColors.active;
-  const statusLabel = statusLabels[caseDetail.status] || caseDetail.status;
+  // Phase A.1: Use getCaseStatusConfig for status colors/labels
+  const statusConfig = getCaseStatusConfig(caseDetail.status);
 
   return (
     <div className="space-y-6">
@@ -263,8 +453,8 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
               <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
                 {caseDetail.title}
               </h1>
-              <span className={`px-3 py-1 text-sm font-medium rounded-full ${statusColor}`}>
-                {statusLabel}
+              <span className={`px-3 py-1 text-sm font-medium rounded-full ${statusConfig.color}`}>
+                {statusConfig.label}
               </span>
             </div>
             {caseDetail.clientName && (
@@ -277,49 +467,30 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
                 {caseDetail.description}
               </p>
             )}
+            {/* Team Members Dropdown */}
+            <div className="mt-3">
+              <CaseMembersDropdown members={caseDetail.members} />
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Link
-              href={procedurePath}
-              className="px-4 py-2 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-400 rounded-lg text-sm hover:bg-blue-50 dark:hover:bg-blue-900/30 flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-              </svg>
-              절차 진행
-            </Link>
-            <Link
-              href={assetsPath}
-              className="px-4 py-2 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-400 rounded-lg text-sm hover:bg-green-50 dark:hover:bg-green-900/30 flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              재산분할
-            </Link>
+          {/* Phase B.1: Header buttons consolidated into dropdown */}
+          <div className="flex items-center gap-2">
+            {/* Primary Action: Draft Generation */}
             <button
               type="button"
-              onClick={() => setShowEditModal(true)}
-              className="px-4 py-2 border border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-neutral-700"
+              onClick={() => setShowDraftModal(true)}
+              className="px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg text-sm hover:bg-[var(--color-primary-hover)] flex items-center gap-2"
             >
-              수정
+              <Sparkles className="w-4 h-4" />
+              초안 생성
             </button>
-            <button
-              type="button"
-              onClick={() => setShowSummaryCard(true)}
-              className="px-4 py-2 border border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-400 rounded-lg text-sm hover:bg-purple-50 dark:hover:bg-purple-900/30 flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              요약 카드
-            </button>
-            <button
-              type="button"
-              className="px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg text-sm hover:bg-[var(--color-primary-hover)]"
-            >
-              AI 분석 요청
-            </button>
+            {/* Secondary Actions in Dropdown */}
+            <CaseActionsDropdown
+              procedurePath={procedurePath}
+              assetsPath={assetsPath}
+              onEdit={() => setShowEditModal(true)}
+              onSummaryCard={() => setShowSummaryCard(true)}
+              onAIAnalysis={handleRequestAnalysis}
+            />
           </div>
         </div>
 
@@ -381,30 +552,29 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
         </div>
       )}
 
-      {/* 012-precedent-integration: T029 - Similar Precedents Panel */}
-      <PrecedentPanel caseId={caseId} />
-
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-neutral-700">
         <nav className="flex gap-6">
           {[
-            { id: 'evidence', label: '증거 자료', count: caseDetail.evidenceCount },
-            { id: 'timeline', label: '타임라인', count: caseDetail.recentActivities.length },
-            { id: 'members', label: '팀원', count: caseDetail.members.length },
-            { id: 'relations', label: '관계도', count: null },
+            { id: 'evidence', label: '증거 자료', count: evidenceList.length, icon: null },
+            { id: 'timeline', label: '타임라인', count: caseDetail.recentActivities.length, icon: null },
+            { id: 'analysis', label: '법률 분석', count: null, icon: <Scale className="w-4 h-4 mr-1" /> },
+            { id: 'relations', label: '관계도', count: null, icon: null },
+            { id: 'draft', label: '초안 생성', count: null, icon: <FileText className="w-4 h-4 mr-1" /> },
           ].map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
               className={`
-                pb-3 text-sm font-medium border-b-2 transition-colors
+                pb-3 text-sm font-medium border-b-2 transition-colors flex items-center
                 ${activeTab === tab.id
                   ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
                   : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
                 }
               `}
             >
+              {tab.icon}
               {tab.label}
               {tab.count != null && tab.count > 0 && (
                 <span className="ml-2 px-2 py-0.5 bg-gray-100 dark:bg-neutral-700 rounded-full text-xs">
@@ -419,33 +589,180 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
       {/* Tab Content */}
       <div className="bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg p-6">
         {activeTab === 'evidence' && (
-          <div>
-            {caseDetail.evidenceCount > 0 ? (
-              <div className="space-y-4">
-                {caseDetail.evidenceSummary.map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-neutral-700 rounded-lg"
-                  >
-                    <span className="font-medium">{item.type}</span>
-                    <span className="text-[var(--color-text-secondary)]">{item.count}건</span>
-                  </div>
-                ))}
-                <Link
-                  href={detailPath}
-                  className="inline-flex items-center gap-2 text-[var(--color-primary)] hover:underline"
-                >
-                  전체 증거 자료 보기
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
+          <div className="space-y-6">
+            {/* Evidence Upload Section */}
+            <section className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-[var(--color-text-primary)]">증거 업로드</h2>
+                  <p className="text-sm text-[var(--color-text-secondary)]">파일을 드래그하거나 클릭하여 업로드할 수 있습니다.</p>
+                </div>
+                <span className="text-xs text-[var(--color-text-secondary)] flex items-center">
+                  <Sparkles className="w-4 h-4 text-[var(--color-primary)] mr-1" /> Whisper · OCR 자동 적용
+                </span>
               </div>
-            ) : (
-              <p className="text-center text-[var(--color-text-secondary)] py-8">
-                등록된 증거 자료가 없습니다.
-              </p>
-            )}
+              <EvidenceUpload onUpload={handleUpload} disabled={uploadStatus.isUploading} />
+              {uploadStatus.isUploading && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-3 text-sm">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                    <span className="text-blue-800 dark:text-blue-300 font-medium">
+                      업로드 중 ({uploadStatus.completed + 1}/{uploadStatus.total})
+                    </span>
+                  </div>
+                  <p className="text-blue-700 dark:text-blue-400 text-xs mb-2 truncate">{uploadStatus.currentFile}</p>
+                  <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadStatus.progress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              {uploadFeedback && !uploadStatus.isUploading && (
+                <div
+                  className={`flex items-start space-x-2 rounded-lg px-4 py-3 text-sm ${
+                    uploadFeedback.tone === 'success'
+                      ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300'
+                      : uploadFeedback.tone === 'error'
+                      ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
+                      : 'bg-gray-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300'
+                  }`}
+                >
+                  <CheckCircle2 className={`w-4 h-4 mt-0.5 ${
+                    uploadFeedback.tone === 'error' ? 'text-red-500' : 'text-green-500'
+                  }`} />
+                  <p>{uploadFeedback.message}</p>
+                </div>
+              )}
+            </section>
+
+            {/* Evidence List Section */}
+            <section className="space-y-4 pt-4 border-t border-gray-200 dark:border-neutral-700">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
+                    증거 목록 <span className="text-[var(--color-text-secondary)] text-sm font-normal">
+                      ({filteredEvidenceList.length}{(filterType !== 'all' || filterStatus !== 'all') && `/${evidenceList.length}`})
+                    </span>
+                  </h2>
+                  <p className="text-xs text-[var(--color-text-secondary)]">상태 컬럼을 통해 AI 분석 파이프라인의 진행 상황을 확인하세요.</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={fetchEvidence}
+                    disabled={isLoadingEvidence}
+                    className="flex items-center text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-600 px-3 py-1.5 rounded-md shadow-sm disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingEvidence ? 'animate-spin' : ''}`} />
+                    새로고침
+                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                      className={`flex items-center text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-white dark:bg-neutral-800 border px-3 py-1.5 rounded-md shadow-sm ${
+                        (filterType !== 'all' || filterStatus !== 'all')
+                          ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
+                          : 'border-gray-300 dark:border-neutral-600'
+                      }`}
+                    >
+                      <Filter className="w-4 h-4 mr-2" />
+                      필터{(filterType !== 'all' || filterStatus !== 'all') && ' (활성)'}
+                    </button>
+                    {showFilterDropdown && (
+                      <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-600 rounded-lg shadow-lg z-20 p-4">
+                        <div className="mb-3">
+                          <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">파일 타입</label>
+                          <select
+                            value={filterType}
+                            onChange={(e) => setFilterType(e.target.value as EvidenceType | 'all')}
+                            className="w-full text-sm border border-gray-300 dark:border-neutral-600 rounded-md px-2 py-1.5 bg-white dark:bg-neutral-700 text-[var(--color-text-primary)]"
+                          >
+                            <option value="all">전체</option>
+                            <option value="text">텍스트</option>
+                            <option value="image">이미지</option>
+                            <option value="audio">오디오</option>
+                            <option value="video">비디오</option>
+                            <option value="pdf">PDF</option>
+                          </select>
+                        </div>
+                        <div className="mb-3">
+                          <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">처리 상태</label>
+                          <select
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value as EvidenceStatus | 'all')}
+                            className="w-full text-sm border border-gray-300 dark:border-neutral-600 rounded-md px-2 py-1.5 bg-white dark:bg-neutral-700 text-[var(--color-text-primary)]"
+                          >
+                            <option value="all">전체</option>
+                            <option value="queued">대기중</option>
+                            <option value="processing">처리중</option>
+                            <option value="completed">완료</option>
+                            <option value="failed">실패</option>
+                          </select>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-neutral-700">
+                          <button
+                            onClick={() => {
+                              setFilterType('all');
+                              setFilterStatus('all');
+                            }}
+                            className="text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                          >
+                            필터 초기화
+                          </button>
+                          <button
+                            onClick={() => setShowFilterDropdown(false)}
+                            className="text-xs text-[var(--color-primary)] hover:underline"
+                          >
+                            닫기
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {isLoadingEvidence && (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 text-[var(--color-primary)] animate-spin" />
+                  <span className="ml-2 text-[var(--color-text-secondary)]">증거 목록을 불러오는 중...</span>
+                </div>
+              )}
+              {evidenceError && !isLoadingEvidence && (
+                <ErrorState
+                  title="증거 목록을 불러올 수 없습니다"
+                  message={evidenceError}
+                  onRetry={fetchEvidence}
+                  retryText="다시 시도"
+                  size="sm"
+                />
+              )}
+              {!isLoadingEvidence && !evidenceError && evidenceList.length === 0 && (
+                <EvidenceEmptyState
+                  caseTitle={caseDetail?.title}
+                  size="sm"
+                />
+              )}
+              {!isLoadingEvidence && !evidenceError && evidenceList.length > 0 && filteredEvidenceList.length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-[var(--color-text-secondary)]">
+                    필터 조건에 맞는 증거가 없습니다.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setFilterType('all');
+                      setFilterStatus('all');
+                    }}
+                    className="mt-2 text-sm text-[var(--color-primary)] hover:underline"
+                  >
+                    필터 초기화
+                  </button>
+                </div>
+              )}
+              {!isLoadingEvidence && !evidenceError && filteredEvidenceList.length > 0 && (
+                <EvidenceTable items={filteredEvidenceList} />
+              )}
+            </section>
           </div>
         )}
 
@@ -473,38 +790,96 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
           </div>
         )}
 
-        {activeTab === 'members' && (
-          <div>
-            {caseDetail.members.length > 0 ? (
-              <div className="space-y-3">
-                {caseDetail.members.map((member, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-neutral-700 rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-white text-sm font-medium">
-                        {member.userName?.slice(0, 1) || '?'}
-                      </div>
-                      <span className="font-medium">{member.userName || member.userId}</span>
-                    </div>
-                    <span className="text-sm text-[var(--color-text-secondary)] capitalize">
-                      {member.role}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-[var(--color-text-secondary)] py-8">
-                팀원이 없습니다.
-              </p>
-            )}
-          </div>
+        {activeTab === 'analysis' && (
+          <AnalysisTab
+            caseId={caseId}
+            evidenceCount={caseDetail.evidenceCount}
+            onDraftGenerate={() => {
+              setActiveTab('draft');
+              setShowDraftModal(true);
+            }}
+            // Phase B.3: AI analysis status bar props
+            lastAnalyzedAt={lastAnalyzedAt}
+            onRequestAnalysis={handleRequestAnalysis}
+            isAnalyzing={isAnalyzing}
+          />
         )}
 
         {activeTab === 'relations' && (
           <div className="h-[600px]">
             <PartyGraph caseId={caseId} />
+          </div>
+        )}
+
+        {activeTab === 'draft' && (
+          <div className="space-y-6">
+            {/* Draft Error State */}
+            {draftError && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3 text-sm">
+                <div className="flex items-center space-x-2">
+                  <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-red-800 dark:text-red-300">{draftError}</span>
+                </div>
+              </div>
+            )}
+
+            {/* No Draft Yet - Show Generate Button */}
+            {!hasExistingDraft && !isGeneratingDraft && (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                  <FileText className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
+                  법률 초안 생성
+                </h3>
+                <p className="text-[var(--color-text-secondary)] mb-6 max-w-md mx-auto">
+                  등록된 증거 자료를 기반으로 AI가 법률 문서 초안을 생성합니다.
+                  생성된 초안은 검토 후 수정할 수 있습니다.
+                </p>
+                <button
+                  onClick={() => setShowDraftModal(true)}
+                  className="inline-flex items-center px-6 py-3 bg-[var(--color-primary)] text-white rounded-lg hover:bg-[var(--color-primary-hover)] transition-colors"
+                >
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  초안 생성하기
+                </button>
+                {evidenceList.length === 0 && (
+                  <p className="text-sm text-amber-600 dark:text-amber-400 mt-4">
+                    초안 생성을 위해 먼저 증거 자료를 업로드해주세요.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Generating State */}
+            {isGeneratingDraft && (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 text-purple-600 dark:text-purple-400 animate-spin" />
+                </div>
+                <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
+                  초안 생성 중...
+                </h3>
+                <p className="text-[var(--color-text-secondary)]">
+                  AI가 증거를 분석하고 법률 초안을 작성하고 있습니다.
+                </p>
+              </div>
+            )}
+
+            {/* Draft Preview Panel */}
+            {hasExistingDraft && !isGeneratingDraft && (
+              <DraftPreviewPanel
+                caseId={caseId}
+                draftText={draftText}
+                citations={draftCitations}
+                isGenerating={isGeneratingDraft}
+                hasExistingDraft={hasExistingDraft}
+                onGenerate={handleDraftRegenerate}
+                onDownload={handleDraftDownload}
+              />
+            )}
           </div>
         )}
       </div>
@@ -551,6 +926,14 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
               : null
           );
         }}
+      />
+
+      {/* Draft Generation Modal */}
+      <DraftGenerationModal
+        isOpen={showDraftModal}
+        onClose={() => setShowDraftModal(false)}
+        onGenerate={handleGenerateDraft}
+        evidenceList={evidenceList}
       />
     </div>
   );
