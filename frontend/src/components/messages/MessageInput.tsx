@@ -132,7 +132,7 @@ export function MessageInput({
             placeholder={placeholder}
             disabled={disabled || isSending}
             rows={1}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-neutral-700 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-neutral-900 disabled:cursor-not-allowed dark:bg-neutral-900 dark:text-gray-100"
+            className="w-full px-4 py-2 border border-gray-300 dark:border-neutral-700 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-neutral-900 disabled:cursor-not-allowed dark:bg-neutral-900 dark:text-gray-100"
             style={{ maxHeight: '150px' }}
           />
         </div>

@@ -158,7 +158,7 @@ export function LSSPPanel({ caseId, evidenceCount, onDraftGenerate }: LSSPPanelP
 
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 shadow-sm p-6">
+      <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-100 dark:border-neutral-800 shadow-sm p-6">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 text-primary animate-spin" />
           <span className="ml-2 text-gray-500 dark:text-gray-400">LSSP 데이터 로딩 중...</span>
@@ -168,7 +168,7 @@ export function LSSPPanel({ caseId, evidenceCount, onDraftGenerate }: LSSPPanelP
   }
 
   return (
-    <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-100 dark:border-neutral-800 shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-100 dark:border-neutral-800 shadow-sm overflow-hidden">
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-100 dark:border-neutral-800">
         <div className="flex items-center justify-between">
