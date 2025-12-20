@@ -11,13 +11,14 @@
 
 import { render, screen } from '@testing-library/react';
 import LandingNav from '../LandingNav';
+import { BRAND } from '@/config/brand';
 
 describe('LandingNav Component', () => {
   describe('Structure and Layout', () => {
     it('should render the logo on the left', () => {
       render(<LandingNav />);
 
-      const logo = screen.getByRole('img', { name: /legal evidence hub|leh/i });
+      const logo = screen.getByRole('img', { name: /chagok/i });
       expect(logo).toBeInTheDocument();
     });
 
@@ -141,7 +142,7 @@ describe('LandingNav Component', () => {
     it('should use Deep Trust Blue for logo text', () => {
       render(<LandingNav />);
 
-      const logo = screen.getByText('LEH');
+      const logo = screen.getByText(BRAND.name);
       expect(logo).toHaveClass('text-secondary');
     });
   });

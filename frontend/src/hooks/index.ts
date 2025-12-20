@@ -13,6 +13,12 @@ export { useCaseList } from './useCaseList';
 export { useClients } from './useClients';
 export { useInvestigators } from './useInvestigators';
 
+// Data fetching - Detail
+export { useCaseDetail } from './useCaseDetail';
+
+// Draft generation
+export { useDraft } from './useDraft';
+
 // Dashboard
 export { useLawyerDashboard } from './useLawyerDashboard';
 
@@ -61,3 +67,11 @@ export { useKeyboardShortcuts } from './useKeyboardShortcuts';
 
 // Error handling & retry
 export { useRetry, retryOperation } from './useRetry';
+
+// URL utilities
+export { useCaseIdFromUrl } from './useCaseIdFromUrl';
+export { useCaseIdValidation } from './useCaseIdValidation';
+
+// Upload utilities
+export { useEvidenceUpload } from './useEvidenceUpload';
+export type { UploadStatus, UploadFeedback, FeedbackTone } from './useEvidenceUpload';
