@@ -499,12 +499,6 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
         onClose={() => setShowExpertPanel(false)}
       />
 
-      {/* Expert Insights Panel */}
-      <ExpertInsightsPanel
-        isOpen={showExpertPanel}
-        onClose={() => setShowExpertPanel(false)}
-      />
-
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-neutral-700">
         <nav className="flex gap-6">
