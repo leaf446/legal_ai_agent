@@ -33,7 +33,7 @@ export function useAuth() {
 
     // If version changed, clear auth and force re-login
     if (storedVersion && storedVersion !== APP_VERSION) {
-      console.log(`App version changed: ${storedVersion} -> ${APP_VERSION}. Logging out.`);
+      // Version changed - clear auth state
       localStorage.removeItem(AUTH_TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
       localStorage.setItem(APP_VERSION_KEY, APP_VERSION);

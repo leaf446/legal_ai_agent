@@ -1,4 +1,10 @@
-import Head from 'next/head';
+'use client';
+
+/**
+ * Admin Roles Page - App Router Version
+ * Role-based permission management
+ */
+
 import { useMemo, useState } from 'react';
 
 type AdminRole = 'Admin' | 'Attorney' | 'Staff';
@@ -87,10 +93,6 @@ export default function AdminRolesPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <Head>
-        <title>권한 설정 | Legal Evidence Hub</title>
-      </Head>
-
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
           <div>
@@ -184,4 +186,3 @@ export default function AdminRolesPage() {
     </div>
   );
 }
-

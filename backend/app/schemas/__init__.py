@@ -1,28 +1,30 @@
 """
-Pydantic Schemas - Backwards Compatibility Wrapper
+Pydantic Schemas Module
 
-이 파일은 하위 호환성을 위해 유지됩니다.
-새 코드에서는 아래와 같이 import하세요:
+Request/Response validation schemas
 
+Usage:
     from app.schemas import LoginRequest, UserOut, CaseCreate
 
-모듈이 분리되었습니다:
-- app/schemas/auth.py: Login, Signup, User, Token
-- app/schemas/user.py: UserInvite, RBAC
-- app/schemas/case.py: Case CRUD + Member
-- app/schemas/evidence.py: Evidence + Article840
-- app/schemas/draft.py: Draft generation
-- app/schemas/audit.py: Audit Log
+모듈 구조:
+- auth.py: Login, Signup, User, Token
+- user.py: UserInvite, RBAC
+- case.py: Case CRUD + Member
+- evidence.py: Evidence + Article840
+- draft.py: Draft generation
+- audit.py: Audit Log
 """
 
-# Re-export from new module structure
-from app.schemas import (
-    # Auth
+# Auth schemas
+from .auth import (
     LoginRequest,
     SignupRequest,
     UserOut,
     TokenResponse,
-    # User management
+)
+
+# User management schemas
+from .user import (
     UserInviteRequest,
     InviteResponse,
     UserListResponse,
@@ -30,7 +32,10 @@ from app.schemas import (
     RolePermissions,
     RolePermissionsResponse,
     UpdateRolePermissionsRequest,
-    # Case
+)
+
+# Case schemas
+from .case import (
     CaseCreate,
     CaseUpdate,
     CaseOut,
@@ -40,7 +45,10 @@ from app.schemas import (
     CaseMemberOut,
     AddCaseMembersRequest,
     CaseMembersListResponse,
-    # Evidence
+)
+
+# Evidence schemas
+from .evidence import (
     Article840Category,
     Article840Tags,
     PresignedUrlRequest,
@@ -49,12 +57,18 @@ from app.schemas import (
     UploadCompleteResponse,
     EvidenceSummary,
     EvidenceDetail,
-    # Draft
+)
+
+# Draft schemas
+from .draft import (
     DraftPreviewRequest,
     DraftCitation,
     DraftPreviewResponse,
     DraftExportFormat,
-    # Audit
+)
+
+# Audit schemas
+from .audit import (
     AuditAction,
     AuditLogOut,
     AuditLogListRequest,
@@ -62,10 +76,12 @@ from app.schemas import (
 )
 
 __all__ = [
+    # Auth
     "LoginRequest",
     "SignupRequest",
     "UserOut",
     "TokenResponse",
+    # User management
     "UserInviteRequest",
     "InviteResponse",
     "UserListResponse",
@@ -73,6 +89,7 @@ __all__ = [
     "RolePermissions",
     "RolePermissionsResponse",
     "UpdateRolePermissionsRequest",
+    # Case
     "CaseCreate",
     "CaseUpdate",
     "CaseOut",
@@ -82,6 +99,7 @@ __all__ = [
     "CaseMemberOut",
     "AddCaseMembersRequest",
     "CaseMembersListResponse",
+    # Evidence
     "Article840Category",
     "Article840Tags",
     "PresignedUrlRequest",
@@ -90,10 +108,12 @@ __all__ = [
     "UploadCompleteResponse",
     "EvidenceSummary",
     "EvidenceDetail",
+    # Draft
     "DraftPreviewRequest",
     "DraftCitation",
     "DraftPreviewResponse",
     "DraftExportFormat",
+    # Audit
     "AuditAction",
     "AuditLogOut",
     "AuditLogListRequest",

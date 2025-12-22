@@ -1,7 +1,8 @@
+'use client';
+
 /**
  * Plan 3.17 - AI 투명성 및 감사 로그 (Compliance)
- *
- * GREEN 단계: 테스트를 통과시키는 최소 구현
+ * App Router Version
  */
 
 import React, { useState } from 'react';
@@ -16,7 +17,6 @@ import {
   Edit,
   Trash2,
   LogIn,
-  Download,
   FileDown
 } from 'lucide-react';
 
@@ -45,7 +45,6 @@ interface SecurityStatus {
 }
 
 export default function AuditLogPage() {
-  // Mock data - 실제로는 API에서 가져올 데이터
   const [auditLogs] = useState<AuditLogEntry[]>([
     {
       id: '1',
@@ -105,7 +104,6 @@ export default function AuditLogPage() {
     lastAudit: '2025-11-20'
   });
 
-  // Filter states
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedUser, setSelectedUser] = useState('all');
@@ -117,23 +115,15 @@ export default function AuditLogPage() {
     'DELETE'
   ]);
 
-  // Unique users for filter dropdown
   const uniqueUsers = Array.from(
     new Set(auditLogs.map((log) => log.user.email))
   );
 
-  // Filter logs based on selected criteria
   const filteredLogs = auditLogs.filter((log) => {
-    // Date filter
     if (startDate && new Date(log.timestamp) < new Date(startDate)) return false;
     if (endDate && new Date(log.timestamp) > new Date(endDate)) return false;
-
-    // User filter
     if (selectedUser !== 'all' && log.user.email !== selectedUser) return false;
-
-    // Action type filter
     if (!selectedActions.includes(log.action)) return false;
-
     return true;
   });
 
@@ -193,8 +183,6 @@ export default function AuditLogPage() {
   };
 
   const handleExportCSV = () => {
-    // CSV 내보내기 로직 (실제로는 CSV 생성 후 다운로드)
-    console.log('Exporting audit logs to CSV...');
     const csvContent = [
       ['Timestamp', 'User', 'Email', 'Action', 'Target', 'IP Address', 'Details'],
       ...filteredLogs.map((log) => [
@@ -220,7 +208,6 @@ export default function AuditLogPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50 p-8">
-      {/* Breadcrumb Navigation */}
       <nav aria-label="Breadcrumb" className="mb-6">
         <ol className="flex items-center space-x-2 text-sm">
           <li>
@@ -235,7 +222,6 @@ export default function AuditLogPage() {
         </ol>
       </nav>
 
-      {/* Page Title */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-secondary">활동 로그</h1>
         <p className="text-neutral-600 mt-2">
@@ -244,7 +230,6 @@ export default function AuditLogPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* Security Status Dashboard */}
         <section
           className="lg:col-span-3 bg-white border border-gray-200 rounded-lg p-6 shadow-sm"
           aria-labelledby="security-status-title"
@@ -257,7 +242,6 @@ export default function AuditLogPage() {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Encryption Status */}
             <div className="flex items-start space-x-4">
               <div className="w-12 h-12 bg-success-green bg-opacity-10 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Lock className="w-6 h-6 text-success-green" />
@@ -273,7 +257,6 @@ export default function AuditLogPage() {
               </div>
             </div>
 
-            {/* PIPA Compliance */}
             <div className="flex items-start space-x-4">
               <div className="w-12 h-12 bg-success-green bg-opacity-10 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Shield className="w-6 h-6 text-success-green" />
@@ -289,7 +272,6 @@ export default function AuditLogPage() {
               </div>
             </div>
 
-            {/* Last Audit */}
             <div className="flex items-start space-x-4">
               <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
                 <CheckCircle2 className="w-6 h-6 text-blue-600" />
@@ -306,7 +288,6 @@ export default function AuditLogPage() {
         </section>
       </div>
 
-      {/* Filters Section */}
       <section
         className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-6"
         aria-labelledby="filters-title"
@@ -316,7 +297,6 @@ export default function AuditLogPage() {
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Date Range Filter */}
           <div>
             <label htmlFor="start-date" className="block text-sm font-medium text-neutral-700 mb-2">
               시작 날짜
@@ -345,7 +325,6 @@ export default function AuditLogPage() {
             />
           </div>
 
-          {/* User Filter */}
           <div>
             <label htmlFor="user-filter" className="block text-sm font-medium text-neutral-700 mb-2">
               사용자 선택
@@ -366,7 +345,6 @@ export default function AuditLogPage() {
             </select>
           </div>
 
-          {/* Reset Filters Button */}
           <div className="flex items-end">
             {hasActiveFilters && (
               <button
@@ -379,7 +357,6 @@ export default function AuditLogPage() {
           </div>
         </div>
 
-        {/* Action Type Filters */}
         <div className="mt-4">
           <p className="block text-sm font-medium text-neutral-700 mb-2">작업 유형</p>
           <div className="flex flex-wrap gap-3">
@@ -399,7 +376,6 @@ export default function AuditLogPage() {
         </div>
       </section>
 
-      {/* Activity Log Table */}
       <section
         className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm"
         aria-labelledby="audit-log-title"
@@ -502,7 +478,6 @@ export default function AuditLogPage() {
           </div>
         )}
 
-        {/* Pagination (placeholder for future implementation) */}
         <div className="mt-6 flex items-center justify-between">
           <p className="text-sm text-neutral-600">페이지 1 / 1</p>
           <div className="flex space-x-2">

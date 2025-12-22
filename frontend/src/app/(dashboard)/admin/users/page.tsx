@@ -1,4 +1,10 @@
-import Head from 'next/head';
+'use client';
+
+/**
+ * Admin Users Page - App Router Version
+ * User management and invitation
+ */
+
 import { useMemo, useState } from 'react';
 
 type AdminRole = 'Admin' | 'Attorney' | 'Staff';
@@ -61,10 +67,6 @@ export default function AdminUsersPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <Head>
-        <title>사용자 및 역할 관리 | Legal Evidence Hub</title>
-      </Head>
-
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
           <div>
@@ -212,4 +214,3 @@ export default function AdminUsersPage() {
     </div>
   );
 }
-

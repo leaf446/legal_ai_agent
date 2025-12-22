@@ -1,16 +1,14 @@
+'use client';
+
 /**
  * Plan 3.18 - 성과 분석 대시보드 (Analytics)
- *
- * GREEN 단계: 테스트를 통과시키는 최소 구현
+ * App Router Version
  */
 
 import React, { useState } from 'react';
 import {
   ChevronRight,
   TrendingUp,
-  FileText,
-  Users,
-  Clock,
   RefreshCw,
   Download,
   ArrowUp,
@@ -21,7 +19,7 @@ interface KPIMetric {
   label: string;
   value: number;
   unit: string;
-  change: number; // percentage
+  change: number;
   trend: 'up' | 'down';
 }
 
@@ -47,7 +45,6 @@ interface EvidenceTypeData {
 }
 
 export default function AnalyticsDashboard() {
-  // Mock data
   const [kpiMetrics] = useState<KPIMetric[]>([
     {
       label: '절약된 시간',
@@ -123,11 +120,11 @@ export default function AnalyticsDashboard() {
   const [selectedDateRange, setSelectedDateRange] = useState('last-6-months');
 
   const handleRefresh = () => {
-    console.log('Refreshing analytics data...');
+    // TODO: Implement analytics data refresh
   };
 
   const handleExportPDF = () => {
-    console.log('Exporting analytics to PDF...');
+    // TODO: Implement PDF export
   };
 
   const getActivityLevelColor = (level: string) => {
@@ -156,15 +153,11 @@ export default function AnalyticsDashboard() {
     }
   };
 
-  // Simple bar chart calculation
   const maxCaseCount = Math.max(...monthlyData.map((d) => d.caseCount));
-
-  // Simple pie chart calculation
   const totalEvidence = evidenceTypes.reduce((sum, type) => sum + type.count, 0);
 
   return (
     <div className="min-h-screen bg-neutral-50 p-8">
-      {/* Breadcrumb Navigation */}
       <nav aria-label="Breadcrumb" className="mb-6">
         <ol className="flex items-center space-x-2 text-sm">
           <li>
@@ -179,7 +172,6 @@ export default function AnalyticsDashboard() {
         </ol>
       </nav>
 
-      {/* Page Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-secondary">성과 분석</h1>
@@ -209,7 +201,6 @@ export default function AnalyticsDashboard() {
         </div>
       </div>
 
-      {/* KPI Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {kpiMetrics.map((metric, index) => (
           <div
@@ -247,9 +238,7 @@ export default function AnalyticsDashboard() {
         ))}
       </div>
 
-      {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Monthly Case Count Chart */}
         <section
           className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm"
           aria-labelledby="monthly-chart-title"
@@ -274,7 +263,6 @@ export default function AnalyticsDashboard() {
             </select>
           </div>
 
-          {/* Simple Bar Chart */}
           <div className="space-y-3" role="img" aria-label="월별 사건 수 차트">
             {monthlyData.map((data, index) => (
               <div key={index} className="flex items-center">
@@ -295,11 +283,9 @@ export default function AnalyticsDashboard() {
             ))}
           </div>
 
-          {/* Placeholder for actual chart library */}
           <canvas className="hidden" aria-hidden="true"></canvas>
         </section>
 
-        {/* Evidence Type Distribution Chart */}
         <section
           className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm"
           aria-labelledby="evidence-chart-title"
@@ -311,7 +297,6 @@ export default function AnalyticsDashboard() {
             증거 유형별 분포
           </h2>
 
-          {/* Simple Pie Chart Representation */}
           <div className="space-y-3" role="img" aria-label="증거 유형별 분포 차트">
             {evidenceTypes.map((type, index) => {
               const percentage = ((type.count / totalEvidence) * 100).toFixed(1);
@@ -337,12 +322,10 @@ export default function AnalyticsDashboard() {
             })}
           </div>
 
-          {/* Placeholder for actual chart library */}
           <canvas className="hidden" aria-hidden="true"></canvas>
         </section>
       </div>
 
-      {/* Team Activity List */}
       <section
         className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm"
         aria-labelledby="team-activity-title"
