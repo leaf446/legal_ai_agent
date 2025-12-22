@@ -6,7 +6,21 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, CheckCircle2, Filter, Shield, Sparkles, Loader2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Filter,
+  Shield,
+  Sparkles,
+  Loader2,
+  FileUp,
+  Activity,
+  UserPlus,
+  Wallet,
+  Scale,
+  FileText,
+  MessageSquare,
+} from 'lucide-react';
 import Link from 'next/link';
 import EvidenceUpload from '@/components/evidence/EvidenceUpload';
 import EvidenceTable from '@/components/evidence/EvidenceTable';
@@ -82,7 +96,7 @@ const INITIAL_CITATIONS: DraftCitation[] = [
 ];
 
 const GENERATION_DELAY_MS = 1200;
-type CaseDetailTab = 'evidence' | 'opponent' | 'timeline' | 'draft';
+type CaseDetailTab = 'evidence' | 'timeline' | 'persons' | 'property' | 'analysis' | 'draft' | 'consultation';
 type UploadFeedback = { message: string; tone: 'info' | 'success' | 'error' };
 type UploadStatus = {
   isUploading: boolean;
@@ -94,7 +108,7 @@ type UploadStatus = {
 
 export default function CaseDetailPage() {
   const params = useParams();
-  const id = params.id as string;
+  const id = (params?.id as string) ?? '';
 
   const [evidenceList] = useState<Evidence[]>(MOCK_EVIDENCE);
   const [draftContent, setDraftContent] = useState(INITIAL_DRAFT_CONTENT);
@@ -102,7 +116,7 @@ export default function CaseDetailPage() {
   const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
   const [hasGeneratedDraft, setHasGeneratedDraft] = useState(true);
   const [isDraftModalOpen, setIsDraftModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<CaseDetailTab>('draft');
+  const [activeTab, setActiveTab] = useState<CaseDetailTab>('evidence');
   const [uploadFeedback, setUploadFeedback] = useState<UploadFeedback | null>(null);
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>({
     isUploading: false,
@@ -245,12 +259,15 @@ export default function CaseDetailPage() {
     await downloadDraftAsDocx(draftContent, id, format);
   };
 
-  const tabItems: { id: CaseDetailTab; label: string; description: string }[] = useMemo(
+  const tabItems: { id: CaseDetailTab; label: string; description: string; icon: React.ReactNode; category: string }[] = useMemo(
     () => [
-      { id: 'evidence', label: '증거', description: '업로드 · 상태 · 요약' },
-      { id: 'opponent', label: '상대방 주장', description: '주장 정리 & AI 추천' },
-      { id: 'timeline', label: '타임라인', description: '사건 맥락 · 흐름' },
-      { id: 'draft', label: 'Draft', description: 'AI 초안 검토/다운로드' },
+      { id: 'evidence', label: '증거 자료', description: '업로드 · 상태 · 요약', icon: <FileUp className="w-4 h-4" />, category: 'Input' },
+      { id: 'timeline', label: '타임라인', description: '사건 맥락 · 흐름', icon: <Activity className="w-4 h-4" />, category: 'Context' },
+      { id: 'persons', label: '인물 관계', description: '관련자 정보 정리', icon: <UserPlus className="w-4 h-4" />, category: 'Context' },
+      { id: 'property', label: '재산분할', description: '재산 목록 · 분석', icon: <Wallet className="w-4 h-4" />, category: 'Context' },
+      { id: 'analysis', label: '법률 분석', description: 'AI 기반 법률 검토', icon: <Scale className="w-4 h-4" />, category: 'Process' },
+      { id: 'draft', label: '초안 생성', description: 'AI 초안 검토/다운로드', icon: <FileText className="w-4 h-4" />, category: 'Output' },
+      { id: 'consultation', label: '상담 내역', description: '의뢰인 소통 기록', icon: <MessageSquare className="w-4 h-4" />, category: 'Communication' },
     ],
     [],
   );
@@ -300,24 +317,28 @@ export default function CaseDetailPage() {
           </div>
         </section>
 
-        <nav role="tablist" aria-label="Case detail tabs" className="flex flex-wrap gap-3 bg-white rounded-2xl border border-gray-100 p-3 shadow-sm">
-          {tabItems.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex flex-col rounded-xl border px-4 py-3 text-left transition-all ${
-                  isActive ? 'border-accent bg-accent/10 text-secondary shadow-sm' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
-                }`}
-              >
-                <span className="text-sm font-semibold">{tab.label}</span>
-                <span className="text-xs text-gray-500">{tab.description}</span>
-              </button>
-            );
-          })}
+        <nav role="tablist" aria-label="Case detail tabs" className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm sticky top-[72px] z-10">
+          <div className="flex flex-wrap gap-2">
+            {tabItems.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                    isActive
+                      ? 'bg-accent text-white shadow-md'
+                      : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                >
+                  <span className={isActive ? 'text-white' : 'text-gray-400'}>{tab.icon}</span>
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </nav>
 
         {activeTab === 'evidence' && (
@@ -392,19 +413,57 @@ export default function CaseDetailPage() {
           </div>
         )}
 
-        {activeTab === 'opponent' && (
-          <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4" role="tabpanel" aria-label="상대방 주장 탭">
-            <h2 className="text-lg font-bold text-gray-900">상대방 주장 & AI 추천 증거</h2>
+        {activeTab === 'persons' && (
+          <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4" role="tabpanel" aria-label="인물 관계 탭">
+            <div className="flex items-center gap-2 mb-2">
+              <UserPlus className="w-5 h-5 text-accent" />
+              <h2 className="text-lg font-bold text-gray-900">인물 관계</h2>
+            </div>
             <p className="text-sm text-gray-500">
-              상대방의 주장을 기록하고, RAG 기반으로 자동 추천되는 증거를 매칭할 수 있도록 준비 중입니다. 지금은 사건 노트에 주요 쟁점을 메모해 두세요.
+              사건에 관련된 인물들의 정보와 관계를 정리합니다. 당사자, 증인, 참고인 등을 등록하고 관계도를 확인하세요.
             </p>
-            <div className="bg-neutral-50 rounded-xl p-4 text-sm text-neutral-600">곧 제공될 기능: 주장 카드 추가, AI 추천 증거 목록, 신뢰도 퍼센티지 뱃지</div>
+            <div className="bg-neutral-50 rounded-xl p-4 text-sm text-neutral-600">
+              곧 제공될 기능: 인물 카드 추가, 관계도 시각화, AI 기반 인물 분석
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'property' && (
+          <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4" role="tabpanel" aria-label="재산분할 탭">
+            <div className="flex items-center gap-2 mb-2">
+              <Wallet className="w-5 h-5 text-accent" />
+              <h2 className="text-lg font-bold text-gray-900">재산분할</h2>
+            </div>
+            <p className="text-sm text-gray-500">
+              부부 공동재산 및 특유재산을 정리하고 분할 비율을 계산합니다. 부동산, 금융자산, 퇴직금 등을 등록하세요.
+            </p>
+            <div className="bg-neutral-50 rounded-xl p-4 text-sm text-neutral-600">
+              곧 제공될 기능: 재산 목록 관리, 기여도 분석, 분할 시뮬레이션
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'analysis' && (
+          <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4" role="tabpanel" aria-label="법률 분석 탭">
+            <div className="flex items-center gap-2 mb-2">
+              <Scale className="w-5 h-5 text-accent" />
+              <h2 className="text-lg font-bold text-gray-900">법률 분석</h2>
+            </div>
+            <p className="text-sm text-gray-500">
+              AI가 증거와 사건 정보를 바탕으로 관련 판례와 법률을 분석합니다. 승소 가능성과 전략을 검토하세요.
+            </p>
+            <div className="bg-neutral-50 rounded-xl p-4 text-sm text-neutral-600">
+              곧 제공될 기능: 관련 판례 검색, 승소율 예측, 법률 조항 매핑, 전략 제안
+            </div>
           </section>
         )}
 
         {activeTab === 'timeline' && (
           <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4" role="tabpanel" aria-label="타임라인 탭">
-            <h2 className="text-lg font-bold text-gray-900">사건 타임라인</h2>
+            <div className="flex items-center gap-2 mb-2">
+              <Activity className="w-5 h-5 text-accent" />
+              <h2 className="text-lg font-bold text-gray-900">사건 타임라인</h2>
+            </div>
             <p className="text-sm text-gray-500">AI가 추출한 주요 사건들을 시간순으로 정리합니다. 증거 탭에서 AI 요약이 쌓일수록 타임라인의 정확도가 향상됩니다.</p>
             <ul className="space-y-3">
               {evidenceList.map((item) => (
@@ -439,6 +498,21 @@ export default function CaseDetailPage() {
               onGenerate={openDraftModal}
               onDownload={handleDownload}
             />
+          </section>
+        )}
+
+        {activeTab === 'consultation' && (
+          <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4" role="tabpanel" aria-label="상담 내역 탭">
+            <div className="flex items-center gap-2 mb-2">
+              <MessageSquare className="w-5 h-5 text-accent" />
+              <h2 className="text-lg font-bold text-gray-900">상담 내역</h2>
+            </div>
+            <p className="text-sm text-gray-500">
+              의뢰인과의 상담 기록을 관리합니다. 전화, 대면, 메시지 상담 내역을 시간순으로 정리하세요.
+            </p>
+            <div className="bg-neutral-50 rounded-xl p-4 text-sm text-neutral-600">
+              곧 제공될 기능: 상담 기록 추가, 음성 녹음 연동, 요약 자동 생성
+            </div>
           </section>
         )}
       </main>

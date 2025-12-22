@@ -36,8 +36,8 @@ type TabKey = 'info' | 'share';
 
 export default function ClientCommunicationHub() {
   const searchParams = useSearchParams();
-  const caseId = searchParams.get('caseId');
-  const client = searchParams.get('client');
+  const caseId = searchParams?.get('caseId') ?? null;
+  const client = searchParams?.get('client') ?? null;
 
   const clientName = client && client.length > 0 ? client : '의뢰인';
   const caseLabel = caseId && caseId.length > 0 ? caseId : '사건';

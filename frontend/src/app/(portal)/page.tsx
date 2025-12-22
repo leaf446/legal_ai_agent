@@ -21,8 +21,8 @@ export default function ClientEvidencePortalPage() {
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const uploadTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const rawFirm = searchParams.get('firm');
-  const rawCase = searchParams.get('case');
+  const rawFirm = searchParams?.get('firm') ?? null;
+  const rawCase = searchParams?.get('case') ?? null;
 
   const firmName = rawFirm && rawFirm.trim().length > 0 ? rawFirm : DEFAULT_FIRM_NAME;
   const caseName = rawCase && rawCase.trim().length > 0 ? rawCase : DEFAULT_CASE_NAME;
