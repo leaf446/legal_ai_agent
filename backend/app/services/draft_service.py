@@ -33,8 +33,6 @@ from app.db.schemas import (
     DraftJobCreateResponse,
     DraftJobStatusResponse,
 )
-
-logger = logging.getLogger(__name__)
 from app.db.models import DraftDocument, DraftStatus, DocumentType, Job, JobType, JobStatus
 from app.repositories.case_repository import CaseRepository
 from app.repositories.case_member_repository import CaseMemberRepository
@@ -75,6 +73,8 @@ __all__ = [
     'DOCX_AVAILABLE',
     'Document',
 ]
+
+logger = logging.getLogger(__name__)
 
 
 class DraftService:
