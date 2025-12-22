@@ -44,9 +44,9 @@ class TestDraftPreview:
         }]
 
         # When: POST /cases/{case_id}/draft-preview with mocked DynamoDB and RAG
-        with patch("app.services.draft_service.get_evidence_by_case") as mock_get_evidence, \
-             patch("app.services.draft_service.search_evidence_by_semantic") as mock_search, \
-             patch("app.services.draft_service.generate_chat_completion") as mock_gpt:
+        with patch("app.services.draft.generator.get_evidence_by_case") as mock_get_evidence, \
+             patch("app.services.draft.generator.search_evidence_by_semantic") as mock_search, \
+             patch("app.services.draft.generator.generate_chat_completion") as mock_gpt:
             mock_get_evidence.return_value = mock_evidence
             mock_search.return_value = mock_evidence
             mock_gpt.return_value = "테스트 준비서면 초안입니다. [증거 1]을 기반으로 작성되었습니다."
@@ -82,7 +82,7 @@ class TestDraftPreview:
         case_id = case_response.json()["id"]
 
         # When: POST /cases/{case_id}/draft-preview with empty evidence list
-        with patch("app.services.draft_service.get_evidence_by_case") as mock_get_evidence:
+        with patch("app.services.draft.generator.get_evidence_by_case") as mock_get_evidence:
             mock_get_evidence.return_value = []  # No evidence
 
             draft_request = {"sections": ["청구취지"]}
@@ -118,9 +118,9 @@ class TestDraftPreview:
         }]
 
         # When: POST with empty request body with mocked services
-        with patch("app.services.draft_service.get_evidence_by_case") as mock_get_evidence, \
-             patch("app.services.draft_service.search_evidence_by_semantic") as mock_search, \
-             patch("app.services.draft_service.generate_chat_completion") as mock_gpt:
+        with patch("app.services.draft.generator.get_evidence_by_case") as mock_get_evidence, \
+             patch("app.services.draft.generator.search_evidence_by_semantic") as mock_search, \
+             patch("app.services.draft.generator.generate_chat_completion") as mock_gpt:
             mock_get_evidence.return_value = mock_evidence
             mock_search.return_value = mock_evidence
             mock_gpt.return_value = "기본 섹션으로 작성된 초안입니다."

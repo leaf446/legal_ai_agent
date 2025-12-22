@@ -20,7 +20,7 @@ from app.utils.qdrant import search_evidence_by_semantic
 from app.utils.openai_client import generate_chat_completion
 from app.middleware import NotFoundError, PermissionError, ValidationError
 
-from .formatter import build_draft_prompt, extract_citations
+from .formatter import build_draft_prompt, extract_citations, format_rag_context
 from .exporter import generate_docx, generate_pdf
 
 
@@ -185,3 +185,23 @@ class DraftGenerator:
             return generate_pdf(case, draft_response)
         else:
             raise ValidationError(f"Unsupported export format: {export_format}")
+
+    # Backward compatibility methods for tests
+    def _build_draft_prompt(
+        self,
+        case,
+        sections: List[str],
+        rag_context: List[dict],
+        language: str,
+        style: str
+    ) -> List[dict]:
+        """Wrapper for build_draft_prompt function for backward compatibility"""
+        return build_draft_prompt(case, sections, rag_context, language, style)
+
+    def _format_rag_context(self, rag_results: List[dict]) -> str:
+        """Wrapper for format_rag_context function for backward compatibility"""
+        return format_rag_context(rag_results)
+
+    def _extract_citations(self, rag_results: List[dict]):
+        """Wrapper for extract_citations function for backward compatibility"""
+        return extract_citations(rag_results)
