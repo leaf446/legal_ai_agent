@@ -21,6 +21,7 @@ Usage:
     store.delete_by_case(case_id)
 """
 
+from qdrant_client import QdrantClient
 from .search import VectorStoreSearch
 
 # Backwards compatibility: VectorStore is the full-featured class
@@ -29,4 +30,5 @@ VectorStore = VectorStoreSearch
 __all__ = [
     "VectorStore",
     "VectorStoreSearch",
+    "QdrantClient",
 ]
