@@ -14,7 +14,7 @@ import { Evidence } from '@/types/evidence';
 import DraftPreviewPanel from '@/components/draft/DraftPreviewPanel';
 import DraftGenerationModal from '@/components/draft/DraftGenerationModal';
 import { DraftCitation } from '@/types/draft';
-import { downloadDraftAsDocx, DraftDownloadFormat } from '@/services/documentService';
+import { downloadDraftAsDocx, DraftDownloadFormat, DownloadResult } from '@/services/documentService';
 import {
   getPresignedUploadUrl,
   uploadToS3,
@@ -169,6 +169,7 @@ export default function CaseDetailPage() {
           case_id: caseId,
           evidence_temp_id,
           s3_key,
+          file_size: file.size,
         });
 
         if (completeResult.error) {
@@ -240,9 +241,9 @@ export default function CaseDetailPage() {
     }, GENERATION_DELAY_MS);
   };
 
-  const handleDownload = async (format: DraftDownloadFormat = 'docx') => {
-    if (!id) return;
-    await downloadDraftAsDocx(draftContent, id, format);
+  const handleDownload = async (data: { format: DraftDownloadFormat; content: string }): Promise<DownloadResult> => {
+    if (!id) return { success: false, error: 'Case ID not found' };
+    return await downloadDraftAsDocx(data.content || draftContent, id, data.format);
   };
 
   const tabItems: { id: CaseDetailTab; label: string; description: string }[] = useMemo(
@@ -432,6 +433,7 @@ export default function CaseDetailPage() {
               </div>
             </div>
             <DraftPreviewPanel
+              caseId={id || ''}
               draftText={draftContent}
               citations={draftCitations}
               isGenerating={isGeneratingDraft}
