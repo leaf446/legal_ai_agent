@@ -490,3 +490,88 @@ def backup_and_regenerate_fact_summary(
     except ClientError as e:
         logger.error(f"DynamoDB put_item error for regenerate fact summary {case_id}: {e}")
         raise
+
+
+# ============================================================================
+# Speaker Mapping CRUD (015-evidence-speaker-mapping)
+# ============================================================================
+
+def update_evidence_speaker_mapping(
+    evidence_id: str,
+    speaker_mapping: Optional[Dict],
+    updated_by: str
+) -> bool:
+    """
+    Update speaker mapping for evidence in DynamoDB
+
+    Args:
+        evidence_id: Evidence ID (primary key)
+        speaker_mapping: Speaker label to party mapping dict.
+                        None or empty dict clears the mapping.
+        updated_by: User ID who made the update
+
+    Returns:
+        True if update successful
+    """
+    dynamodb = _get_dynamodb_client()
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        if speaker_mapping:
+            # Set speaker mapping
+            dynamodb.update_item(
+                TableName=settings.DDB_EVIDENCE_TABLE,
+                Key={
+                    'evidence_id': {'S': evidence_id}
+                },
+                UpdateExpression=(
+                    "SET speaker_mapping = :sm, "
+                    "speaker_mapping_updated_at = :updated_at, "
+                    "speaker_mapping_updated_by = :updated_by, "
+                    "updated_at = :updated_at"
+                ),
+                ExpressionAttributeValues={
+                    ':sm': _serialize_value(speaker_mapping),
+                    ':updated_at': {'S': now},
+                    ':updated_by': {'S': updated_by}
+                }
+            )
+        else:
+            # Clear speaker mapping (remove fields)
+            dynamodb.update_item(
+                TableName=settings.DDB_EVIDENCE_TABLE,
+                Key={
+                    'evidence_id': {'S': evidence_id}
+                },
+                UpdateExpression=(
+                    "REMOVE speaker_mapping, speaker_mapping_updated_by "
+                    "SET speaker_mapping_updated_at = :updated_at, "
+                    "updated_at = :updated_at"
+                ),
+                ExpressionAttributeValues={
+                    ':updated_at': {'S': now}
+                }
+            )
+
+        logger.info(f"Updated speaker mapping for evidence {evidence_id} by {updated_by}")
+        return True
+
+    except ClientError as e:
+        logger.error(f"DynamoDB update speaker mapping error for evidence {evidence_id}: {e}")
+        return False
+
+
+def get_evidence_speaker_mapping(evidence_id: str) -> Optional[Dict]:
+    """
+    Get speaker mapping for a specific evidence
+
+    Args:
+        evidence_id: Evidence ID
+
+    Returns:
+        Speaker mapping dict or None if not set
+    """
+    evidence = get_evidence_by_id(evidence_id)
+    if not evidence:
+        return None
+    return evidence.get('speaker_mapping')
