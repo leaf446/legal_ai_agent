@@ -1,26 +1,26 @@
 """
-Draft Service Module
+Draft Services Package
 
-RAG 기반 초안 생성 서비스
+Modular components for draft generation:
+- RAGOrchestrator: RAG search and context formatting
+- PromptBuilder: GPT-4o prompt construction
+- CitationExtractor: Citation parsing and extraction
+- DocumentExporter: DOCX/PDF generation
+- LineTemplateService: Line-based template processing
 
-Usage:
-    from app.services.draft import DraftService
-
-    service = DraftService(db)
-    response = service.generate_draft_preview(case_id, request, user_id)
-
-모듈 구조:
-- generator.py: RAG 기반 초안 생성
-- exporter.py: DOCX/PDF 내보내기
-- formatter.py: 프롬프트 포매팅 및 인용 추출
+Extracted from DraftService for better modularity (Issue #325)
 """
 
-from .generator import DraftGenerator
-
-# Backwards compatibility: DraftService is an alias for DraftGenerator
-DraftService = DraftGenerator
+from app.services.draft.rag_orchestrator import RAGOrchestrator
+from app.services.draft.prompt_builder import PromptBuilder
+from app.services.draft.citation_extractor import CitationExtractor
+from app.services.draft.document_exporter import DocumentExporter
+from app.services.draft.line_template_service import LineTemplateService
 
 __all__ = [
-    "DraftService",
-    "DraftGenerator",
+    "RAGOrchestrator",
+    "PromptBuilder",
+    "CitationExtractor",
+    "DocumentExporter",
+    "LineTemplateService",
 ]
