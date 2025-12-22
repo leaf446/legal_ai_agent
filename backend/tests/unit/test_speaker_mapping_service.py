@@ -5,7 +5,6 @@ Unit tests for Speaker Mapping validation in EvidenceService
 
 import pytest
 from unittest.mock import MagicMock, patch
-from datetime import datetime
 
 from app.services.evidence_service import EvidenceService
 from app.db.schemas import SpeakerMappingItem, SpeakerMappingUpdateRequest
@@ -56,7 +55,9 @@ class TestSpeakerMappingValidation:
         """Should raise ValidationError when more than 10 speakers"""
         # Create 11 speakers
         speaker_mapping = {
-            f"화자{i}": SpeakerMappingItem(party_id=f"party_{i:03d}", party_name=f"인물{i}")
+            f"화자{i}": SpeakerMappingItem(
+                party_id=f"party_{i:03d}", party_name=f"인물{i}"
+            )
             for i in range(11)
         }
 
@@ -104,7 +105,9 @@ class TestSpeakerMappingValidation:
 
         assert "이 사건에 속하지 않습니다" in str(exc_info.value)
 
-    def test_validate_multiple_speakers_same_party(self, service_with_mocks, mock_party):
+    def test_validate_multiple_speakers_same_party(
+        self, service_with_mocks, mock_party
+    ):
         """Multiple speakers can map to the same party"""
         # Same party can be referenced by multiple speaker labels
         speaker_mapping = {
@@ -129,7 +132,9 @@ class TestSpeakerMappingValidation:
         """Should accept exactly 50 character speaker label (max limit)"""
         label_50_chars = "가" * 50
         speaker_mapping = {
-            label_50_chars: SpeakerMappingItem(party_id="party_001", party_name="김동우")
+            label_50_chars: SpeakerMappingItem(
+                party_id="party_001", party_name="김동우"
+            )
         }
 
         # Should not raise - exactly at limit
@@ -184,7 +189,9 @@ class TestUpdateSpeakerMapping:
             }
         )
 
-        result = service_with_mocks.update_speaker_mapping("evt_123", "user_001", request)
+        result = service_with_mocks.update_speaker_mapping(
+            "evt_123", "user_001", request
+        )
 
         assert result.evidence_id == "evt_123"
         assert result.speaker_mapping is not None
@@ -210,7 +217,9 @@ class TestUpdateSpeakerMapping:
         # Empty speaker_mapping to clear
         request = SpeakerMappingUpdateRequest(speaker_mapping={})
 
-        result = service_with_mocks.update_speaker_mapping("evt_123", "user_001", request)
+        result = service_with_mocks.update_speaker_mapping(
+            "evt_123", "user_001", request
+        )
 
         assert result.evidence_id == "evt_123"
         assert result.speaker_mapping is None  # Cleared
@@ -232,7 +241,9 @@ class TestUpdateSpeakerMapping:
         )
 
         with pytest.raises(NotFoundError):
-            service_with_mocks.update_speaker_mapping("evt_nonexistent", "user_001", request)
+            service_with_mocks.update_speaker_mapping(
+                "evt_nonexistent", "user_001", request
+            )
 
     @patch('app.services.evidence_service.get_evidence_by_id')
     def test_update_speaker_mapping_permission_denied(
