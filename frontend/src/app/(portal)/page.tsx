@@ -4,7 +4,7 @@
  * Client Evidence Portal - App Router Version
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ClientUploadCard from '@/components/portal/ClientUploadCard';
 
@@ -14,7 +14,7 @@ const DEFAULT_FIRM_NAME = 'Legal Evidence Hub 로펌';
 const DEFAULT_CASE_NAME = '의뢰인 사건';
 const UPLOAD_SIMULATION_DELAY_MS = 800;
 
-export default function ClientEvidencePortalPage() {
+function ClientEvidencePortalContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<UploadStatus>('idle');
   const [uploadedCount, setUploadedCount] = useState(0);
@@ -74,5 +74,13 @@ export default function ClientEvidencePortalPage() {
         caseName={caseName}
       />
     </div>
+  );
+}
+
+export default function ClientEvidencePortalPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">로딩 중...</div>}>
+      <ClientEvidencePortalContent />
+    </Suspense>
   );
 }

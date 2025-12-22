@@ -5,6 +5,7 @@
  * Shared layout for authenticated dashboard pages with sidebar navigation
  */
 
+import dynamic from 'next/dynamic';
 import {
   LayoutDashboard,
   Briefcase,
@@ -18,8 +19,17 @@ import {
   Shield,
 } from 'lucide-react';
 import Footer from '@/components/common/Footer';
-import { PortalSidebar, NavGroup } from '@/components/shared/PortalSidebar';
-import { NotificationDropdown } from '@/components/shared/NotificationDropdown';
+import { NavGroup } from '@/components/shared/PortalSidebar';
+
+// Dynamic imports to prevent SSR issues with usePathname
+const PortalSidebar = dynamic(
+  () => import('@/components/shared/PortalSidebar').then((mod) => mod.PortalSidebar),
+  { ssr: false }
+);
+const NotificationDropdown = dynamic(
+  () => import('@/components/shared/NotificationDropdown').then((mod) => mod.NotificationDropdown),
+  { ssr: false }
+);
 
 const NAV_GROUPS: NavGroup[] = [
   {
