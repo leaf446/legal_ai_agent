@@ -304,7 +304,6 @@ class TestDraftServiceCitations:
         assert len(result[0].snippet) <= 203  # 200 + "..."
 
 
-@pytest.mark.skip(reason="Tests need updating for new modular structure - _generate_docx moved to exporter module")
 class TestDraftServiceExport:
     """Tests for export_draft method"""
 
@@ -367,12 +366,11 @@ class TestDraftServiceExport:
             draft_service.export_draft(case_id, user_id)
 
 
-@pytest.mark.skip(reason="Tests need updating for new modular structure - _generate_docx moved to exporter module")
 class TestDraftServiceDocxGeneration:
     """Tests for _generate_docx method"""
 
     @patch("app.services.draft.exporter.DOCX_AVAILABLE", True)
-    @patch("app.services.draft_service.Document")
+    @patch("app.services.draft.exporter.Document")
     def test_generate_docx_creates_document(
         self, mock_document_class, draft_service, sample_case
     ):

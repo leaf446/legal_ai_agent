@@ -205,3 +205,11 @@ class DraftGenerator:
     def _extract_citations(self, rag_results: List[dict]):
         """Wrapper for extract_citations function for backward compatibility"""
         return extract_citations(rag_results)
+
+    def _generate_docx(
+        self,
+        case,
+        draft_response: "DraftPreviewResponse"
+    ) -> Tuple[BytesIO, str, str]:
+        """Wrapper for generate_docx function for backward compatibility with tests"""
+        return generate_docx(case, draft_response)
