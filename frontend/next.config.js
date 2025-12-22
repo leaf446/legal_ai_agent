@@ -1,14 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Static HTML Export for S3/CloudFront deployment
-  output: 'export',
+  // Note: Static export disabled for dynamic routes support
+  // Use 'output: export' only if all routes can be pre-generated
+  // output: 'export',
 
-  // Disable image optimization for static export (use external CDN or unoptimized)
+  // Disable image optimization (use external CDN or unoptimized)
   images: {
     unoptimized: true,
   },
 
-  // Trailing slash for S3 compatibility
+  // Trailing slash for compatibility
   trailingSlash: true,
 
   // Base path (change if deploying to subdirectory)

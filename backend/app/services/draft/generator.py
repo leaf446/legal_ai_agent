@@ -180,7 +180,7 @@ class DraftGenerator:
 
         # 3. Convert to requested format
         if export_format == DraftExportFormat.DOCX:
-            return generate_docx(case, draft_response)
+            return self._generate_docx(case, draft_response)
         elif export_format == DraftExportFormat.PDF:
             return generate_pdf(case, draft_response)
         else:
