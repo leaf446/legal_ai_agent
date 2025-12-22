@@ -15,4 +15,23 @@ Draft Service - Backwards Compatibility Wrapper
 # Re-export from new module structure
 from .draft import DraftService
 
-__all__ = ["DraftService"]
+# Re-export utils for backward compatibility with tests
+from app.utils.dynamo import get_evidence_by_case
+from app.utils.qdrant import search_evidence_by_semantic
+from app.utils.openai_client import generate_chat_completion
+from app.services.draft.exporter import DOCX_AVAILABLE
+
+# Re-export Document class for backward compatibility
+try:
+    from docx import Document
+except ImportError:
+    Document = None
+
+__all__ = [
+    "DraftService",
+    "get_evidence_by_case",
+    "search_evidence_by_semantic",
+    "generate_chat_completion",
+    "DOCX_AVAILABLE",
+    "Document",
+]
