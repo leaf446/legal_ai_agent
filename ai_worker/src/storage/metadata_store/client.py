@@ -13,6 +13,11 @@ import boto3
 logger = logging.getLogger(__name__)
 
 
+class DuplicateError(Exception):
+    """Raised when attempting to create a duplicate record."""
+    pass
+
+
 class MetadataStoreClient:
     """
     DynamoDB 클라이언트 기본 클래스

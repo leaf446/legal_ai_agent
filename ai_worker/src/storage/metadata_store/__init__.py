@@ -22,6 +22,7 @@ Usage:
 """
 
 from .case_management import MetadataStoreCaseManagement
+from .client import DuplicateError
 
 # Backwards compatibility: MetadataStore is the full-featured class
 MetadataStore = MetadataStoreCaseManagement
@@ -29,4 +30,5 @@ MetadataStore = MetadataStoreCaseManagement
 __all__ = [
     "MetadataStore",
     "MetadataStoreCaseManagement",
+    "DuplicateError",
 ]
