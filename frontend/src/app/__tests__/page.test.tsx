@@ -11,6 +11,7 @@
 
 import { render, screen } from '@testing-library/react';
 import LandingPage from '../page';
+import { BRAND } from '@/config/brand';
 
 jest.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({
@@ -45,9 +46,7 @@ describe('Landing Page Integration', () => {
       render(<LandingPage />);
 
       expect(screen.getByRole('navigation')).toBeInTheDocument();
-      // CHAGOK is the current logo text
-      const nav = screen.getByRole('navigation');
-      expect(nav.textContent).toContain('CHAGOK');
+      expect(screen.getByText(BRAND.name)).toBeInTheDocument();
     });
 
     it('should render hero section', () => {
@@ -73,7 +72,7 @@ describe('Landing Page Integration', () => {
     it('should render solution section', () => {
       render(<LandingPage />);
 
-      expect(screen.getByRole('heading', { name: /Legal Evidence Hub가 해결합니다/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: new RegExp(`${BRAND.name}이 해결합니다`, 'i') })).toBeInTheDocument();
     });
 
     it('should render how it works section', () => {
@@ -115,7 +114,7 @@ describe('Landing Page Integration', () => {
     it('should render footer', () => {
       render(<LandingPage />);
 
-      expect(screen.getByText(/© 2025 LEH/i)).toBeInTheDocument();
+      expect(screen.getByText(new RegExp(`© 2025 ${BRAND.name}`, 'i'))).toBeInTheDocument();
     });
   });
 
