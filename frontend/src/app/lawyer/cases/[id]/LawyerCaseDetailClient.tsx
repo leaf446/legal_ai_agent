@@ -12,7 +12,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, RefreshCw, Sparkles, CheckCircle2, FileText, Scale, Filter } from 'lucide-react';
+import { Loader2, RefreshCw, Sparkles, CheckCircle2, FileText, Scale, Filter, Wallet, MessageSquare, FileUp, Edit3, UserPlus, Calendar, Bell, Activity } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 import ExplainerCard from '@/components/cases/ExplainerCard';
 import ShareSummaryModal from '@/components/cases/ShareSummaryModal';
@@ -39,7 +39,7 @@ import { getCaseStatusConfig } from '@/lib/utils/statusConfig';
 // Draft imports
 import DraftGenerationModal from '@/components/draft/DraftGenerationModal';
 import DraftPreviewPanel from '@/components/draft/DraftPreviewPanel';
-import { generateDraftPreview } from '@/lib/api/draft';
+import { generateDraftPreviewAsync, DraftJobStatus } from '@/lib/api/draft';
 import { DraftCitation } from '@/types/draft';
 import { downloadDraftAsDocx, DraftDownloadFormat, DownloadResult } from '@/services/documentService';
 import { ExpertInsightsPanel } from '@/components/case/ExpertInsightsPanel';
@@ -47,6 +47,9 @@ import { useProcedure } from '@/hooks/useProcedure';
 import { ProcedureTimeline } from '@/components/procedure';
 // New tab components
 import { AssetSummaryTab } from '@/components/case/AssetSummaryTab';
+import { ConsultationHistoryTab } from '@/components/case/ConsultationHistoryTab';
+// 014-case-fact-summary: FactSummaryPanel
+import { FactSummaryPanel } from '@/components/fact-summary/FactSummaryPanel';
 
 interface CaseDetail {
   id: string;
@@ -107,7 +110,7 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
   const [caseDetail, setCaseDetail] = useState<CaseDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'evidence' | 'timeline' | 'analysis' | 'relations' | 'draft'>('evidence');
+  const [activeTab, setActiveTab] = useState<'evidence' | 'timeline' | 'consultation' | 'analysis' | 'relations' | 'assets' | 'draft'>('evidence');
   const [showSummaryCard, setShowSummaryCard] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -120,6 +123,8 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
   const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
   const [draftError, setDraftError] = useState<string | null>(null);
   const [hasExistingDraft, setHasExistingDraft] = useState(false);
+  const [draftProgress, setDraftProgress] = useState(0);
+  const [draftStatus, setDraftStatus] = useState<DraftJobStatus | null>(null);
 
   // Evidence state
   const [evidenceList, setEvidenceList] = useState<Evidence[]>([]);
@@ -295,19 +300,32 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
     onUploadComplete: fetchEvidence,
   });
 
-  // Draft generation handler
+  // Draft generation handler (async with polling)
   const handleGenerateDraft = useCallback(async (selectedEvidenceIds: string[]) => {
     if (!caseId) return;
 
     setIsGeneratingDraft(true);
     setDraftError(null);
+    setDraftProgress(0);
+    setDraftStatus('queued');
 
     try {
-      const response = await generateDraftPreview(caseId, {
-        sections: ['청구취지', '청구원인'],
-        language: 'ko',
-        style: '법원 제출용_표준',
-      });
+      // Use async version with progress callback
+      const response = await generateDraftPreviewAsync(
+        caseId,
+        {
+          sections: ['청구취지', '청구원인'],
+          language: 'ko',
+          style: '법원 제출용_표준',
+        },
+        // Progress callback
+        (progress, status) => {
+          setDraftProgress(progress);
+          setDraftStatus(status);
+        },
+        120000,  // 2 minute max wait
+        1500     // 1.5 second poll interval
+      );
 
       if (response.error || !response.data) {
         throw new Error(response.error || '초안 생성에 실패했습니다.');
@@ -332,6 +350,8 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
       setDraftError(err instanceof Error ? err.message : '초안 생성에 실패했습니다.');
     } finally {
       setIsGeneratingDraft(false);
+      setDraftProgress(0);
+      setDraftStatus(null);
     }
   }, [caseId]);
 
@@ -500,8 +520,10 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
           {[
             { id: 'evidence', label: '증거 자료', count: evidenceList.length, icon: null },
             { id: 'timeline', label: '타임라인', count: caseDetail.recentActivities.length, icon: null },
+            { id: 'consultation', label: '상담내역', count: null, icon: <MessageSquare className="w-4 h-4 mr-1" /> },
             { id: 'analysis', label: '법률 분석', count: null, icon: <Scale className="w-4 h-4 mr-1" /> },
             { id: 'relations', label: '관계도', count: null, icon: null },
+            { id: 'assets', label: '재산분할', count: null, icon: <Wallet className="w-4 h-4 mr-1" /> },
             { id: 'draft', label: '초안 생성', count: null, icon: <FileText className="w-4 h-4 mr-1" /> },
           ].map((tab) => (
             <button
@@ -705,11 +727,6 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
                 <EvidenceTable items={filteredEvidenceList} />
               )}
             </section>
-
-            {/* Asset Division Section - Integrated from assets tab */}
-            <section className="pt-6 border-t border-gray-200 dark:border-neutral-700">
-              <AssetSummaryTab caseId={caseId} />
-            </section>
           </div>
         )}
 
@@ -735,20 +752,52 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
 
             {/* Recent Activity Section */}
             <div>
-               <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-4">최근 활동 로그</h3>
+              <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-4">최근 활동 로그</h3>
               {caseDetail.recentActivities.length > 0 ? (
-                <div className="space-y-4">
-                  {caseDetail.recentActivities.map((activity, index) => (
-                    <div key={index} className="flex gap-3">
-                      <div className="w-2 h-2 mt-2 rounded-full bg-[var(--color-primary)]" />
-                      <div>
-                        <p className="text-[var(--color-text-primary)]">{activity.action}</p>
-                        <p className="text-sm text-[var(--color-text-secondary)]">
-                          {activity.user} - {new Date(activity.timestamp).toLocaleString('ko-KR')}
-                        </p>
+                <div className="bg-white dark:bg-neutral-800 rounded-lg border border-gray-200 dark:border-neutral-700 divide-y divide-gray-100 dark:divide-neutral-700">
+                  {caseDetail.recentActivities.map((activity, index) => {
+                    // Determine icon based on action text
+                    const actionLower = activity.action.toLowerCase();
+                    let Icon = Activity;
+                    let iconColor = 'text-gray-500';
+                    if (actionLower.includes('업로드') || actionLower.includes('증거')) {
+                      Icon = FileUp;
+                      iconColor = 'text-blue-500';
+                    } else if (actionLower.includes('상담') || actionLower.includes('메시지')) {
+                      Icon = MessageSquare;
+                      iconColor = 'text-green-500';
+                    } else if (actionLower.includes('수정') || actionLower.includes('편집')) {
+                      Icon = Edit3;
+                      iconColor = 'text-orange-500';
+                    } else if (actionLower.includes('접수') || actionLower.includes('생성')) {
+                      Icon = FileText;
+                      iconColor = 'text-purple-500';
+                    } else if (actionLower.includes('담당자') || actionLower.includes('멤버')) {
+                      Icon = UserPlus;
+                      iconColor = 'text-indigo-500';
+                    } else if (actionLower.includes('일정') || actionLower.includes('기일')) {
+                      Icon = Calendar;
+                      iconColor = 'text-pink-500';
+                    } else if (actionLower.includes('알림')) {
+                      Icon = Bell;
+                      iconColor = 'text-yellow-500';
+                    }
+
+                    return (
+                      <div key={index} className="flex items-center gap-3 px-4 py-3">
+                        <div className={`flex-shrink-0 ${iconColor}`}>
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-[var(--color-text-primary)] truncate">{activity.action}</p>
+                        </div>
+                        <div className="flex-shrink-0 text-xs text-[var(--color-text-secondary)] whitespace-nowrap">
+                          <span className="hidden sm:inline">{activity.user} · </span>
+                          {new Date(activity.timestamp).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-center text-[var(--color-text-secondary)] py-8 bg-gray-50 dark:bg-neutral-900/50 rounded-lg">
@@ -760,23 +809,88 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
         )}
 
         {activeTab === 'analysis' && (
-          <AnalysisTab
-            caseId={caseId}
-            evidenceCount={caseDetail.evidenceCount}
-            onDraftGenerate={() => {
-              setActiveTab('draft');
-              setShowDraftModal(true);
-            }}
-            // Phase B.3: AI analysis status bar props
-            lastAnalyzedAt={lastAnalyzedAt}
-            onRequestAnalysis={handleRequestAnalysis}
-            isAnalyzing={isAnalyzing}
-          />
+          <div className="space-y-6">
+            {/* 014-case-fact-summary: 사실관계 요약 패널 */}
+            <FactSummaryPanel caseId={caseId} />
+
+            {/* 기존 분석 탭 */}
+            <AnalysisTab
+              caseId={caseId}
+              evidenceCount={caseDetail.evidenceCount}
+              onDraftGenerate={() => {
+                setActiveTab('draft');
+                setShowDraftModal(true);
+              }}
+              // Phase B.3: AI analysis status bar props
+              lastAnalyzedAt={lastAnalyzedAt}
+              onRequestAnalysis={handleRequestAnalysis}
+              isAnalyzing={isAnalyzing}
+            />
+          </div>
         )}
 
         {activeTab === 'relations' && (
-          <div className="h-[600px]">
-            <PartyGraph caseId={caseId} />
+          <div className="space-y-6">
+            {/* Relations Header */}
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-100 dark:bg-purple-800/50 rounded-lg">
+                  <UserPlus className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-purple-800 dark:text-purple-200">인물 관계도</h3>
+                  <p className="text-sm text-purple-600 dark:text-purple-400">사건 관련 인물들의 관계를 시각적으로 파악합니다.</p>
+                </div>
+              </div>
+            </div>
+            {/* Relations Content */}
+            <div className="bg-white dark:bg-neutral-800/50 rounded-lg border border-gray-200 dark:border-neutral-700 p-4">
+              <div className="h-[550px]">
+                <PartyGraph caseId={caseId} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'consultation' && (
+          <div className="space-y-6">
+            {/* Consultation Header */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 dark:bg-green-800/50 rounded-lg">
+                  <MessageSquare className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-green-800 dark:text-green-200">상담 관리</h3>
+                  <p className="text-sm text-green-600 dark:text-green-400">의뢰인과의 상담 기록을 체계적으로 관리하세요.</p>
+                </div>
+              </div>
+            </div>
+            {/* Consultation Content */}
+            <div className="bg-white dark:bg-neutral-800/50 rounded-lg border border-gray-200 dark:border-neutral-700 p-6">
+              <ConsultationHistoryTab caseId={caseId} />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'assets' && (
+          <div className="space-y-6">
+            {/* Assets Header */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-800/50 rounded-lg">
+                  <Wallet className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-blue-800 dark:text-blue-200">재산분할 현황</h3>
+                  <p className="text-sm text-blue-600 dark:text-blue-400">부동산, 금융자산, 차량 등 재산 목록을 관리합니다.</p>
+                </div>
+              </div>
+            </div>
+            {/* Assets Content */}
+            <div className="bg-white dark:bg-neutral-800/50 rounded-lg border border-gray-200 dark:border-neutral-700 p-6">
+              <AssetSummaryTab caseId={caseId} />
+            </div>
           </div>
         )}
 
@@ -903,6 +1017,8 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
         onClose={() => setShowDraftModal(false)}
         onGenerate={handleGenerateDraft}
         evidenceList={evidenceList}
+        progress={draftProgress}
+        status={draftStatus}
       />
     </div>
   );

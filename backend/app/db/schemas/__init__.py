@@ -54,6 +54,10 @@ from app.db.schemas.evidence import (
     EvidenceReviewRequest,
     EvidenceReviewResponse,
     EvidenceDetail,
+    # Speaker Mapping (015-evidence-speaker-mapping)
+    SpeakerMappingItem,
+    SpeakerMappingUpdateRequest,
+    SpeakerMappingResponse,
 )
 
 # Draft
@@ -76,6 +80,10 @@ from app.db.schemas.draft import (
     DraftResponse,
     DraftListItem,
     DraftListResponse,
+    # Async Draft Preview
+    DraftJobStatus,
+    DraftJobCreateResponse,
+    DraftJobStatusResponse,
 )
 
 # Audit
@@ -255,6 +263,10 @@ __all__ = [
     "EvidenceReviewRequest",
     "EvidenceReviewResponse",
     "EvidenceDetail",
+    # Speaker Mapping
+    "SpeakerMappingItem",
+    "SpeakerMappingUpdateRequest",
+    "SpeakerMappingResponse",
     # Draft
     "DraftPreviewRequest",
     "DraftCitation",
@@ -274,6 +286,10 @@ __all__ = [
     "DraftResponse",
     "DraftListItem",
     "DraftListResponse",
+    # Async Draft Preview
+    "DraftJobStatus",
+    "DraftJobCreateResponse",
+    "DraftJobStatusResponse",
     # Audit
     "AuditAction",
     "AuditLogOut",

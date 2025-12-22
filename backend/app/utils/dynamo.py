@@ -334,3 +334,252 @@ def clear_case_evidence(case_id: str) -> int:
     except ClientError as e:
         logger.error(f"DynamoDB clear_case_evidence error for case {case_id}: {e}")
         raise
+
+
+# ============================================================================
+# Case Fact Summary CRUD (014-case-fact-summary)
+# Table: leh_case_summary
+# ============================================================================
+
+def get_case_fact_summary(case_id: str) -> Optional[Dict]:
+    """
+    Get case fact summary from DynamoDB
+
+    Args:
+        case_id: Case ID (primary key)
+
+    Returns:
+        Fact summary dictionary or None if not found
+    """
+    dynamodb = _get_dynamodb_client()
+
+    try:
+        response = dynamodb.get_item(
+            TableName=settings.DDB_CASE_SUMMARY_TABLE,
+            Key={
+                'case_id': {'S': case_id}
+            }
+        )
+
+        item = response.get('Item')
+        if not item:
+            return None
+
+        return _deserialize_dynamodb_item(item)
+
+    except ClientError as e:
+        logger.error(f"DynamoDB get_item error for case fact summary {case_id}: {e}")
+        raise
+
+
+def put_case_fact_summary(summary_data: Dict) -> Dict:
+    """
+    Insert or replace case fact summary in DynamoDB
+
+    Args:
+        summary_data: Fact summary dictionary
+            Required fields:
+            - case_id: Case ID (primary key)
+            - ai_summary: AI generated summary
+
+    Returns:
+        Stored fact summary data
+    """
+    dynamodb = _get_dynamodb_client()
+
+    case_id = summary_data.get('case_id')
+    if not case_id:
+        raise ValueError("Summary data must have 'case_id' field")
+
+    # Add timestamp if not present
+    item_data = summary_data.copy()
+    if 'created_at' not in item_data:
+        item_data['created_at'] = datetime.now(timezone.utc).isoformat()
+
+    try:
+        dynamodb.put_item(
+            TableName=settings.DDB_CASE_SUMMARY_TABLE,
+            Item=_serialize_to_dynamodb(item_data)
+        )
+        return item_data
+
+    except ClientError as e:
+        logger.error(f"DynamoDB put_item error for case fact summary {case_id}: {e}")
+        raise
+
+
+def update_case_fact_summary(
+    case_id: str,
+    modified_summary: str,
+    modified_by: str
+) -> bool:
+    """
+    Update modified_summary field in case fact summary
+
+    Args:
+        case_id: Case ID (primary key)
+        modified_summary: Lawyer-edited summary text
+        modified_by: User ID who made the modification
+
+    Returns:
+        True if update successful
+    """
+    dynamodb = _get_dynamodb_client()
+
+    try:
+        dynamodb.update_item(
+            TableName=settings.DDB_CASE_SUMMARY_TABLE,
+            Key={
+                'case_id': {'S': case_id}
+            },
+            UpdateExpression=(
+                "SET modified_summary = :ms, modified_by = :mb, modified_at = :ma"
+            ),
+            ExpressionAttributeValues={
+                ':ms': {'S': modified_summary},
+                ':mb': {'S': modified_by},
+                ':ma': {'S': datetime.now(timezone.utc).isoformat()}
+            }
+        )
+        return True
+
+    except ClientError as e:
+        logger.error(f"DynamoDB update_item error for case fact summary {case_id}: {e}")
+        return False
+
+
+def backup_and_regenerate_fact_summary(
+    case_id: str,
+    new_summary_data: Dict
+) -> Dict:
+    """
+    Backup current modified_summary to previous_version and save new summary
+
+    Used when force_regenerate=True
+
+    Args:
+        case_id: Case ID
+        new_summary_data: New summary data to save
+
+    Returns:
+        Updated fact summary data
+    """
+    dynamodb = _get_dynamodb_client()
+
+    # Get current summary to backup
+    current = get_case_fact_summary(case_id)
+
+    item_data = new_summary_data.copy()
+    item_data['case_id'] = case_id
+    item_data['regenerated_at'] = datetime.now(timezone.utc).isoformat()
+
+    # Backup previous modified_summary if exists
+    if current and current.get('modified_summary'):
+        item_data['previous_version'] = current['modified_summary']
+
+    # Clear modified_summary on regenerate
+    item_data['modified_summary'] = None
+    item_data['modified_by'] = None
+    item_data['modified_at'] = None
+
+    try:
+        dynamodb.put_item(
+            TableName=settings.DDB_CASE_SUMMARY_TABLE,
+            Item=_serialize_to_dynamodb(item_data)
+        )
+        return item_data
+
+    except ClientError as e:
+        logger.error(
+            f"DynamoDB put_item error for regenerate fact summary {case_id}: {e}"
+        )
+        raise
+
+
+# ============================================================================
+# Speaker Mapping CRUD (015-evidence-speaker-mapping)
+# ============================================================================
+
+def update_evidence_speaker_mapping(
+    evidence_id: str,
+    speaker_mapping: Optional[Dict],
+    updated_by: str
+) -> bool:
+    """
+    Update speaker mapping for evidence in DynamoDB
+
+    Args:
+        evidence_id: Evidence ID (primary key)
+        speaker_mapping: Speaker label to party mapping dict.
+                        None or empty dict clears the mapping.
+        updated_by: User ID who made the update
+
+    Returns:
+        True if update successful
+    """
+    dynamodb = _get_dynamodb_client()
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        if speaker_mapping:
+            # Set speaker mapping
+            dynamodb.update_item(
+                TableName=settings.DDB_EVIDENCE_TABLE,
+                Key={
+                    'evidence_id': {'S': evidence_id}
+                },
+                UpdateExpression=(
+                    "SET speaker_mapping = :sm, "
+                    "speaker_mapping_updated_at = :updated_at, "
+                    "speaker_mapping_updated_by = :updated_by, "
+                    "updated_at = :updated_at"
+                ),
+                ExpressionAttributeValues={
+                    ':sm': _serialize_value(speaker_mapping),
+                    ':updated_at': {'S': now},
+                    ':updated_by': {'S': updated_by}
+                }
+            )
+        else:
+            # Clear speaker mapping (remove fields)
+            dynamodb.update_item(
+                TableName=settings.DDB_EVIDENCE_TABLE,
+                Key={
+                    'evidence_id': {'S': evidence_id}
+                },
+                UpdateExpression=(
+                    "REMOVE speaker_mapping, speaker_mapping_updated_by "
+                    "SET speaker_mapping_updated_at = :updated_at, "
+                    "updated_at = :updated_at"
+                ),
+                ExpressionAttributeValues={
+                    ':updated_at': {'S': now}
+                }
+            )
+
+        logger.info(
+            f"Updated speaker mapping for evidence {evidence_id} by {updated_by}"
+        )
+        return True
+
+    except ClientError as e:
+        logger.error(
+            f"DynamoDB update speaker mapping error for evidence {evidence_id}: {e}"
+        )
+        return False
+
+
+def get_evidence_speaker_mapping(evidence_id: str) -> Optional[Dict]:
+    """
+    Get speaker mapping for a specific evidence
+
+    Args:
+        evidence_id: Evidence ID
+
+    Returns:
+        Speaker mapping dict or None if not set
+    """
+    evidence = get_evidence_by_id(evidence_id)
+    if not evidence:
+        return None
+    return evidence.get('speaker_mapping')
