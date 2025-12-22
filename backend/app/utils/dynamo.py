@@ -432,7 +432,9 @@ def update_case_fact_summary(
             Key={
                 'case_id': {'S': case_id}
             },
-            UpdateExpression="SET modified_summary = :ms, modified_by = :mb, modified_at = :ma",
+            UpdateExpression=(
+                "SET modified_summary = :ms, modified_by = :mb, modified_at = :ma"
+            ),
             ExpressionAttributeValues={
                 ':ms': {'S': modified_summary},
                 ':mb': {'S': modified_by},
@@ -488,7 +490,9 @@ def backup_and_regenerate_fact_summary(
         return item_data
 
     except ClientError as e:
-        logger.error(f"DynamoDB put_item error for regenerate fact summary {case_id}: {e}")
+        logger.error(
+            f"DynamoDB put_item error for regenerate fact summary {case_id}: {e}"
+        )
         raise
 
 
@@ -553,11 +557,15 @@ def update_evidence_speaker_mapping(
                 }
             )
 
-        logger.info(f"Updated speaker mapping for evidence {evidence_id} by {updated_by}")
+        logger.info(
+            f"Updated speaker mapping for evidence {evidence_id} by {updated_by}"
+        )
         return True
 
     except ClientError as e:
-        logger.error(f"DynamoDB update speaker mapping error for evidence {evidence_id}: {e}")
+        logger.error(
+            f"DynamoDB update speaker mapping error for evidence {evidence_id}: {e}"
+        )
         return False
 
 

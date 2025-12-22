@@ -6,8 +6,7 @@ Tests EvidenceService.update_speaker_mapping method with mocked dependencies.
 """
 
 import pytest
-from unittest.mock import patch, MagicMock, Mock
-from datetime import datetime
+from unittest.mock import patch, MagicMock
 
 from app.services.evidence_service import EvidenceService
 from app.db.schemas import SpeakerMappingItem, SpeakerMappingUpdateRequest
@@ -194,7 +193,9 @@ class TestSpeakerMappingAPI:
 
         request = SpeakerMappingUpdateRequest(
             speaker_mapping={
-                "나": SpeakerMappingItem(party_id="party_nonexistent", party_name="김동우")
+                "나": SpeakerMappingItem(
+                    party_id="party_nonexistent", party_name="김동우"
+                )
             }
         )
 

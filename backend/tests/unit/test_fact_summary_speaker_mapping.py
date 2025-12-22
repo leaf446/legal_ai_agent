@@ -5,7 +5,6 @@ Unit tests for FactSummaryService speaker mapping prompt injection
 
 import pytest
 from unittest.mock import MagicMock, patch
-from datetime import datetime, timezone
 
 from app.services.fact_summary_service import FactSummaryService
 

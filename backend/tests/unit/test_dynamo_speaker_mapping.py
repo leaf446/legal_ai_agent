@@ -5,7 +5,6 @@ Unit tests for DynamoDB speaker mapping functions
 
 import pytest
 from unittest.mock import MagicMock, patch
-from datetime import datetime, timezone
 
 from app.utils.dynamo import (
     update_evidence_speaker_mapping,
@@ -50,7 +49,9 @@ class TestUpdateEvidenceSpeakerMapping:
         assert "speaker_mapping_updated_by" in call_args.kwargs["UpdateExpression"]
 
     @patch('app.utils.dynamo._get_dynamodb_client')
-    def test_clear_speaker_mapping_with_none(self, mock_get_client, mock_dynamodb_client):
+    def test_clear_speaker_mapping_with_none(
+        self, mock_get_client, mock_dynamodb_client
+    ):
         """Clear speaker mapping when None is passed"""
         mock_get_client.return_value = mock_dynamodb_client
 
@@ -68,7 +69,9 @@ class TestUpdateEvidenceSpeakerMapping:
         assert "REMOVE speaker_mapping" in call_args.kwargs["UpdateExpression"]
 
     @patch('app.utils.dynamo._get_dynamodb_client')
-    def test_clear_speaker_mapping_with_empty_dict(self, mock_get_client, mock_dynamodb_client):
+    def test_clear_speaker_mapping_with_empty_dict(
+        self, mock_get_client, mock_dynamodb_client
+    ):
         """Clear speaker mapping when empty dict is passed"""
         mock_get_client.return_value = mock_dynamodb_client
 

@@ -5,7 +5,6 @@ Unit tests for has_speaker_mapping field in evidence list
 
 import pytest
 from unittest.mock import MagicMock, patch
-from datetime import datetime
 
 from app.services.evidence_service import EvidenceService
 
