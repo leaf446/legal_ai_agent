@@ -5,11 +5,11 @@ Tests notification business logic operations.
 """
 
 import pytest
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock
 from sqlalchemy.orm import Session
 
 from app.services.notification_service import NotificationService
-from app.db.models import NotificationType, Notification
+from app.db.models import NotificationType
 from app.db.schemas import (
     NotificationResponse,
     NotificationListResponse,

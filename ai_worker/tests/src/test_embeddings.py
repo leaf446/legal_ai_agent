@@ -177,7 +177,7 @@ class TestGetEmbedding:
         
         long_text = "A" * 40000
         with patch('src.utils.embeddings._get_client', return_value=mock_client):
-            result = get_embedding(long_text)
+            get_embedding(long_text)
             assert "truncated" in caplog.text.lower()
 
     def test_get_embedding_api_failure_raises(self, monkeypatch):
@@ -209,7 +209,7 @@ class TestGetEmbedding:
         mock_client.embeddings.create.return_value = mock_response
         
         with patch('src.utils.embeddings._get_client', return_value=mock_client):
-            result = get_embedding("Test", model="text-embedding-3-large")
+            get_embedding("Test", model="text-embedding-3-large")
             mock_client.embeddings.create.assert_called_once()
             call_kwargs = mock_client.embeddings.create.call_args[1]
             assert call_kwargs['model'] == "text-embedding-3-large"
