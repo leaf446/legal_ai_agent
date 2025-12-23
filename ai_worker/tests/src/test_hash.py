@@ -8,7 +8,7 @@ import pytest
 import hashlib
 import tempfile
 import os
-from unittest.mock import patch, MagicMock, Mock
+from unittest.mock import patch, MagicMock
 from botocore.exceptions import ClientError
 
 from src.utils.hash import (
@@ -226,7 +226,7 @@ class TestCalculateS3ObjectHash:
         mock_s3.get_object.return_value = {'Body': mock_body}
         
         with patch('src.utils.hash.boto3.client') as mock_boto:
-            result = calculate_s3_object_hash("test-bucket", "test-key", mock_s3)
+            calculate_s3_object_hash("test-bucket", "test-key", mock_s3)
             mock_boto.assert_not_called()
             mock_s3.get_object.assert_called_once()
 

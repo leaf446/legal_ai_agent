@@ -5,15 +5,13 @@ Tests AI Worker's communication with Backend API.
 """
 
 import pytest
-from unittest.mock import patch, MagicMock, Mock
+from unittest.mock import patch, Mock
 import requests
-from requests.exceptions import RequestException, Timeout, ConnectionError
+from requests.exceptions import Timeout, ConnectionError
 
 from src.api.backend_client import (
     AutoExtractedParty,
     AutoExtractedRelationship,
-    PartyResponse,
-    RelationshipResponse,
     BackendAPIClient,
 )
 

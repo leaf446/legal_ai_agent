@@ -5,9 +5,8 @@ Tests OpenAI embedding generation with fallback mechanisms.
 """
 
 import pytest
-from unittest.mock import patch, MagicMock, Mock
+from unittest.mock import patch, MagicMock
 from openai import OpenAI
-from openai.types import CreateEmbeddingResponse, Embedding
 
 from src.utils.embeddings import (
     _get_client,
@@ -16,8 +15,6 @@ from src.utils.embeddings import (
     get_embedding_with_fallback,
     get_embeddings_batch,
     get_embedding_dimension,
-    DEFAULT_MODEL,
-    DEFAULT_DIMENSIONS,
 )
 
 
