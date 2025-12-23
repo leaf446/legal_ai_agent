@@ -93,43 +93,46 @@ export function PrecedentPopover({
 
   return (
     <div className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-      {/* Trigger Button */}
+      {/* Trigger Button - Lightning Related Records Style */}
       <button
         className={`
-          flex items-center gap-2 px-3 py-2 rounded-lg text-sm
-          border border-gray-200 dark:border-neutral-700
-          hover:bg-gray-50 dark:hover:bg-neutral-800
-          transition-colors
-          ${isOpen ? 'bg-gray-50 dark:bg-neutral-800 border-[var(--color-primary)]' : ''}
+          w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm
+          bg-[var(--color-primary)]/5 border border-[var(--color-primary)]/20
+          hover:bg-[var(--color-primary)]/10 hover:border-[var(--color-primary)]/30
+          active:bg-[var(--color-primary)]/15 active:scale-[0.99]
+          transition-all duration-100
+          ${isOpen ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]/40 shadow-sm' : ''}
         `}
       >
-        <BookOpen className="w-4 h-4 text-[var(--color-primary)]" />
-        <span className="text-[var(--color-text-primary)]">유사판례</span>
+        <div className="flex items-center gap-2">
+          <BookOpen className="w-4 h-4 text-[var(--color-primary)]" />
+          <span className="font-medium text-[var(--color-text-primary)]">유사판례</span>
+        </div>
         {precedents.length > 0 && (
-          <span className="px-1.5 py-0.5 text-xs bg-[var(--color-primary)]/10 text-[var(--color-primary)] rounded">
+          <span className="px-1.5 py-0.5 text-xs font-medium bg-[var(--color-primary)] text-white rounded">
             {precedents.length}
           </span>
         )}
       </button>
 
-      {/* Popover */}
+      {/* Popover - Lightning Modal Style */}
       <div
         className={`
-          absolute left-0 top-full mt-2 z-50
-          w-80 max-h-96 overflow-y-auto
+          absolute left-0 bottom-full mb-2 z-50
+          w-80 max-h-80 overflow-y-auto
           bg-white dark:bg-neutral-800
           border border-gray-200 dark:border-neutral-700
-          rounded-lg shadow-lg
-          transition-all duration-150 ease-out
+          rounded-md shadow-lg
+          transition-all duration-100 ease-out
           ${isOpen
             ? 'opacity-100 translate-y-0 pointer-events-auto'
-            : 'opacity-0 -translate-y-2 pointer-events-none'
+            : 'opacity-0 translate-y-1 pointer-events-none'
           }
         `}
         style={{
           // Delayed close animation
-          transitionDelay: isOpen ? '0ms' : '300ms',
-          transitionDuration: isOpen ? '150ms' : '200ms',
+          transitionDelay: isOpen ? '0ms' : '200ms',
+          transitionDuration: isOpen ? '100ms' : '150ms',
           transitionTimingFunction: isOpen ? 'ease-out' : 'ease-in',
         }}
       >

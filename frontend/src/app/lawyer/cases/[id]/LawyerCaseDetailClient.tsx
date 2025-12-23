@@ -580,18 +580,6 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
                 }
                 evidenceCount={evidenceList.length}
                 onUploadEvidence={() => setShowEvidenceUploadModal(true)}
-                consultationContent={<div className="p-4 text-sm text-gray-500">상담 내역 목록</div>}
-                consultationCount={0}
-                onAddConsultation={() => {
-                  setActiveTab('consultation');
-                  setShowConsultationAddModal(true);
-                }}
-                assetsContent={<div className="p-4 text-sm text-gray-500">재산 목록</div>}
-                assetsCount={0}
-                onAddAsset={() => {
-                  setActiveTab('assets');
-                  setShowAssetAddModal(true);
-                }}
               />
             }
             mainContent={
