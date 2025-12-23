@@ -12,6 +12,7 @@
 
 import { useState, ReactNode } from 'react';
 import { ChevronDown, ChevronRight, FileText, MessageSquare, Wallet, Plus, Upload } from 'lucide-react';
+import { PrecedentPopover } from '@/components/precedent/PrecedentPopover';
 
 interface AccordionSection {
   id: string;
@@ -56,7 +57,7 @@ export function DataPanel({ sections, defaultOpenSections = ['evidence'] }: Data
             {/* Section Header */}
             <button
               onClick={() => toggleSection(section.id)}
-              className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-neutral-750 transition-colors"
+              className="w-full flex items-center justify-between px-4 py-4 hover:bg-gray-50 dark:hover:bg-neutral-750 transition-colors"
             >
               <div className="flex items-center gap-2">
                 <span className="text-[var(--color-text-secondary)]">
@@ -88,7 +89,7 @@ export function DataPanel({ sections, defaultOpenSections = ['evidence'] }: Data
 
             {/* Section Content */}
             {isOpen && (
-              <div className="px-4 pb-3">
+              <div className="px-4 pb-4">
                 {section.content}
               </div>
             )}
@@ -162,7 +163,17 @@ export function CaseDataPanel({
     },
   ];
 
-  return <DataPanel sections={sections} defaultOpenSections={['evidence']} />;
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-1">
+        <DataPanel sections={sections} defaultOpenSections={['evidence']} />
+      </div>
+      {/* Similar Precedents Popover - Task 6 */}
+      <div className="px-4 py-3 border-t border-gray-200 dark:border-neutral-700">
+        <PrecedentPopover />
+      </div>
+    </div>
+  );
 }
 
 export default DataPanel;

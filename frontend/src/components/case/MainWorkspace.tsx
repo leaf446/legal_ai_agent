@@ -59,8 +59,9 @@ function WorkspaceSection({
 interface MainWorkspaceProps {
   // Fact Summary
   factSummaryContent: ReactNode;
-  // Issue Analysis
-  analysisContent: ReactNode;
+  // Issue Analysis (hidden by default as per Task 6)
+  analysisContent?: ReactNode;
+  showAnalysis?: boolean;
   // Draft Generation
   onGenerateDraft: () => void;
   hasDraft: boolean;
@@ -71,6 +72,7 @@ interface MainWorkspaceProps {
 export function MainWorkspace({
   factSummaryContent,
   analysisContent,
+  showAnalysis = false, // Hidden by default as per Task 6
   onGenerateDraft,
   hasDraft,
   isGeneratingDraft,
@@ -88,15 +90,17 @@ export function MainWorkspace({
         {factSummaryContent}
       </WorkspaceSection>
 
-      {/* Issue Analysis Section */}
-      <WorkspaceSection
-        id="analysis"
-        title="쟁점 분석"
-        icon={<Scale className="w-5 h-5" />}
-        description="핵심 쟁점 및 법률적 판단 근거"
-      >
-        {analysisContent}
-      </WorkspaceSection>
+      {/* Issue Analysis Section - Hidden by default (Task 6) */}
+      {showAnalysis && analysisContent && (
+        <WorkspaceSection
+          id="analysis"
+          title="쟁점 분석"
+          icon={<Scale className="w-5 h-5" />}
+          description="핵심 쟁점 및 법률적 판단 근거"
+        >
+          {analysisContent}
+        </WorkspaceSection>
+      )}
 
       {/* Draft Generation Section */}
       <WorkspaceSection
