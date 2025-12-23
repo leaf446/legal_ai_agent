@@ -3,7 +3,6 @@ Consultation Service - Business logic for consultation management
 """
 
 from sqlalchemy.orm import Session
-from typing import List, Optional
 from datetime import datetime, timezone
 
 from app.db.models import ConsultationType

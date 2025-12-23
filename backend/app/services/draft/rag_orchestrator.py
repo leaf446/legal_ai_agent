@@ -268,7 +268,6 @@ class RAGOrchestrator:
 
         context_parts = []
         for i, doc in enumerate(consultation_results, start=1):
-            consultation_id = doc.get("consultation_id", f"consultation_{i}")
             summary = doc.get("summary", "")
             notes = doc.get("notes", "")
             consultation_date = doc.get("date", "")
