@@ -112,7 +112,7 @@ class TestCreateNotification:
         
         service.repository.create = Mock(return_value=mock_notification)
         
-        result = service.create_notification(
+        service.create_notification(
             user_id="user_456",
             title="Case Shared",
             content="Case was shared with you",
@@ -366,7 +366,7 @@ class TestEdgeCases:
         service.repository.get_by_user = Mock(return_value=[])
         service.repository.get_unread_count = Mock(return_value=5)
         
-        result = service.get_notifications("user_123", limit=0)
+        service.get_notifications("user_123", limit=0)
         
         service.repository.get_by_user.assert_called_once_with(
             user_id="user_123",

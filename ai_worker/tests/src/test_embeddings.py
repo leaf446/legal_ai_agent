@@ -371,7 +371,7 @@ class TestGetEmbeddingsBatch:
         
         long_text = "A" * 40000
         with patch('src.utils.embeddings._get_client', return_value=mock_client):
-            results = get_embeddings_batch([long_text])
+            get_embeddings_batch([long_text])
             # Should call API with truncated text
             call_args = mock_client.embeddings.create.call_args
             assert len(call_args[1]['input'][0]) <= 30000
