@@ -20,6 +20,10 @@ from app.repositories.case_repository import CaseRepository
 from app.repositories.user_repository import UserRepository
 from app.middleware import NotFoundError, PermissionError
 from app.services.audit_service import AuditService
+from app.utils.qdrant import (
+    index_consultation_document,
+    delete_consultation_document,
+)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -118,6 +122,12 @@ class ConsultationService:
 
         self.db.commit()
         self.db.refresh(consultation)
+
+        # Index in Qdrant for RAG search (Issue #403)
+        try:
+            self._index_consultation_in_qdrant(consultation)
+        except Exception as e:
+            logger.warning(f"Failed to index consultation in Qdrant: {e}")
 
         return self._consultation_to_out(consultation)
 
@@ -222,6 +232,12 @@ class ConsultationService:
         self.db.commit()
         self.db.refresh(updated)
 
+        # Re-index in Qdrant for RAG search (Issue #403)
+        try:
+            self._index_consultation_in_qdrant(updated)
+        except Exception as e:
+            logger.warning(f"Failed to re-index consultation in Qdrant: {e}")
+
         return self._consultation_to_out(updated)
 
     def delete_consultation(
@@ -258,7 +274,33 @@ class ConsultationService:
             )
             self.db.commit()
 
+            # Remove from Qdrant (Issue #403)
+            try:
+                delete_consultation_document(case_id, consultation_id)
+            except Exception as e:
+                logger.warning(f"Failed to delete consultation from Qdrant: {e}")
+
         return success
+
+    def _index_consultation_in_qdrant(self, consultation) -> None:
+        """
+        Index consultation in Qdrant for RAG search (Issue #403)
+
+        Args:
+            consultation: Consultation model instance
+        """
+        # Build dict for Qdrant indexing
+        consultation_dict = {
+            "id": consultation.id,
+            "summary": consultation.summary,
+            "notes": consultation.notes,
+            "date": consultation.date,
+            "type": consultation.type.value if hasattr(consultation.type, 'value') else str(consultation.type),
+            "participants": [p.name for p in consultation.participants],
+        }
+
+        index_consultation_document(consultation.case_id, consultation_dict)
+        logger.info(f"Indexed consultation {consultation.id} in Qdrant")
 
     # ============================================
     # Evidence Link Operations

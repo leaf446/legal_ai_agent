@@ -4,7 +4,7 @@ Consultation Schemas - 상담내역 CRUD
 
 from pydantic import BaseModel, Field
 from typing import Optional, List, Literal
-from datetime import date, time, datetime
+from datetime import date as dt_date, time as dt_time, datetime
 
 
 # ============================================
@@ -28,8 +28,8 @@ class ConsultationParticipantOut(BaseModel):
 
 class ConsultationCreate(BaseModel):
     """상담 생성 요청 스키마"""
-    date: date = Field(..., description="상담 날짜")
-    time: Optional[time] = Field(None, description="상담 시간")
+    date: dt_date = Field(..., description="상담 날짜")
+    time: Optional[dt_time] = Field(None, description="상담 시간")
     type: Literal['phone', 'in_person', 'online'] = Field(default='phone', description="상담 유형")
     participants: List[str] = Field(default_factory=list, description="참석자 이름 목록")
     summary: str = Field(..., min_length=1, max_length=5000, description="상담 요약")
@@ -38,8 +38,8 @@ class ConsultationCreate(BaseModel):
 
 class ConsultationUpdate(BaseModel):
     """상담 수정 요청 스키마"""
-    date: Optional[date] = None
-    time: Optional[time] = None
+    date: Optional[dt_date] = None
+    time: Optional[dt_time] = None
     type: Optional[Literal['phone', 'in_person', 'online']] = None
     participants: Optional[List[str]] = None
     summary: Optional[str] = Field(None, min_length=1, max_length=5000)
@@ -50,8 +50,8 @@ class ConsultationOut(BaseModel):
     """상담 응답 스키마"""
     id: str
     case_id: str
-    date: date
-    time: Optional[time] = None
+    date: dt_date
+    time: Optional[dt_time] = None
     type: str
     participants: List[str]  # 이름 목록으로 평탄화
     summary: str
