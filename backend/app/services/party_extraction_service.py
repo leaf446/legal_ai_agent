@@ -197,6 +197,7 @@ class PartyExtractionService:
         "이혼아", "결혼식", "법원", "변호사", "판사",
     }
 
+
     def _verify_person_names(
         self,
         persons: List[ExtractedPerson]
