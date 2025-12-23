@@ -3,10 +3,13 @@ Draft Generator Module
 RAG 기반 초안 생성
 """
 
+import logging
 from sqlalchemy.orm import Session
 from typing import List, Tuple
 from datetime import datetime, timezone
 from io import BytesIO
+
+logger = logging.getLogger(__name__)
 
 from app.db.schemas import (
     DraftPreviewRequest,
