@@ -73,7 +73,7 @@ class VectorStoreCRUD(VectorStoreClient):
         texts: List[str],
         embeddings: List[List[float]],
         metadatas: List[Dict[str, Any]],
-        collection_name: str = None
+        collection_name: Optional[str] = None
     ) -> List[str]:
         """
         여러 증거 일괄 추가
@@ -86,7 +86,16 @@ class VectorStoreCRUD(VectorStoreClient):
 
         Returns:
             List[str]: 생성된 벡터 ID 리스트
+
+        Raises:
+            ValueError: 입력 리스트 길이가 일치하지 않는 경우
         """
+        if not (len(texts) == len(embeddings) == len(metadatas)):
+            raise ValueError(
+                f"Input lists must have the same length: "
+                f"texts={len(texts)}, embeddings={len(embeddings)}, metadatas={len(metadatas)}"
+            )
+
         collection = self._ensure_collection(collection_name)
         vector_ids = [str(uuid.uuid4()) for _ in texts]
 

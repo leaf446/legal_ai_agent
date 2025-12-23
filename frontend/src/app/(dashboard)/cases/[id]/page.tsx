@@ -35,6 +35,7 @@ import {
   notifyUploadComplete,
   UploadProgress
 } from '@/lib/api/evidence';
+import { PipelineProgressIndicator, calculatePipelineStatus } from '@/components/shared/PipelineProgressIndicator';
 
 const MOCK_EVIDENCE: Evidence[] = [
   {
@@ -190,7 +191,8 @@ export default function CaseDetailPage() {
         }
 
         successCount++;
-      } catch {
+      } catch (error) {
+        console.error(`파일 업로드 실패: ${file.name}`, error);
         failCount++;
       }
 
@@ -256,18 +258,33 @@ export default function CaseDetailPage() {
 
   const handleDownload = async (format: DraftDownloadFormat = 'docx') => {
     if (!id) return;
-    await downloadDraftAsDocx(draftContent, id, format);
+    try {
+      await downloadDraftAsDocx(draftContent, id, format);
+    } catch (error) {
+      console.error('다운로드 실패:', error);
+      setUploadFeedback({
+        tone: 'error',
+        message: '문서 다운로드에 실패했습니다. 다시 시도해주세요.',
+      });
+      setTimeout(() => setUploadFeedback(null), 5000);
+    }
   };
 
+  // 탭 순서: 논리적 데이터 흐름 기준 (수집 → 분석 → 구조화 → 생성)
+  // 참조: docs/analysis/DRAFT_PIPELINE_ANALYSIS.md
   const tabItems: { id: CaseDetailTab; label: string; description: string; icon: React.ReactNode; category: string }[] = useMemo(
     () => [
-      { id: 'evidence', label: '증거 자료', description: '업로드 · 상태 · 요약', icon: <FileUp className="w-4 h-4" />, category: 'Input' },
-      { id: 'timeline', label: '타임라인', description: '사건 맥락 · 흐름', icon: <Activity className="w-4 h-4" />, category: 'Context' },
-      { id: 'persons', label: '인물 관계', description: '관련자 정보 정리', icon: <UserPlus className="w-4 h-4" />, category: 'Context' },
-      { id: 'property', label: '재산분할', description: '재산 목록 · 분석', icon: <Wallet className="w-4 h-4" />, category: 'Context' },
-      { id: 'analysis', label: '법률 분석', description: 'AI 기반 법률 검토', icon: <Scale className="w-4 h-4" />, category: 'Process' },
-      { id: 'draft', label: '초안 생성', description: 'AI 초안 검토/다운로드', icon: <FileText className="w-4 h-4" />, category: 'Output' },
-      { id: 'consultation', label: '상담 내역', description: '의뢰인 소통 기록', icon: <MessageSquare className="w-4 h-4" />, category: 'Communication' },
+      // 1️⃣ 수집 (Input Layer)
+      { id: 'evidence', label: '증거 자료', description: '업로드 · 상태 · 요약', icon: <FileUp className="w-4 h-4" />, category: '수집' },
+      { id: 'consultation', label: '상담 내역', description: '의뢰인 소통 기록', icon: <MessageSquare className="w-4 h-4" />, category: '수집' },
+      // 2️⃣ 분석 (Processing Layer)
+      { id: 'analysis', label: '법률 분석', description: 'AI 기반 법률 검토', icon: <Scale className="w-4 h-4" />, category: '분석' },
+      // 3️⃣ 구조화 (Structuring Layer)
+      { id: 'timeline', label: '타임라인', description: '사건 맥락 · 흐름', icon: <Activity className="w-4 h-4" />, category: '구조화' },
+      { id: 'persons', label: '인물 관계', description: '관련자 정보 정리', icon: <UserPlus className="w-4 h-4" />, category: '구조화' },
+      { id: 'property', label: '재산분할', description: '재산 목록 · 분석', icon: <Wallet className="w-4 h-4" />, category: '구조화' },
+      // 4️⃣ 생성 (Output Layer)
+      { id: 'draft', label: '초안 생성', description: 'AI 초안 검토/다운로드', icon: <FileText className="w-4 h-4" />, category: '생성' },
     ],
     [],
   );
@@ -297,6 +314,20 @@ export default function CaseDetailPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+        {/* 파이프라인 진행 상황 시각화 (#423) */}
+        <PipelineProgressIndicator
+          status={calculatePipelineStatus({
+            evidenceCount: evidenceList.length,
+            consultationCount: 1, // TODO: 실제 상담 데이터 연동
+            analysisCompleted: evidenceList.some(e => e.status === 'completed'),
+            timelineCount: 0, // TODO: 실제 타임라인 데이터 연동
+            relationsCount: 0, // TODO: 실제 관계 데이터 연동
+            assetsCount: 0, // TODO: 실제 재산 데이터 연동
+            draftGenerated: hasGeneratedDraft,
+          })}
+          className="mb-4"
+        />
+
         <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 grid gap-4 md:grid-cols-3">
           <div>
             <p className="text-xs uppercase tracking-widest text-gray-400 mb-1">의뢰인</p>

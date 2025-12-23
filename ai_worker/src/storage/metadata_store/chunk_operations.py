@@ -62,28 +62,7 @@ class MetadataStoreChunkOperations(MetadataStoreFileOperations):
             chunks: EvidenceChunk 리스트
         """
         for chunk in chunks:
-            item_data = {
-                'evidence_id': f"chunk_{chunk.chunk_id}",
-                'chunk_id': chunk.chunk_id,
-                'file_id': chunk.file_id,
-                'content': chunk.content,
-                'score': chunk.score,
-                'timestamp': chunk.timestamp.isoformat(),
-                'sender': chunk.sender,
-                'vector_id': chunk.vector_id,
-                'case_id': chunk.case_id,
-                'record_type': 'chunk',
-                'created_at': datetime.now(timezone.utc).isoformat()
-            }
-
-            try:
-                self.client.put_item(
-                    TableName=self.table_name,
-                    Item=self._serialize_item(item_data)
-                )
-            except ClientError as e:
-                logger.error(f"DynamoDB put_item error for chunk {chunk.chunk_id}: {e}")
-                raise
+            self.save_chunk(chunk)
 
     def get_chunk(self, chunk_id: str) -> Optional[EvidenceChunk]:
         """

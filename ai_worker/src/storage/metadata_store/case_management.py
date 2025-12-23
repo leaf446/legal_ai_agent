@@ -151,11 +151,18 @@ class MetadataStoreCaseManagement(MetadataStoreChunkOperations):
         vector_ids = [chunk.vector_id for chunk in chunks if chunk.vector_id]
 
         # 2. Delete vectors from VectorStore
+        failed_deletions = []
         for vector_id in vector_ids:
             try:
                 vector_store.delete_by_id(vector_id)
-            except Exception:
-                pass  # Ignore if already deleted
+            except Exception as e:
+                logger.warning(f"Failed to delete vector {vector_id}: {e}")
+                failed_deletions.append(vector_id)
+
+        if failed_deletions:
+            logger.error(
+                f"Failed to delete {len(failed_deletions)} vectors for case {case_id}: {failed_deletions}"
+            )
 
         # 3. Delete metadata
         self.delete_case(case_id)

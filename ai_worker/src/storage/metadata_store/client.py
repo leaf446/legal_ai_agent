@@ -85,7 +85,13 @@ class MetadataStoreClient:
             return dynamodb_value['S']
         elif 'N' in dynamodb_value:
             num_str = dynamodb_value['N']
-            return float(num_str) if '.' in num_str else int(num_str)
+            try:
+                if '.' not in num_str and 'e' not in num_str.lower():
+                    return int(num_str)
+                return float(num_str)
+            except ValueError:
+                logger.warning(f"Failed to parse number: {num_str}")
+                return float(num_str)
         elif 'L' in dynamodb_value:
             return [self._deserialize_value(v) for v in dynamodb_value['L']]
         elif 'M' in dynamodb_value:
