@@ -8,7 +8,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { CaseTable } from '@/components/lawyer/CaseTable';
-import { getCaseDetailPath, getLawyerCasePath } from '@/lib/portalPaths';
+import { getCaseDetailPath } from '@/lib/portalPaths';
 
 // Mock next/link
 jest.mock('next/link', () => {
@@ -256,27 +256,16 @@ describe('CaseTable', () => {
       expect(link).toHaveAttribute('href', getCaseDetailPath('lawyer', '1'));
     });
 
-    it('renders all case links (title + quick actions)', () => {
+    it('renders a title link per case (quick action links removed)', () => {
       render(<CaseTable {...defaultProps} />);
 
-      // Each case has 3 links: title, procedure, assets
+      // Each case has a single link: the title (action column was removed)
       const links = screen.getAllByRole('link');
-      expect(links).toHaveLength(9); // 3 cases x 3 links each
+      expect(links).toHaveLength(3); // 3 cases x 1 link each
 
-      // First case links - role-specific paths
-      expect(links[0]).toHaveAttribute('href', getCaseDetailPath('lawyer', '1')); // title
-      expect(links[1]).toHaveAttribute('href', getLawyerCasePath('procedure', '1'));
-      expect(links[2]).toHaveAttribute('href', getLawyerCasePath('assets', '1'));
-
-      // Second case links
-      expect(links[3]).toHaveAttribute('href', getCaseDetailPath('lawyer', '2'));
-      expect(links[4]).toHaveAttribute('href', getLawyerCasePath('procedure', '2'));
-      expect(links[5]).toHaveAttribute('href', getLawyerCasePath('assets', '2'));
-
-      // Third case links
-      expect(links[6]).toHaveAttribute('href', getCaseDetailPath('lawyer', '3'));
-      expect(links[7]).toHaveAttribute('href', getLawyerCasePath('procedure', '3'));
-      expect(links[8]).toHaveAttribute('href', getLawyerCasePath('assets', '3'));
+      expect(links[0]).toHaveAttribute('href', getCaseDetailPath('lawyer', '1'));
+      expect(links[1]).toHaveAttribute('href', getCaseDetailPath('lawyer', '2'));
+      expect(links[2]).toHaveAttribute('href', getCaseDetailPath('lawyer', '3'));
     });
   });
 });

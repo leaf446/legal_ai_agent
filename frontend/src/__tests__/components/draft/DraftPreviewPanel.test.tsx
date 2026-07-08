@@ -3,7 +3,6 @@
  *
  * Tests for the draft editor/preview component including:
  * - Basic rendering and UI elements
- * - Export functionality (DOCX/PDF/HWP)
  * - Manual save and autosave
  * - Version history
  * - Template application
@@ -16,7 +15,6 @@ import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import DraftPreviewPanel from '@/components/draft/DraftPreviewPanel';
 import type { DraftCitation } from '@/types/draft';
-import type { DownloadResult, DraftDownloadFormat } from '@/services/documentService';
 
 // Mock the draftStorageService
 jest.mock('@/services/draftStorageService', () => ({
@@ -82,7 +80,6 @@ const defaultProps = {
   isGenerating: false,
   hasExistingDraft: true,
   onGenerate: jest.fn(),
-  onDownload: jest.fn(),
   onManualSave: jest.fn(),
 };
 
@@ -179,106 +176,6 @@ describe('DraftPreviewPanel', () => {
     });
   });
 
-  describe('Download/Export Functionality', () => {
-    it('renders download buttons for DOCX, PDF, HWP', () => {
-      render(<DraftPreviewPanel {...defaultProps} />);
-
-      expect(screen.getByRole('button', { name: /DOCX/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /PDF/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /HWP/i })).toBeInTheDocument();
-    });
-
-    it('calls onDownload with docx format when DOCX button clicked', async () => {
-      const onDownload = jest.fn().mockResolvedValue({ success: true, filename: 'draft.docx' });
-      render(<DraftPreviewPanel {...defaultProps} onDownload={onDownload} />);
-
-      fireEvent.click(screen.getByRole('button', { name: /DOCX/i }));
-
-      await waitFor(() => {
-        expect(onDownload).toHaveBeenCalledWith(
-          expect.objectContaining({
-            format: 'docx',
-            content: expect.any(String),
-          })
-        );
-      });
-    });
-
-    it('calls onDownload with pdf format when PDF button clicked', async () => {
-      const onDownload = jest.fn().mockResolvedValue({ success: true, filename: 'draft.pdf' });
-      render(<DraftPreviewPanel {...defaultProps} onDownload={onDownload} />);
-
-      fireEvent.click(screen.getByRole('button', { name: /PDF/i }));
-
-      await waitFor(() => {
-        expect(onDownload).toHaveBeenCalledWith(
-          expect.objectContaining({
-            format: 'pdf',
-          })
-        );
-      });
-    });
-
-    it('calls onDownload with hwp format when HWP button clicked', async () => {
-      const onDownload = jest.fn().mockResolvedValue({ success: true, filename: 'draft.hwp' });
-      render(<DraftPreviewPanel {...defaultProps} onDownload={onDownload} />);
-
-      fireEvent.click(screen.getByRole('button', { name: /HWP/i }));
-
-      await waitFor(() => {
-        expect(onDownload).toHaveBeenCalledWith(
-          expect.objectContaining({
-            format: 'hwp',
-          })
-        );
-      });
-    });
-
-    it('shows success toast after successful download', async () => {
-      const onDownload = jest.fn().mockResolvedValue({
-        success: true,
-        filename: 'draft_test.docx',
-      });
-
-      render(<DraftPreviewPanel {...defaultProps} onDownload={onDownload} />);
-
-      fireEvent.click(screen.getByRole('button', { name: /DOCX/i }));
-
-      await waitFor(() => {
-        // Toast message format: "DOCX 파일이 다운로드되었습니다."
-        expect(screen.getByText(/DOCX 파일이 다운로드되었습니다/i)).toBeInTheDocument();
-      });
-    });
-
-    it('shows error toast after failed download', async () => {
-      const onDownload = jest.fn().mockResolvedValue({
-        success: false,
-        error: '서버 오류',
-      });
-
-      render(<DraftPreviewPanel {...defaultProps} onDownload={onDownload} />);
-
-      fireEvent.click(screen.getByRole('button', { name: /DOCX/i }));
-
-      await waitFor(() => {
-        // Toast shows the error message
-        expect(screen.getByText(/서버 오류/i)).toBeInTheDocument();
-      });
-    });
-
-    it('shows loading state during download', async () => {
-      const onDownload = jest.fn().mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve({ success: true }), 1000))
-      );
-
-      render(<DraftPreviewPanel {...defaultProps} onDownload={onDownload} />);
-
-      fireEvent.click(screen.getByRole('button', { name: /DOCX/i }));
-
-      // Should show loading state
-      expect(screen.getByRole('button', { name: /DOCX/i })).toBeDisabled();
-    });
-  });
 
   describe('Manual Save', () => {
     it('renders save button', () => {
@@ -700,27 +597,6 @@ describe('DraftPreviewPanel', () => {
   });
 
   describe('Error States', () => {
-    it('handles onDownload returning void', async () => {
-      const onDownload = jest.fn(() => undefined);
-
-      render(<DraftPreviewPanel {...defaultProps} onDownload={onDownload} />);
-
-      fireEvent.click(screen.getByRole('button', { name: /DOCX/i }));
-
-      // Should not throw error
-      await waitFor(() => {
-        expect(onDownload).toHaveBeenCalled();
-      });
-    });
-
-    it('handles missing onDownload prop', () => {
-      // Should render without error
-      render(<DraftPreviewPanel {...defaultProps} onDownload={undefined} />);
-
-      // Download buttons should still be present but may be disabled
-      expect(screen.getByRole('button', { name: /DOCX/i })).toBeInTheDocument();
-    });
-
     it('handles missing onManualSave prop', async () => {
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
 

@@ -134,8 +134,6 @@ jest.mock('@/lib/portalPaths', () => ({
     getLawyerCasePath: jest.fn((section: string, caseId: string) => `/lawyer/cases/${section}?caseId=${caseId}`),
 }));
 
-import { downloadDraftAsDocx } from '@/services/documentService';
-
 /**
  * TODO: These integration tests require extensive mocking of LawyerCaseDetailClient's
  * dependencies (apiClient, evidence API, router, logger, etc.). After the Phase C
@@ -239,52 +237,7 @@ describe('Plan 3.6 - Draft Tab requirements on the case detail page', () => {
         });
     });
 
-    describe('Plan 3.12 - Download Functionality', () => {
-        test('DOCX 다운로드 버튼 클릭 시 onDownload 핸들러가 호출되어야 한다', () => {
-            const onDownload = jest.fn();
-            const { getByText } = render(
-                <DraftPreviewPanel
-                    caseId="case-draft-tab"
-                    draftText="Test Content"
-                    citations={[]}
-                    isGenerating={false}
-                    hasExistingDraft={true}
-                    onGenerate={() => { }}
-                    onDownload={({ content, format }) => onDownload(content, format)}
-                />
-            );
-
-            const downloadBtn = getByText('DOCX');
-            fireEvent.click(downloadBtn);
-
-            expect(onDownload).toHaveBeenCalledWith(expect.stringContaining('Test Content'), 'docx');
-        });
-        describe.skip('Plan 3.12 - Download Functionality Integration', () => {
-            test('CaseDetailClient에서 DOCX 다운로드 버튼 클릭 시 서비스 함수가 호출되어야 한다', async () => {
-                await renderCaseDetail();
-
-                const downloadBtn = screen.getByText('DOCX');
-                fireEvent.click(downloadBtn);
-
-                // 서비스 함수 호출 확인
-                expect(downloadDraftAsDocx).toHaveBeenCalled();
-            });
-        });
-    });
-
-    describe.skip('Plan 3.12 - HWP/Word 변환 다운로드', () => {
-        test('사용자는 DOCX/HWP 두 가지 다운로드 옵션을 볼 수 있고 HWP 클릭 시 변환 서비스가 호출된다', async () => {
-            await renderCaseDetail();
-
-            const docxButton = screen.getByRole('button', { name: /DOCX/i });
-            expect(docxButton).toBeInTheDocument();
-
-            const hwpButton = screen.getByRole('button', { name: /HWP/i });
-            fireEvent.click(hwpButton);
-
-            expect(downloadDraftAsDocx).toHaveBeenCalledWith(expect.any(String), 'case-draft-tab', 'hwp');
-        });
-    });
+    // NOTE: 다운로드(DOCX/PDF/HWP) 기능은 UI에서 제거되어 관련 테스트도 삭제됨
 
     describe.skip('Plan 3.13 - Template 선택 옵션', () => {
         test('Draft 생성 모달에서 업로드된 템플릿을 선택할 수 있는 컨트롤이 있어야 한다', async () => {
