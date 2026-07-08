@@ -4,7 +4,6 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
     Loader2,
     FileText,
-    Download,
     Sparkles,
     Bold,
     Italic,
@@ -26,7 +25,6 @@ import {
 } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import { DraftCitation, PrecedentCitation } from '@/types/draft';
-import { DraftDownloadFormat, DownloadResult } from '@/services/documentService';
 import EvidenceTraceabilityPanel from './EvidenceTraceabilityPanel';
 import {
     DraftVersionSnapshot,
@@ -45,7 +43,6 @@ interface DraftPreviewPanelProps {
     isGenerating: boolean;
     hasExistingDraft: boolean;
     onGenerate: () => void;
-    onDownload?: (data: { format: DraftDownloadFormat; content: string }) => Promise<DownloadResult> | void;
     onManualSave?: (content: string) => Promise<void> | void;
 }
 
@@ -148,8 +145,32 @@ const textToHtml = (text: string): string => {
     return htmlParagraphs.join('\n');
 };
 
-const sanitizeDraftHtml = (html: string) =>
-    typeof window === 'undefined' ? html : DOMPurify.sanitize(textToHtml(html), SANITIZE_OPTIONS);
+/**
+ * Preserve leading spaces and multiple consecutive spaces for legal document formatting
+ * Converts spaces to &nbsp; for proper rendering in HTML
+ * Must be applied AFTER textToHtml to avoid escaping &nbsp; as &amp;nbsp;
+ */
+const preserveSpaces = (html: string): string => {
+    // Convert leading spaces at the start of each line to &nbsp;
+    // Also convert multiple consecutive spaces to preserve formatting
+    return html
+        .replace(/^( +)/gm, (match) => match.replace(/ /g, '\u00A0'))
+        .replace(/  +/g, (match) => match.replace(/ /g, '\u00A0'));
+};
+
+const sanitizeDraftHtml = (html: string) => {
+    // Pre-process: ALWAYS convert &nbsp; text literals to actual spaces (including SSR)
+    // AI (Gemini) sometimes outputs &nbsp; as literal text instead of HTML entity
+    const cleanedInput = html.replace(/&nbsp;/g, ' ');
+
+    // SSR: Return cleaned input without DOMPurify (window not available)
+    if (typeof window === 'undefined') return cleanedInput;
+
+    // Client-side: Full HTML processing with space preservation
+    const converted = textToHtml(cleanedInput);
+    const withPreservedSpaces = preserveSpaces(converted);
+    return DOMPurify.sanitize(withPreservedSpaces, SANITIZE_OPTIONS);
+};
 type IntervalHandle = ReturnType<typeof setInterval> | number;
 type TimeoutHandle = ReturnType<typeof setTimeout> | number;
 const stripHtml = (html: string) => html.replace(/<[^>]+>/g, '').trim();
@@ -208,7 +229,6 @@ export default function DraftPreviewPanel({
     isGenerating,
     hasExistingDraft,
     onGenerate,
-    onDownload,
     onManualSave,
 }: DraftPreviewPanelProps) {
     const buttonLabel = hasExistingDraft ? '초안 재생성' : '초안 생성';
@@ -227,8 +247,6 @@ export default function DraftPreviewPanel({
     const [changeLog, setChangeLog] = useState<DraftChangeLogEntry[]>([]);
     const [isTrackChangesEnabled, setIsTrackChangesEnabled] = useState(false);
     const [collabStatus, setCollabStatus] = useState<string | null>(null);
-    const [isExporting, setIsExporting] = useState(false);
-    const [exportingFormat, setExportingFormat] = useState<DraftDownloadFormat | null>(null);
     const [exportToast, setExportToast] = useState<ExportToast | null>(null);
     const editorRef = useRef<HTMLDivElement>(null);
     const autosaveTimerRef = useRef<IntervalHandle | null>(null);
@@ -446,44 +464,6 @@ export default function DraftPreviewPanel({
 
     const handleFormat = (command: string) => {
         document.execCommand(command, false, undefined);
-    };
-
-    const handleDownload = async (format: DraftDownloadFormat) => {
-        if (!onDownload) return;
-
-        setIsExporting(true);
-        setExportingFormat(format);
-        setExportToast(null);
-
-        try {
-            const result = await onDownload({ format, content: editorHtml });
-
-            if (result) {
-                if (result.success) {
-                    setExportToast({
-                        type: 'success',
-                        message: `${format.toUpperCase()} 파일이 다운로드되었습니다.`,
-                        filename: result.filename,
-                    });
-                } else {
-                    setExportToast({
-                        type: 'error',
-                        message: result.error || '다운로드에 실패했습니다.',
-                    });
-                }
-            }
-        } catch (error) {
-            setExportToast({
-                type: 'error',
-                message: error instanceof Error ? error.message : '다운로드 중 오류가 발생했습니다.',
-            });
-        } finally {
-            setIsExporting(false);
-            setExportingFormat(null);
-
-            // Auto-dismiss toast after 5 seconds
-            setTimeout(() => setExportToast(null), 5000);
-        }
     };
 
     const handleEditorClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -840,47 +820,7 @@ export default function DraftPreviewPanel({
                             <List className="w-4 h-4 text-neutral-700" />
                         </button>
                     </div>
-                    <div className="inline-flex items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={() => handleDownload('docx')}
-                            disabled={isExporting}
-                            className="inline-flex items-center gap-1 text-xs font-medium text-secondary hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isExporting && exportingFormat === 'docx' ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                                <Download className="w-4 h-4" />
-                            )}
-                            DOCX
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => handleDownload('pdf')}
-                            disabled={isExporting}
-                            className="inline-flex items-center gap-1 text-xs font-medium text-secondary hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isExporting && exportingFormat === 'pdf' ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                                <Download className="w-4 h-4" />
-                            )}
-                            PDF
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => handleDownload('hwp')}
-                            disabled={isExporting}
-                            className="inline-flex items-center gap-1 text-xs font-medium text-secondary hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isExporting && exportingFormat === 'hwp' ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                                <Download className="w-4 h-4" />
-                            )}
-                            HWP
-                        </button>
-                    </div>
+                    {/* 다운로드 버튼 숨김 처리 - 추후 기능 완성 시 활성화 */}
                 </div>
             </div>
 

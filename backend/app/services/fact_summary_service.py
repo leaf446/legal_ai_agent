@@ -159,9 +159,7 @@ class FactSummaryService:
             logger.info(f"[FactSummary] Created new summary for case_id={case_id}")
 
         # 017-party-graph-improvement: Auto-extract parties from fact summary
-        # DISABLED: Gemini가 형태소를 인물로 오인식하는 문제로 일시 비활성화
-        # 프롬프트 개선 후 재활성화 예정
-        # self._auto_extract_parties(case_id, user_id, ai_summary)
+        self._auto_extract_parties(case_id, user_id, ai_summary)
 
         return FactSummaryGenerateResponse(
             case_id=case_id,
@@ -233,6 +231,7 @@ class FactSummaryService:
         ]
 
         # Sort by timestamp (oldest first for chronological story)
+        # timestamp = 실제 사건 발생 시점, created_at = 업로드 시점 (fallback)
         filtered.sort(key=lambda x: x.get("timestamp") or x.get("created_at") or "", reverse=False)
 
         logger.info(f"[FactSummary] Collected {len(filtered)} evidence summaries for case_id={case_id}")
@@ -312,7 +311,8 @@ class FactSummaryService:
         # Format evidence summaries
         evidence_text = ""
         for i, evidence in enumerate(evidence_list, 1):
-            timestamp = evidence.get("timestamp") or evidence.get("created_at") or "날짜 미상"
+            # timestamp = 실제 사건 발생 시점 (AI가 추출), created_at = 업로드 시점
+            timestamp = evidence.get("timestamp") or evidence.get("created_at") or ""
             summary = evidence.get("ai_summary", "")
             evidence_type = evidence.get("type", "")
             labels = evidence.get("labels", [])
@@ -332,8 +332,11 @@ class FactSummaryService:
                 if mapping_parts:
                     speaker_info = f"[화자 정보: {', '.join(mapping_parts)}]"
 
+            # 날짜 포맷: ISO 형식에서 날짜만 추출
+            date_str = timestamp[:10] if timestamp and len(timestamp) >= 10 else "날짜 미상"
+
             evidence_text += f"""
-[증거{i}] ({evidence_type}) {timestamp}
+[증거{i}] ({evidence_type}) {date_str}
 {speaker_info}
 {summary}
 {f"관련 태그: {labels_str}" if labels_str else ""}
@@ -357,8 +360,8 @@ class FactSummaryService:
 아래 증거들과 상담 내역을 종합하여 사건의 사실관계를 시간순으로 정리해주세요.
 
 ## 작성 규칙:
-1. 시간순으로 정렬 (오래된 것 → 최근)
-2. 각 사실 앞에 출처 표시: [증거N] 또는 [상담N]
+1. **[중요] 반드시 날짜 기준 시간순 정렬**: 사실관계 섹션의 각 항목은 날짜가 빠른 것부터 늦은 순서로 작성. 증거/상담 번호 순서가 아닌 실제 날짜 기준으로 재배열 필수.
+2. 각 사실 앞에 출처 표시: [증거N] 또는 [상담N] (원본 번호 유지)
 3. 객관적 사실만 기술, 의견이나 추측 배제
 4. 유책사유(부정행위, 가정폭력, 악의의 유기 등) 명확히 표시
 5. 핵심 사실 위주로 3000자 이내
@@ -370,8 +373,9 @@ class FactSummaryService:
 [혼인 기간, 당사자 관계 등 기본 정보 - 증거 및 상담에서 추론]
 
 ### 사실관계
-1. [증거1/상담1] YYYY년 M월 - 구체적 사실
-2. [증거2] YYYY년 M월 - 구체적 사실
+(반드시 날짜순 정렬 - 예: 12월 3일 → 12월 16일 → 12월 20일 → 12월 26일)
+1. [증거3] 2025년 12월 3일 - 구체적 사실 (날짜가 가장 빠르면 먼저)
+2. [상담1] 2025년 12월 16일 - 구체적 사실
 ...
 
 ### 유책사유 요약

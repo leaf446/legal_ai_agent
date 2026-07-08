@@ -41,8 +41,6 @@ import DraftGenerationModal from '@/components/draft/DraftGenerationModal';
 import DraftPreviewPanel from '@/components/draft/DraftPreviewPanel';
 import { generateDraftPreviewAsync, DraftJobStatus } from '@/lib/api/draft';
 import { DraftCitation } from '@/types/draft';
-import { downloadDraftAsDocx, DraftDownloadFormat, DownloadResult } from '@/services/documentService';
-import { ExpertInsightsPanel } from '@/components/case/ExpertInsightsPanel';
 import { useProcedure } from '@/hooks/useProcedure';
 import { ProcedureTimeline } from '@/components/procedure';
 // New tab components
@@ -117,7 +115,6 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
   const [showSummaryCard, setShowSummaryCard] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showExpertPanel, setShowExpertPanel] = useState(false);
 
   // Draft state
   const [showDraftModal, setShowDraftModal] = useState(false);
@@ -372,20 +369,6 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
     }
   }, [caseId]);
 
-  // Draft download handler
-  const handleDraftDownload = useCallback(async (data: { format: DraftDownloadFormat; content: string }): Promise<DownloadResult> => {
-    try {
-      const result = await downloadDraftAsDocx(data.content, caseId, data.format);
-      return result;
-    } catch (err) {
-      logger.error('Draft download error:', err);
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : '다운로드에 실패했습니다.',
-      };
-    }
-  }, [caseId]);
-
   // Draft re-generate handler (opens modal)
   const handleDraftRegenerate = useCallback(() => {
     setShowDraftModal(true);
@@ -497,21 +480,12 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
           <div className="flex items-center gap-2">
             {/* Secondary Actions in Dropdown */}
             <CaseActionsDropdown
-              assetsPath={assetsPath}
               onEdit={() => setShowEditModal(true)}
-              onSummaryCard={() => setShowSummaryCard(true)}
-              onExpertInsights={() => setShowExpertPanel(true)}
             />
           </div>
         </div>
 
       </div>
-
-      {/* Expert Insights Panel */}
-      <ExpertInsightsPanel
-        isOpen={showExpertPanel}
-        onClose={() => setShowExpertPanel(false)}
-      />
 
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-neutral-700">
@@ -522,7 +496,6 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
             { id: 'analysis', label: '법률 분석', count: null, icon: <Scale className="w-4 h-4 mr-1" /> },
             { id: 'draft', label: '초안 생성', count: null, icon: <FileText className="w-4 h-4 mr-1" /> },
             { id: 'relations', label: '관계도', count: null, icon: null },
-            { id: 'assets', label: '재산분할', count: null, icon: <Wallet className="w-4 h-4 mr-1" /> },
             { id: 'timeline', label: '타임라인', count: caseDetail.recentActivities.length, icon: null },
           ].map((tab) => (
             <button
@@ -955,7 +928,6 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
                 isGenerating={isGeneratingDraft}
                 hasExistingDraft={hasExistingDraft}
                 onGenerate={handleDraftRegenerate}
-                onDownload={handleDraftDownload}
               />
             )}
           </div>
