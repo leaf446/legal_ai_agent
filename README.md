@@ -11,7 +11,9 @@
 
 ## 🎬 데모
 
-> **[▶ 시연 영상 보기](데모_영상_URL_교체_예정)** — 증거 업로드부터 AI 분석, 소장 초안 생성까지 전체 파이프라인 시연
+[![시연 영상](https://img.youtube.com/vi/UPJp2eQVH8A/maxresdefault.jpg)](https://youtu.be/UPJp2eQVH8A)
+
+> **[▶ 시연 영상 보기 (YouTube)](https://youtu.be/UPJp2eQVH8A)** — 증거 업로드부터 AI 분석, 소장 초안 생성까지 전체 파이프라인 시연
 
 | 변호사 대시보드 | 케이스 워크스페이스 (사실관계 요약 → 초안 생성) |
 |:---:|:---:|
