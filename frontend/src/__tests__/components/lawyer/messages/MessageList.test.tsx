@@ -216,17 +216,17 @@ describe('MessageList', () => {
 
   describe('Date Formatting', () => {
     it('shows time for messages from today', () => {
+      const now = new Date();
       const todayMessage: DirectMessageSummary = {
         ...mockMessages[0],
-        createdAt: new Date().toISOString(),
+        createdAt: now.toISOString(),
       };
 
       render(<MessageList {...defaultProps} messages={[todayMessage]} />);
 
-      // Should show time format (e.g., "오후 2:30")
-      const timeRegex = /오전|오후/;
-      const timeElement = screen.getByText(timeRegex);
-      expect(timeElement).toBeInTheDocument();
+      // 컴포넌트와 동일한 포맷터로 기대값 계산 (ICU 로케일 데이터가 없는 환경에서도 일치)
+      const expected = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+      expect(screen.getByText(expected)).toBeInTheDocument();
     });
 
     it('shows "어제" for messages from yesterday', () => {
