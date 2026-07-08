@@ -1,249 +1,166 @@
-# Team H·P·L - Legal Evidence Hub (LEH)
+# CHAGOK (차곡) — Legal Evidence Hub
 
-[![CI](https://github.com/KernelAcademy-AICamp/ai-camp-2nd-llm-agent-service-project-2nd/actions/workflows/ci.yml/badge.svg)](https://github.com/KernelAcademy-AICamp/ai-camp-2nd-llm-agent-service-project-2nd/actions/workflows/ci.yml)
-[![Deploy](https://github.com/KernelAcademy-AICamp/ai-camp-2nd-llm-agent-service-project-2nd/actions/workflows/deploy_paralegal.yml/badge.svg)](https://github.com/KernelAcademy-AICamp/ai-camp-2nd-llm-agent-service-project-2nd/actions/workflows/deploy_paralegal.yml)
+[![CI](https://github.com/leaf446/legal_ai_agent/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/leaf446/legal_ai_agent/actions/workflows/ci.yml)
 
-**Test Coverage:** Backend 81% | AI Worker 78% | Frontend ~30%
+> **이혼 사건 전용 AI 파라리걸 & 증거 허브**
+> 변호사는 사건을 생성하고 증거를 올리기만 하면, AI가 AWS 안에서 증거를 정리·분석해 소장 초안 후보를 제안합니다. 최종 문서는 언제나 변호사가 직접 결정합니다.
 
-> "변호사는 사건만 생성하고 증거를 S3에 올린다.
-> AI는 AWS 안에서 증거를 정리·분석해 '소장 초안 후보'를 보여준다.
-> 최종 문서는 언제나 변호사가 직접 결정한다."
-
-LEH는 **이혼 사건 전용 AI 파라리걸 & 증거 허브** 플랫폼입니다.
+**Tests:** Backend 1,700 passed (cov 76%) · AI Worker 1,025 passed (cov 79%) · Frontend 112 test suites passed
 
 ---
 
-## 1. 팀 구성 & 역할
+## 🎬 데모
 
-| 코드 | 역할 | 주요 책임 |
-|:-----|:-----|:----------|
-| H | **Backend / Infra** | FastAPI, RDS, S3, 인증·권한, 증거 무결성, 배포 파이프라인 |
-| L | **AI / Data** | AI Worker, STT/OCR, 파서, 요약·라벨링, 임베딩·RAG |
-| P | **Frontend / PM** | Next.js 대시보드, UX, GitHub 운영, 문서 관리, PR 승인 |
+> **[▶ 시연 영상 보기](데모_영상_URL_교체_예정)** — 증거 업로드부터 AI 분석, 소장 초안 생성까지 전체 파이프라인 시연
+
+| 변호사 대시보드 | 케이스 워크스페이스 (사실관계 요약 → 초안 생성) |
+|:---:|:---:|
+| ![대시보드](docs/images/dashboard.png) | ![케이스 워크스페이스](docs/images/case-workspace.png) |
 
 ---
 
-## 2. 프로젝트 개요
+## 1. 프로젝트 개요
 
-### 2.1 한 줄 요약
+법률 사무소에서 이혼 사건 증거는 카톡 캡처, 녹음 파일, 영상, PDF 등으로 **중구난방으로 도착**하고, 수작업 정리에 1~2주가 걸립니다. CHAGOK은 이 과정을 자동화합니다.
 
-> **"AWS 안에서 끝나는 이혼 사건 전용 AI 파라리걸 & 증거 허브"**
-
-- 증거는 **변호사 소유 AWS S3**에만 저장
-- AI는 증거를 **정리·요약·라벨링·임베딩**
-- 변호사에게는 **"소장/준비서면 초안 후보(Preview)"**만 제안
-
-### 2.2 해결하는 문제
-
-| 기존 문제 | LEH 솔루션 |
+| 기존 문제 | CHAGOK 솔루션 |
 |-----------|-----------|
-| 카톡/이메일/USB로 중구난방 도착 | S3 Presigned URL 업로드 |
-| 수작업 정리 1~2주 소요 | AI 자동 분석 파이프라인 |
-| 중요 증거 누락·오용 리스크 | 구조화된 타임라인 & 필터 |
-| 증거 무결성(해시, Chain of Custody) 부담 | SHA-256 + Audit Log |
+| 카톡/이메일/USB로 흩어진 증거 | S3 Presigned URL 직접 업로드 |
+| 수작업 정리 1~2주 소요 | S3 이벤트 기반 AI 자동 분석 파이프라인 |
+| 중요 증거 누락·오용 리스크 | 구조화된 타임라인, 인물관계도, 필터 |
+| 증거 무결성(Chain of Custody) 부담 | SHA-256 해시 + 불변 Audit Log |
+| 소장 초안 작성 부담 | 사실관계 요약 기반 초안 자동 생성 (Preview Only) |
 
----
+**설계 원칙**
+- 모든 증거는 **단일 AWS 계정 내부**에서만 저장·처리 (외부 스토리지 없음)
+- 사건별 RAG 인덱스 격리 (`case_rag_{case_id}`) — 사건 간 데이터 유출 원천 차단
+- AI 산출물은 **Preview Only** — 자동 제출 없음, 변호사가 항상 최종 결정
+
+## 2. 아키텍처
+
+```mermaid
+flowchart LR
+    U["변호사 (브라우저)"] --> FE["Next.js 14<br/>대시보드"]
+    FE --> BE["FastAPI<br/>Backend"]
+    BE -- "Presigned URL 발급" --> S3[("AWS S3<br/>증거 원본")]
+    U -- "직접 업로드" --> S3
+    S3 -- "S3 Event" --> W["AI Worker<br/>(Lambda)"]
+    W -- "STT · OCR · Vision" --> OAI["OpenAI"]
+    W --> DDB[("DynamoDB<br/>분석 메타데이터")]
+    W --> QD[("Qdrant<br/>사건별 벡터 인덱스")]
+    BE --> DDB
+    BE --> QD
+    BE -- "초안 생성" --> LLM["Gemini / GPT"]
+    BE --> RDS[("PostgreSQL<br/>사용자·사건·감사로그")]
+```
+
+**증거 처리 흐름**: 업로드(S3) → Lambda 자동 트리거 → 파일 타입별 파서(카톡 텍스트/이미지/음성/영상/PDF) → 요약·민법 840조 사유 태깅·화자 분리 → DynamoDB/Qdrant 저장 → 타임라인·검색·사실관계 요약·초안 생성에 활용
 
 ## 3. 기술 스택
 
-| 영역 | 기술 | 설명 |
-|:-----|:-----|:-----|
-| Frontend | **Next.js 14, TypeScript, Tailwind** | 변호사/스태프용 대시보드 |
-| Backend | **FastAPI, Python** | 인증, 사건/증거/Draft API |
-| RDB | **PostgreSQL (RDS) / SQLite** | 사용자, 사건, 권한, 감사 로그 |
-| Evidence Storage | **AWS S3** | 원본 증거 저장소 |
-| Metadata | **AWS DynamoDB** | 증거 분석 결과 JSON |
-| RAG | **Qdrant** | 사건별 임베딩 인덱스 |
-| AI | **OpenAI (GPT-4o, Whisper, Vision)** | OCR/STT/요약/라벨링/초안 생성 |
-| CDN | **CloudFront** | Frontend 배포 |
+| 영역 | 기술 |
+|:-----|:-----|
+| Frontend | Next.js 14, TypeScript, Tailwind CSS, React Flow (인물관계도) |
+| Backend | FastAPI, SQLAlchemy, Pydantic — Router → Service → Repository 계층 구조 |
+| AI Worker | AWS Lambda, 파일 타입별 파서 (Strategy Pattern) |
+| AI/LLM | OpenAI (Whisper STT, Vision, Embedding), Gemini (초안 생성) |
+| 저장소 | S3 (증거 원본), DynamoDB (분석 결과), Qdrant (벡터), PostgreSQL/SQLite (RDB) |
+| 인증/보안 | JWT (HTTP-only Cookie), RBAC, 사건별 권한, SHA-256 무결성 검증 |
+| CI/CD | GitHub Actions — 3개 티어 lint/test/build + Playwright E2E |
 
-> Google Drive는 사용하지 않으며, 모든 데이터는 **단일 AWS 계정 내부**에서만 저장·처리됩니다.
+## 4. 팀 구성 & 역할
 
----
+KernelAcademy AI Camp 2기 팀 프로젝트 (3인, 2025.11 ~ 2025.12)
 
-## 4. 시작하기 (Getting Started)
+| 역할 | GitHub | 담당 |
+|:-----|:-------|:-----|
+| **Backend / Infra** | [leaf446](https://github.com/leaf446) *(+ tae yeon 계정, 이 저장소 소유자)* | FastAPI 전체 API 설계·구현, JWT/RBAC 인증, 사건·증거·초안 생성 서비스, RAG 검색 연동, 증거 무결성(SHA-256·Audit Log), DB 모델링·마이그레이션 |
+| AI / Data | [vsun410](https://github.com/vsun410) | AI Worker(Lambda), STT/OCR/Vision 파서, 요약·840조 태깅, 임베딩·RAG 파이프라인 |
+| Frontend / PM | [Prometheus-P](https://github.com/Prometheus-P) *(+ HSP 계정)* | Next.js 대시보드, UX, GitHub 운영, PR 승인 |
 
-### 4.1 Quick Start (원클릭 설정)
+## 5. 로컬에서 실행해보기 (API 키 불필요)
 
-```bash
-# 1. 레포 클론
-git clone https://github.com/KernelAcademy-AICamp/ai-camp-2nd-llm-agent-service-project-2nd.git
-cd ai-camp-2nd-llm-agent-service-project-2nd
+외부 API 키 없이 **UI 전체를 탐색**할 수 있습니다 (SQLite 사용). 증거 AI 분석·초안 생성 등 AI 기능은 OpenAI/AWS 키가 필요하며, 전체 파이프라인 동작은 위 데모 영상에서 확인할 수 있습니다.
 
-# 2. 환경 변수 설정
-cp .env.example .env
-# .env 파일 편집하여 필수 값 입력
-
-# 3. 전체 설정 (Makefile 사용)
-make setup
-
-# 4. 개발 서버 실행 (각각 별도 터미널)
-make dev-backend   # http://localhost:8000
-make dev-frontend  # http://localhost:3000
-```
-
-> **Makefile 명령어 전체 보기**: `make help`
-
-### 4.2 사전 요구사항
-
-- Python 3.11+
-- Node.js 18+
-- AWS 계정 + IAM (S3, DynamoDB 등)
-- OpenAI API 키
-
-### 4.3 환경 변수 설정
-
-LEH는 **통합 `.env` 파일**을 사용합니다:
+**사전 요구사항**: Python 3.11+, Node.js 18+
 
 ```bash
-# 템플릿 복사
-cp .env.example .env
-
-# 필수 값 편집
-# - OPENAI_API_KEY
-# - AWS_REGION, S3_EVIDENCE_BUCKET
-# - DATABASE_URL
-# - JWT_SECRET
+git clone https://github.com/leaf446/legal_ai_agent.git
+cd legal_ai_agent
 ```
 
-> `.env`는 절대 Git에 커밋하지 않습니다.
-
-### 4.4 백엔드 실행 (FastAPI)
+**1) Backend** (터미널 1)
 
 ```bash
 cd backend
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+# Windows: .venv\Scripts\activate | macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload
-# http://localhost:8000
+cd ..
+
+# 로컬 실행 (SQLite + 더미 키 자동 설정)
+# Windows PowerShell:
+.\scripts\run-local-backend.ps1
+# macOS/Linux:
+bash scripts/run-local-backend.sh
 ```
 
-### 4.5 프론트엔드 실행 (Next.js)
+**2) Frontend** (터미널 2)
 
 ```bash
 cd frontend
 npm install
 npm run dev
-# http://localhost:3000
 ```
 
-### 4.6 AI Worker 실행 (로컬 테스트)
+http://localhost:3000 접속 → 회원가입 후 바로 사용 (API 문서: http://localhost:8000/docs)
+
+**테스트 실행**
 
 ```bash
-cd ai_worker
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python -m handler
+cd backend  && pytest -m "not integration"   # 1,700 passed
+cd ai_worker && pytest -m "not integration"  # 1,025 passed
+cd frontend && npm test                      # 112 suites passed
 ```
 
----
+> ⚠️ Windows에서 backend 테스트 시 PDF 생성 테스트는 WeasyPrint의 GTK 시스템 의존성으로 제외 필요: `pytest -m "not integration" --ignore=tests/unit/test_pdf_generator.py`
 
-## 5. 레포 구조
+**전체 기능 실행** (AI 파이프라인 포함): `.env.example`을 참고해 OpenAI API 키, AWS 자격증명(S3·DynamoDB), Qdrant(로컬 Docker 가능), Gemini API 키(선택 — 없으면 OpenAI로 폴백)를 설정하세요.
+
+## 6. 레포 구조
 
 ```
-/
-├── .env                  # 통합 환경 변수 (Git 제외)
-├── .env.example          # 환경 변수 템플릿
-│
-├── backend/              # FastAPI 백엔드 (H)
-│   ├── app/
-│   │   ├── api/          # 라우터 (auth, cases, evidence, admin)
-│   │   ├── core/         # 설정, 보안, 의존성
-│   │   ├── db/           # DB 연결, 세션
-│   │   ├── middleware/   # 보안, 로깅, 에러 핸들링
-│   │   ├── models/       # SQLAlchemy 모델
-│   │   ├── schemas/      # Pydantic 스키마
-│   │   ├── services/     # 비즈니스 로직
-│   │   ├── repositories/ # 데이터 접근
-│   │   └── utils/        # AWS 어댑터 (S3, DynamoDB, Qdrant)
-│   └── tests/
-│
-├── ai_worker/            # AI Lambda 워커 (L)
-│   ├── handler.py        # Lambda 엔트리포인트
+├── backend/              # FastAPI 백엔드
+│   └── app/
+│       ├── api/          # 라우터 (auth, cases, evidence, drafts, ...)
+│       ├── services/     # 비즈니스 로직 (초안 생성, 사실관계 요약, 판례 검색, ...)
+│       ├── repositories/ # 데이터 접근 계층
+│       ├── middleware/   # 보안 헤더, 에러 핸들링, 감사 로그
+│       └── utils/        # S3 · DynamoDB · Qdrant · OpenAI/Gemini 어댑터
+├── ai_worker/            # AI Lambda 워커
+│   ├── handler.py        # S3 이벤트 엔트리포인트
 │   └── src/
-│       ├── parsers/      # 파일 타입별 파서 (PDF, 이미지, 오디오, 카카오톡)
-│       ├── analysis/     # 분석 엔진 (요약, 점수, 840조 태깅)
-│       ├── storage/      # DynamoDB, Qdrant 저장소
-│       ├── service_rag/  # 법률 지식 RAG
-│       ├── user_rag/     # 사건별 증거 RAG
-│       └── utils/        # 임베딩, 로깅 유틸
-│
-├── frontend/             # Next.js 대시보드 (P)
-│   └── src/
-│       ├── app/          # Next.js App Router
-│       ├── components/   # React 컴포넌트
-│       ├── hooks/        # 커스텀 React Hooks
-│       ├── lib/          # API 클라이언트
-│       ├── services/     # 비즈니스 로직
-│       └── types/        # TypeScript 타입
-│
-├── docs/                 # 설계 문서
-│   ├── specs/            # PRD, Architecture, API Spec
-│   ├── guides/           # 개발 가이드
-│   └── business/         # 비즈니스 문서
-│
-├── CLAUDE.md             # AI 에이전트 규칙
-├── Makefile              # 개발 자동화 스크립트
-└── README.md             # 이 파일
+│       ├── parsers/      # 카톡/이미지/음성/영상/PDF 파서
+│       ├── analysis/     # 요약, 840조 태깅, 증거 스코어링
+│       └── storage/      # DynamoDB, Qdrant 저장소
+├── frontend/             # Next.js 대시보드
+├── docs/                 # PRD, 아키텍처, API 명세 등 설계 문서
+└── specs/                # 기능별 스펙 문서 (spec-driven development)
 ```
 
----
-
-## 6. 협업 방식
-
-> 상세 규칙은 **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** 참고
-
-### 6.1 브랜치 전략
-
-```
-main  ←  dev  ←  feat/*
-```
-
-- **main**: 배포 가능한 상태, PR로만 변경
-- **dev**: 통합 개발 브랜치, 자유롭게 push
-- **feat/***: 작업용 브랜치
-
-### 6.2 PR 규칙
-
-- 방향: **항상 `dev → main`**
-- 최소 1명 리뷰 필수
-- 문서만 수정하는 경우 main 직접 push 허용
-
----
-
-## 7. 최근 업데이트 (2025-12-12)
-
-- **URL 기반 모달/폼 UX**: Billing·Calendar 페이지가 `useModalState`로 전환되어 뒤로가기와 딥링크가 모두 작동합니다. InvoiceForm/EventForm에는 `useBeforeUnload`가 적용돼 입력값 유실을 방지합니다.
-- **Landing/Login 네비게이션 통합**: `LandingNav`를 로그인 화면에서도 재사용하고 인증 상태를 주입해 로그인 사용자는 즉시 로그아웃할 수 있습니다.
-- **문서 동기화**: `docs/IMPLEMENTATION_STATUS.md`와 본 README에 현행 스프린트 정보가 정리돼 있습니다.
-
----
-
-## 8. 문서 허브
+## 7. 문서 허브
 
 | 카테고리 | 문서 |
 |----------|------|
-| **제품 요구사항** | [docs/specs/PRD.md](docs/specs/PRD.md) |
-| **시스템 아키텍처** | [docs/specs/ARCHITECTURE.md](docs/specs/ARCHITECTURE.md) |
-| **API 명세** | [docs/specs/API_SPEC.md](docs/specs/API_SPEC.md) |
-| **환경 설정** | [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) |
-| **협업 규칙** | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) |
-| **문서 인덱스** | [docs/INDEX.md](docs/INDEX.md) |
+| 제품 요구사항 | [docs/specs/PRD.md](docs/specs/PRD.md) |
+| 시스템 아키텍처 | [docs/specs/ARCHITECTURE.md](docs/specs/ARCHITECTURE.md) |
+| API 명세 | [docs/specs/API_SPEC.md](docs/specs/API_SPEC.md) |
+| 환경 설정 | [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) |
+| 협업 규칙 | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) |
 
----
+## 8. 법률·보안 고려사항
 
-## 9. 최종 산출물
-
-1. **운영 가능한 변호사 대시보드**
-   - 사건 생성, 증거 업로드, 타임라인, 필터, Draft Preview
-
-2. **AI 기반 증거 분석 파이프라인**
-   - S3 Event → AI Worker → DynamoDB/Qdrant → API
-
-3. **법적·보안 기준을 충족하는 설계**
-   - 사건별 RAG 격리, Audit Log, PIPA/변호사법 대응
-
-4. **정리된 설계 문서 & 협업 규칙**
-   - PRD/Architecture/Design 문서 + GitHub CI/CD
+- **No Auto-Submit**: AI 산출물은 Preview 전용 — 변호사 검토·수정 필수
+- **증거 무결성**: 업로드 시 SHA-256 해시, Chain of Custody, 불변 감사 로그
+- **사건 격리**: 사건별 RAG 인덱스 분리, 사건 종결 시 벡터 컬렉션 삭제
+- **개인정보**: 사건 종결 시 소프트 삭제, PIPA/변호사법 대응 설계

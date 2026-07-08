@@ -4,10 +4,7 @@
 name: Deploy LEH to AWS
 
 on:
-  # main, dev 브랜치 푸시 시 자동 배포
-  push:
-    branches: [main, dev]
-  # 수동 배포 (긴급 시)
+  # 수동 배포 전용 (AWS 시크릿이 설정된 환경에서만 실행)
   workflow_dispatch:
 
 permissions:
