@@ -431,7 +431,7 @@ export default function DraftPreviewPanel({
             channel.close();
             window.clearInterval(presenceInterval);
         };
-    }, [caseId]);
+    }, [caseId, persistCurrentState]);
 
     useEffect(() => {
         if (!channelRef.current) {

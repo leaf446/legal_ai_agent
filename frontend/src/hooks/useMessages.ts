@@ -61,6 +61,8 @@ export function useMessages({ caseId, recipientId }: UseMessagesOptions): UseMes
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // 최신 메시지 핸들러를 ref로 유지 (WebSocket 연결을 재생성하지 않고도 stale closure 방지)
+  const handleWebSocketMessageRef = useRef<(data: WebSocketMessage) => void>(() => {});
 
   // Fetch messages from API
   const fetchMessages = useCallback(async (beforeId?: string) => {
@@ -126,7 +128,7 @@ export function useMessages({ caseId, recipientId }: UseMessagesOptions): UseMes
       ws.onmessage = (event) => {
         try {
           const data: WebSocketMessage = JSON.parse(event.data);
-          handleWebSocketMessage(data);
+          handleWebSocketMessageRef.current(data);
         } catch (e) {
           logger.error('Failed to parse WebSocket message:', e);
         }
@@ -218,6 +220,11 @@ export function useMessages({ caseId, recipientId }: UseMessagesOptions): UseMes
         logger.debug('Unknown WebSocket message type', { type: data.type });
     }
   }, [caseId, user?.id]);
+
+  // 핸들러가 갱신될 때마다 ref를 최신으로 유지
+  useEffect(() => {
+    handleWebSocketMessageRef.current = handleWebSocketMessage;
+  }, [handleWebSocketMessage]);
 
   // Send message
   const sendMessage = useCallback(async (request: SendMessageRequest) => {

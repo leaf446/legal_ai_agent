@@ -29,7 +29,7 @@ LEH 백엔드는 **FastAPI 기반의 Stateless API 서버**로 구성되며, 주
 2. **사건/유저/멤버십 관리 (RDS PostgreSQL)**
 3. **증거 업로드 관리 (S3 Presigned URL)**
 4. **증거 분석 결과 조회 (DynamoDB / Qdrant 조합)**
-5. **Draft Preview 생성 API (GPT-4o + 사건별 RAG)**
+5. **Draft Preview 생성 API (Gemini 기본·OpenAI 폴백 + 사건별 RAG)**
 
 ---
 
@@ -281,7 +281,7 @@ json
 1. BE: 사건 정보 조회
 2. BE: DynamoDB에서 증거 목록 Fetch
 3. BE: 증거 요약/내용 기반으로 Qdrant 쿼리 → 관련 문장 검색
-4. BE → GPT-4o: 생성 요청 (증거 인용 포함)
+4. BE → Gemini(기본)/OpenAI(폴백): 생성 요청 (증거 인용 포함)
 5. GPT 응답 → FE에 전달
 6. FE는 Preview만 제공 (자동 입력 없음)
 
@@ -307,7 +307,7 @@ json
 
 ### `draft_service.py`
 * RAG 검색 (Qdrant)
-* GPT-4o Prompt 생성
+* LLM Prompt 생성 (Gemini 기본, OpenAI 폴백)
 * 증거 인용문 구조화
 * Draft 텍스트 생성
 * **Helper classes (Phase 13 리팩토링):**

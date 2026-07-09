@@ -264,6 +264,7 @@ export default function DetectiveCaseDetailClient({ caseId: paramCaseId }: Detec
                     <p className="text-[var(--color-text-primary)]">{record.content}</p>
                   </div>
                   {record.photo_url && (
+                    // eslint-disable-next-line @next/next/no-img-element -- S3 presigned URL은 호스트가 가변적이라 next/image 최적화 대상이 아님
                     <img
                       src={record.photo_url}
                       alt="첨부 사진"

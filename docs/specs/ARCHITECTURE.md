@@ -440,9 +440,9 @@ text
     - 사건 메타 조회 (RDS)
     - 관련 증거 후보 조회 (DynamoDB)
     - Qdrant로 세부 RAG 검색 수행
-[4] BE → GPT-4o:
+[4] BE → Gemini(기본)/OpenAI(폴백):
     - 사건 요약 + 쟁점 + 관련 증거 텍스트를 Prompt로 전송
-[5] GPT-4o:
+[5] LLM:
     - 청구취지/청구원인 구조로 초안 텍스트 생성
     - 증거 인용문/각주 형태 포함
 [6] BE:

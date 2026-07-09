@@ -69,7 +69,7 @@ export function useSettings(options: UseSettingsOptions = {}): UseSettingsReturn
         setProfile(profileResponse.data);
       }
 
-      if (notificationsResponse.error && !error) {
+      if (notificationsResponse.error && !profileResponse.error) {
         // Only set error if profile didn't already fail
         setError(notificationsResponse.error);
       } else if (notificationsResponse.data) {

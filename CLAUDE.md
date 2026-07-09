@@ -10,52 +10,23 @@ Legal Evidence Hub (LEH) is an AI-powered paralegal system for divorce cases. Th
 
 **Key Constraint:** All evidence data stays within AWS (S3/DynamoDB/Qdrant). No Google Drive or external storage.
 
-## ABSOLUTE RULES (절대규칙)
+## Repository Status (저장소 운영 방식)
 
-These rules must NEVER be violated under any circumstances:
+> 이 저장소는 KernelAcademy AI Camp 팀 프로젝트(2025.11~12, 3인)를 소유자(leaf446)가
+> 포트폴리오용으로 유지보수하는 **개인 저장소**입니다. 팀 시절의 PR 필수/스테이징 배포
+> 규칙은 더 이상 적용되지 않습니다.
 
-1. **NEVER push directly to main or dev branches**
-   - All changes to `main` and `dev` must go through Pull Requests only
-   - Direct `git push origin main` or `git push origin p-work:main` is FORBIDDEN
-   - Direct `git push origin dev` or `git push origin p-work:dev` is FORBIDDEN
-
-2. **Branch update workflow**
-   ```
-   p-work → PR → dev (staging deployment)
-   dev → PR → main (production deployment)
-   ```
-
-3. **Deployment environments**
-   - `main` branch → **Production** (CloudFront production)
-   - `dev` branch → **Staging** (CloudFront staging)
-   - Both environments must be maintained separately
-
-4. **Before any git push, always verify:**
-   - You are NOT pushing to main or dev directly
-   - You are pushing to your working branch (e.g., p-work, feat/*)
-
-5. **GitHub Issue Assignees (역할별 필수 배정)**
-   - 이슈 생성 시 담당 영역에 따라 assignee 지정:
-     - **AI Worker** (`ai_worker/`, AWS Lambda, S3, DynamoDB, Qdrant): `vsun410` (L)
-     - **Backend** (`backend/`, FastAPI, API, Services): `leaf446` (H)
-     - **Frontend** (`frontend/`, Next.js, React, UI): `Prometheus-P` (P)
-   - 여러 영역에 걸친 이슈는 해당 담당자 모두 배정
-   - gh CLI 예시:
-     - AI Worker: `--assignee vsun410`
-     - Backend: `--assignee leaf446`
-     - Frontend: `--assignee Prometheus-P`
-
-6. **테스트 환경 (Testing Environment)**
-   - 사용자가 "테스트"를 요청하면 **항상 Staging 서버**에서 테스트
-   - **Staging URL**: `https://dpbf86zqulqfy.cloudfront.net/`
-   - 로컬 서버 실행하지 말 것 (uvicorn, npm run dev 등)
-   - API 테스트 시 staging API 엔드포인트 사용
-
-7. **커밋 메시지 규칙 (Commit Message Rules)**
+1. **브랜치**: `main` 단일 브랜치로 운영하며 직접 push 가능. 큰 변경은 브랜치를 나눠도 좋음
+2. **배포 환경 없음**: AWS production/staging은 모두 내려간 상태. 테스트는 **로컬에서 실행**
+   (`scripts/run-local-backend.ps1` 또는 `.sh` — API 키 없이 UI 탐색 가능)
+3. **CI**: push 시 GitHub Actions에서 3개 티어 lint/test 실행. **CI 녹색 유지가 최우선**
+   (포트폴리오 배지). push 전 로컬에서 테스트 통과 확인
+4. **커밋 메시지 규칙 (Commit Message Rules)**
    - 커밋 메시지에 다음 내용 절대 포함 금지:
      - `🤖 Generated with [Claude Code](https://claude.com/claude-code)`
      - `Co-Authored-By: Claude` 또는 유사 AI 귀속 문구
    - 커밋 메시지는 순수하게 변경 내용만 기술
+5. **저장소를 바꾸는 작업(커밋/푸시/파일 삭제 등)은 실행 전에 사용자에게 확인**
 
 ## Common Development Commands
 
@@ -159,7 +130,7 @@ cd frontend && npm run dev
 1. Frontend → Backend: POST /cases/{id}/draft-preview
 2. Backend → DynamoDB: Fetch case evidence metadata
 3. Backend → Qdrant: RAG search for relevant evidence
-4. Backend → GPT-4o: Generate draft with evidence citations
+4. Backend → Gemini (기본) / OpenAI (GEMINI_API_KEY 미설정 시 폴백): Generate draft with evidence citations
 5. Backend → Frontend: Return draft preview (no auto-submit)
 ```
 
@@ -316,6 +287,7 @@ cp .env.example .env
 # Shared
 AWS_REGION=ap-northeast-2
 OPENAI_API_KEY=sk-...
+GEMINI_API_KEY=          # 초안 생성 기본 모델 (미설정 시 OpenAI 폴백)
 S3_EVIDENCE_BUCKET=leh-evidence-dev
 QDRANT_HOST=localhost
 

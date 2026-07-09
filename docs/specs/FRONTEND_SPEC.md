@@ -556,7 +556,7 @@ POST /cases/{id}/draft-preview
 
 [1] FE: DraftPreview에서 “Draft 생성”
 [2] FE → BE: draft-preview 요청
-[3] BE: 사건 증거 → RAG → GPT-4o → 초안 생성
+[3] BE: 사건 증거 → RAG → Gemini/GPT → 초안 생성
 [4] BE → FE: draft_text + citations 반환
 [5] FE: Preview 표시
 

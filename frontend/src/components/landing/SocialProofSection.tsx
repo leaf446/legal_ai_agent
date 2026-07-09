@@ -61,6 +61,7 @@ export default function SocialProofSection() {
                     key={firm.id}
                     className="w-32 h-16 bg-white rounded-lg shadow-sm flex items-center justify-center p-4 border border-gray-100"
                   >
+                    {/* eslint-disable-next-line @next/next/no-img-element -- onError 폴백 처리가 필요한 소형 로고 이미지 */}
                     <img
                       src={firm.logo}
                       alt={`${firm.name} 로고`}

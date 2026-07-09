@@ -199,7 +199,7 @@ Response: {
 ## 기술 스택
 
 - **Qdrant**: 템플릿 벡터 저장소 (legal_templates collection)
-- **OpenAI GPT-4o**: JSON 형식 초안 생성
+- **Gemini(기본)/OpenAI(폴백)**: 초안 생성 (Gemini는 텍스트 출력 강제)
 - **python-docx**: Word 문서 렌더링 (선택)
 - **WeasyPrint/ReportLab**: PDF 렌더링 (선택)
 

@@ -2,7 +2,7 @@
 
 **Feature Branch**: `016-draft-fact-summary`
 **Created**: 2025-12-23
-**Status**: Draft
+**Status**: Implemented (구현 완료 — 본 문서의 tasks.md 체크박스는 미갱신 상태)
 **Input**: User description: "초안 생성 시 증거 파일 대신 사실관계 요약(fact-summary) 텍스트를 기반으로 GPT에 전달하도록 변경. 현재 문제: 증거 파일을 RAG로 검색하여 GPT에 전달 시 컨텍스트가 너무 커서 OpenAI API 타임아웃(25초) 발생. 해결책: 이미 생성된 fact-summary 텍스트만 사용하여 초안 생성, 컨텍스트 크기 대폭 감소, 타임아웃 문제 해결"
 
 ## User Scenarios & Testing *(mandatory)*

@@ -27,8 +27,8 @@ export default function RelationshipLegend({ graph }: RelationshipLegendProps) {
   const [showEdges, setShowEdges] = useState(true);
 
   // Defensive defaults for null/undefined graph props (#306 fix)
-  const nodes = graph?.nodes ?? [];
-  const edges = graph?.edges ?? [];
+  const nodes = useMemo(() => graph?.nodes ?? [], [graph?.nodes]);
+  const edges = useMemo(() => graph?.edges ?? [], [graph?.edges]);
 
   // Extract unique roles from nodes
   const uniqueRoles = useMemo(() => {
