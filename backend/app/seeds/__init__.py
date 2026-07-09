@@ -16,7 +16,6 @@ from app.db.models.lssp import (
 from app.db.models.lssp.pipeline import KeypointRule
 
 SEEDS_DIR = Path(__file__).parent
-V2_10_PACK_DIR = Path(__file__).parents[3] / "docs/draft_upgrade/lssp_divorce_module_pack_v2_10/data"
 
 
 def load_json(filename: str) -> dict:
@@ -111,11 +110,8 @@ def seed_draft_blocks(db: Session) -> int:
 
 
 def seed_keypoint_rules(db: Session) -> int:
-    """Import keypoint_rules.v2_10.json from v2.10 pack"""
-    # Try v2.10 pack location first, then local seeds
-    rules_file = V2_10_PACK_DIR / "keypoint_rules.v2_10.json"
-    if not rules_file.exists():
-        rules_file = SEEDS_DIR / "keypoint_rules.v2_10.json"
+    """Import keypoint_rules.v2_10.json from local seeds"""
+    rules_file = SEEDS_DIR / "keypoint_rules.v2_10.json"
 
     if not rules_file.exists():
         # No rules file found, skip silently

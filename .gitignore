@@ -79,6 +79,7 @@ out/
 playwright-report/
 playwright/.cache/
 test-results/
+.playwright-mcp/
 
 # Debug Logs
 npm-debug.log*

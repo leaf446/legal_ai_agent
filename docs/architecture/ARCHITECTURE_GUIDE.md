@@ -85,7 +85,7 @@
 3. [보안 및 인증](06-SECURITY_AUTH.md) → 인증 처리 방식
 
 ### DevOps/배포에 관심 있는 경우
-1. [프로젝트 구조](01-PROJECT_STRUCTURE.md) → .github/, infrastructure/ 확인
+1. [프로젝트 구조](01-PROJECT_STRUCTURE.md) → .github/, infra/ 확인
 2. [CI/CD 파이프라인](05-CICD_PIPELINE.md) → 배포 자동화 이해
 
 ---

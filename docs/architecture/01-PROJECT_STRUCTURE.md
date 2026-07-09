@@ -41,8 +41,9 @@ leh/                              # 프로젝트 루트
 │   │   └── utils/               # 유틸리티
 │   └── tests/
 │
-├── infrastructure/               # 🏗️ 인프라 설정
-│   └── terraform/               # IaC (Infrastructure as Code)
+├── infra/                        # 🏗️ 인프라 설정
+│   ├── terraform/               # IaC (Infrastructure as Code)
+│   └── cloudfront-functions/    # CloudFront 라우팅 함수
 │
 ├── docs/                         # 📚 문서
 │   ├── specs/                   # 설계 명세서
