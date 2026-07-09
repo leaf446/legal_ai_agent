@@ -10,7 +10,6 @@
 
 import { useState } from 'react';
 import { logger } from '@/lib/logger';
-import { flexRender } from '@tanstack/react-table';
 import { ArrowUpDown, MoreVertical, Filter, Sparkles, X, FileText, Loader2, RefreshCw, Users } from 'lucide-react';
 import { Evidence } from '@/types/evidence';
 import type { PartyNode } from '@/types/party';

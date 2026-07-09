@@ -108,7 +108,7 @@ describe('FAQSection Component', () => {
     });
 
     it('should toggle answer visibility on multiple clicks', () => {
-      const { container } = render(<FAQSection />);
+      render(<FAQSection />);
 
       const firstQuestion = screen.getByText(/AI가 생성한 초안은 법적 효력이 있나요\?/i);
       const button = firstQuestion.closest('button');
@@ -163,7 +163,7 @@ describe('FAQSection Component', () => {
     });
 
     it('should rotate icon when expanded', () => {
-      const { container } = render(<FAQSection />);
+      render(<FAQSection />);
 
       const firstQuestion = screen.getByText(/AI가 생성한 초안은 법적 효력이 있나요\?/i);
       const button = firstQuestion.closest('button');

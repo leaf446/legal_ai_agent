@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { logger } from '@/lib/logger';
 import type { Node, Edge } from '@xyflow/react';
-import type { Party, Relation, PartyType, RelationType, CaseGraphData } from '@/types/relations';
+import type { Party, Relation, PartyType, RelationType } from '@/types/relations';
 import * as relationsApi from '@/lib/api/relations';
 
 // Node/Edge style configuration based on design system
@@ -165,7 +165,7 @@ export function useCaseRelations({ caseId, autoSavePositions = true }: UseCaseRe
   }, [fetchData]);
 
   // Node position change handler (for drag)
-  const onNodesChange = useCallback((changes: unknown[]) => {
+  const onNodesChange = useCallback((_changes: unknown[]) => {
     // Handle position changes from React Flow
     // This will be called during drag operations
   }, []);

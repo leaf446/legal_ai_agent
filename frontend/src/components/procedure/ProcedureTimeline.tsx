@@ -163,7 +163,7 @@ function ProcedureTimelineComponent({
 
         {/* Stage Cards */}
         <div className="space-y-4">
-          {sortedStages.map((stage, index) => (
+          {sortedStages.map((stage) => (
             <div key={stage.id} className="relative flex items-start">
               {/* Timeline Node */}
               <div className={`

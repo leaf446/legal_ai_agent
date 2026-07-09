@@ -12,7 +12,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Loader2, Sparkles, RefreshCw, FileText, AlertCircle, Edit3, Save, X } from 'lucide-react';
 import toast from 'react-hot-toast';
-import type { FactSummary, FactSummaryGenerateResponse } from '@/types/fact-summary';
+import type { FactSummary } from '@/types/fact-summary';
 import { getFactSummary, generateFactSummary, updateFactSummary } from '@/lib/api/fact-summary';
 
 interface FactSummaryPanelProps {

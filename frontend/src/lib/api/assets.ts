@@ -13,7 +13,7 @@ import type {
 
 // Get all assets for a case
 export async function getAssets(caseId: string): Promise<Asset[]> {
-  const response = await apiClient.get<any>(`/cases/${caseId}/assets`);
+  const response = await apiClient.get<Asset[] | { assets?: Asset[]; data?: Asset[] }>(`/cases/${caseId}/assets`);
   const data = response.data;
   
   if (Array.isArray(data)) return data;

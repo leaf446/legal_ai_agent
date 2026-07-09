@@ -10,7 +10,7 @@
  * - Status indicator
  */
 
-import { FileText, Image, Music, Video, FileType, Clock, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { FileText, Image as ImageIcon, Music, Video, FileType, Clock, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { Evidence, EvidenceType, EvidenceStatus } from '@/types/evidence';
 
 // Legal party types for evidence numbering
@@ -53,7 +53,7 @@ export function generateLegalNumber(party: EvidenceParty, sequence: number): str
 function getTypeIcon(type: EvidenceType) {
   switch (type) {
     case 'image':
-      return <Image className="w-3.5 h-3.5" />;
+      return <ImageIcon className="w-3.5 h-3.5" />;
     case 'audio':
       return <Music className="w-3.5 h-3.5" />;
     case 'video':

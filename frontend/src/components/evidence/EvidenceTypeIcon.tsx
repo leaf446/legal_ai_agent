@@ -3,7 +3,7 @@
  * Pure presentational component
  */
 
-import { FileText, Image, Mic, Video, File } from 'lucide-react';
+import { FileText, Image as ImageIcon, Mic, Video, File } from 'lucide-react';
 
 interface EvidenceTypeIconProps {
   type: string;
@@ -16,7 +16,7 @@ export function EvidenceTypeIcon({ type }: EvidenceTypeIconProps) {
       className: 'text-gray-500',
     },
     image: {
-      icon: <Image className="w-5 h-5" />,
+      icon: <ImageIcon className="w-5 h-5" />,
       className: 'text-blue-500',
     },
     audio: {

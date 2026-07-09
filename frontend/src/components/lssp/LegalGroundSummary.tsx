@@ -3,7 +3,6 @@
 import { useMemo } from 'react';
 import {
   Scale,
-  CheckCircle2,
   AlertCircle,
   TrendingUp,
   FileText,
@@ -25,7 +24,6 @@ interface GroundAnalysis {
 }
 
 export function LegalGroundSummary({
-  caseId,
   keypoints,
   legalGrounds,
 }: LegalGroundSummaryProps) {

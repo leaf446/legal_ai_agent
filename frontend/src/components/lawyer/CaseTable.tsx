@@ -8,7 +8,6 @@
  */
 
 import Link from 'next/link';
-import { useState } from 'react';
 import { getLawyerCasePath } from '@/lib/portalPaths';
 
 interface CaseItem {

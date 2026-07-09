@@ -119,6 +119,7 @@ export async function getTrackingHeaders(): Promise<Record<string, string>> {
  */
 export function logCopyrightNotice(): void {
   if (process.env.NODE_ENV === 'development') {
+    /* eslint-disable no-console -- 개발 모드 전용 저작권 배너 출력 */
     console.log(
       '%c Legal Evidence Hub %c Proprietary Software ',
       'background: #1a365d; color: #fff; padding: 2px 6px; border-radius: 3px 0 0 3px;',
@@ -132,6 +133,7 @@ export function logCopyrightNotice(): void {
       '%cUnauthorized copying, modification, or distribution is strictly prohibited.',
       'color: #e53e3e; font-size: 11px;'
     );
+    /* eslint-enable no-console */
   }
 }
 

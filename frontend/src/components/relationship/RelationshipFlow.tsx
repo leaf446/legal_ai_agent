@@ -117,8 +117,8 @@ export default function RelationshipFlow({ graph }: RelationshipFlowProps) {
   const initialNodes = useMemo(() => transformToNodes(graph.nodes), [graph.nodes]);
   const initialEdges = useMemo(() => transformToEdges(graph.edges), [graph.edges]);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [nodes, , onNodesChange] = useNodesState(initialNodes);
+  const [edges, , onEdgesChange] = useEdgesState(initialEdges);
 
   // Modal states
   const [selectedPerson, setSelectedPerson] = useState<PersonNodeType | null>(null);

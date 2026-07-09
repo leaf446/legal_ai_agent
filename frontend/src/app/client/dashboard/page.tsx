@@ -15,7 +15,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getClientDashboard } from '@/lib/api/client-portal';
 import { getCaseDetailPath } from '@/lib/portalPaths';
-import ProgressTracker, { ProgressBar } from '@/components/client/ProgressTracker';
+import ProgressTracker from '@/components/client/ProgressTracker';
 import type { ClientDashboardResponse, RecentActivity } from '@/types/client-portal';
 
 // Activity Item Component

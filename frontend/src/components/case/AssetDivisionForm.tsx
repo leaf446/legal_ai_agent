@@ -340,7 +340,7 @@ export function AssetDivisionForm({ caseId }: AssetDivisionFormProps) {
   } = useAssets({ caseId });
 
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
+  const [, setEditingAsset] = useState<Asset | null>(null);
 
   const handleAddAsset = useCallback(
     async (data: CreateAssetRequest) => {

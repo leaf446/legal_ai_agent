@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { PrecedentCase, PrecedentSearchResponse } from '@/types/precedent';
 import { searchSimilarPrecedents } from '@/lib/api/precedent';
 import { PrecedentCard } from './PrecedentCard';

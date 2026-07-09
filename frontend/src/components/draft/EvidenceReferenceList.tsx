@@ -12,7 +12,7 @@
 import React from 'react';
 import {
   FileText,
-  Image,
+  Image as ImageIcon,
   Video,
   Mic,
   File,
@@ -64,7 +64,7 @@ export interface EvidenceReferenceListProps {
 const getTypeIcon = (type: EvidenceType) => {
   switch (type) {
     case 'image':
-      return <Image className="w-4 h-4" />;
+      return <ImageIcon className="w-4 h-4" />;
     case 'video':
       return <Video className="w-4 h-4" />;
     case 'audio':

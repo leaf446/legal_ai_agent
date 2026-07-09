@@ -9,7 +9,7 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import useSWR, { useSWRConfig } from 'swr';
+import useSWR from 'swr';
 import {
   CalendarEvent,
   CalendarEventCreate,
@@ -59,7 +59,6 @@ export interface UseCalendarReturn {
  * Main calendar hook for fetching and managing events
  */
 export function useCalendar(options: UseCalendarOptions = {}): UseCalendarReturn {
-  const { mutate: globalMutate } = useSWRConfig();
   const [startDate, setStartDate] = useState<Date | undefined>(options.startDate);
   const [endDate, setEndDate] = useState<Date | undefined>(options.endDate);
 

@@ -82,7 +82,7 @@ function StageCardComponent({
         }
       }}
       aria-label={`${STAGE_LABELS[stage.stage]} - ${STATUS_LABELS[stage.status]}`}
-      aria-selected={isSelected}
+      aria-pressed={isSelected}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-2">

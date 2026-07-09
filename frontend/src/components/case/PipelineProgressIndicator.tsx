@@ -13,7 +13,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { CheckCircle2, Circle, Loader2, Upload, Brain, Network, FileText } from 'lucide-react';
+import { CheckCircle2, Loader2, Upload, Brain, Network, FileText } from 'lucide-react';
 
 export type PipelineStage = 'collection' | 'analysis' | 'structuring' | 'generation';
 export type PipelineStatus = 'pending' | 'processing' | 'completed' | 'error';

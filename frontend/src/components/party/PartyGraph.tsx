@@ -37,7 +37,7 @@ import type {
   EvidenceLinkCreate,
 } from '@/types/party';
 import { PartyNode, type PartyNodeType, type PartyNodeData as FlowNodeData } from './PartyNode';
-import { PartyEdge, type PartyEdgeType, type PartyEdgeData } from './PartyEdge';
+import { PartyEdge, type PartyEdgeType } from './PartyEdge';
 import { PartyModal } from './PartyModal';
 import { RelationshipModal } from './RelationshipModal';
 import { EvidenceLinkModal } from './EvidenceLinkModal';
@@ -236,7 +236,6 @@ export function PartyGraph({ caseId }: PartyGraphProps) {
     saveStatus,
     addNode,
     updateNode,
-    deleteNode,
     addRelationship,
     updateRelationshipData,
     deleteRelationshipById,
@@ -392,13 +391,6 @@ export function PartyGraph({ caseId }: PartyGraphProps) {
     [selectedParty, addNode, updateNode]
   );
 
-  // Delete party
-  const handleDeleteParty = useCallback(async () => {
-    if (selectedParty) {
-      await deleteNode(selectedParty.id);
-    }
-  }, [selectedParty, deleteNode]);
-
   // Save relationship (create or update)
   const handleSaveRelationship = useCallback(
     async (data: RelationshipCreate | RelationshipUpdate) => {
@@ -472,9 +464,8 @@ export function PartyGraph({ caseId }: PartyGraphProps) {
     setPopoverPosition(null);
   }, []);
 
-  const handleViewEvidence = useCallback((evidenceId: string) => {
+  const handleViewEvidence = useCallback((_evidenceId: string) => {
     // In production, this would navigate to evidence detail or open a viewer
-    console.log('View evidence:', evidenceId);
   }, []);
 
   // 019-party-extraction-prompt: AI 인물 관계도 재생성

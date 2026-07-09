@@ -20,7 +20,7 @@ import {
   User,
   Link2,
 } from 'lucide-react';
-import { Keypoint, LegalGround } from '@/lib/api/lssp';
+import { Keypoint } from '@/lib/api/lssp';
 
 // =============================================================================
 // Types

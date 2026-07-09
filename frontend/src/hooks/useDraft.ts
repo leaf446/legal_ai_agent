@@ -97,7 +97,7 @@ export function useDraft(caseId: string | null): UseDraftReturn {
   }, []);
 
   // Generate draft
-  const generateDraft = useCallback(async (selectedEvidenceIds?: string[]) => {
+  const generateDraft = useCallback(async (_selectedEvidenceIds?: string[]) => {
     if (!caseId) return;
 
     setIsGenerating(true);

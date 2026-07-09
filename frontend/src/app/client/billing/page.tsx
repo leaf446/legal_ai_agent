@@ -9,7 +9,7 @@
 
 import { useState, useCallback } from 'react';
 import { useBilling, formatCurrency, getStatusBadgeStyle, getStatusLabel } from '@/hooks/useBilling';
-import type { Invoice, InvoicePaymentRequest } from '@/types/billing';
+import type { Invoice } from '@/types/billing';
 
 export default function ClientBillingPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);

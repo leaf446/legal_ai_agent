@@ -25,7 +25,6 @@ interface KeypointListProps {
 
 export function KeypointList({
   keypoints,
-  legalGrounds,
   onVerify,
   caseId,
 }: KeypointListProps) {

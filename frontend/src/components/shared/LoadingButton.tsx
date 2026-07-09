@@ -54,7 +54,7 @@ const Spinner: React.FC<{ className?: string }> = ({ className = '' }) => (
 /**
  * Get variant-specific classes
  */
-const getVariantClasses = (variant: LoadingButtonProps['variant'], isLoading: boolean): string => {
+const getVariantClasses = (variant: LoadingButtonProps['variant']): string => {
   const baseClasses = 'transition-colors duration-200 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2';
 
   const variants = {
@@ -133,7 +133,7 @@ export const LoadingButton = forwardRef<HTMLButtonElement, LoadingButtonProps>(
     },
     ref
   ) => {
-    const variantClasses = getVariantClasses(variant, isLoading);
+    const variantClasses = getVariantClasses(variant);
     const sizeClasses = getSizeClasses(size);
     const spinnerSize = getSpinnerSize(size);
 

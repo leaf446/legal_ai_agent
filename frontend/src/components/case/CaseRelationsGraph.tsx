@@ -70,7 +70,6 @@ export function CaseRelationsGraph({ caseId, readOnly = false }: CaseRelationsGr
     addParty,
     removeParty,
     addRelation,
-    removeRelation,
   } = useCaseRelations({ caseId });
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);

@@ -38,7 +38,7 @@ mockIntersectionObserver.mockReturnValue({
   unobserve: jest.fn(),
   disconnect: jest.fn(),
 });
-window.IntersectionObserver = mockIntersectionObserver as any;
+window.IntersectionObserver = mockIntersectionObserver as unknown as typeof IntersectionObserver;
 
 describe('Landing Page Integration', () => {
   describe('Section Rendering', () => {

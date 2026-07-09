@@ -9,7 +9,6 @@
 'use client';
 
 import { useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 
 interface UseBeforeUnloadOptions {
   /** Whether there are unsaved changes */

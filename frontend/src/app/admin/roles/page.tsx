@@ -2,7 +2,7 @@
 import { logger } from '@/lib/logger';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { getRoles, updateRolePermissions } from '@/lib/api/admin';
 import {
   RolePermission,

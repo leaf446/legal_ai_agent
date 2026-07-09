@@ -6,7 +6,7 @@
 import { Brain, Tags, FileText, AlertCircle } from 'lucide-react';
 import { Evidence, Article840Tags, AIInsight } from '@/types/evidence';
 import { Article840TagList } from './Article840TagBadge';
-import { ConfidenceScore, CircularConfidence } from './ConfidenceScore';
+import { ConfidenceScore } from './ConfidenceScore';
 import { InsightList } from './InsightCard';
 
 interface AIAnalysisPanelProps {

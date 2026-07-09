@@ -66,7 +66,6 @@ export function PipelinePanel({ caseId, onRefresh }: PipelinePanelProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [processingIds, setProcessingIds] = useState<Set<number>>(new Set());
   const [isPromoting, setIsPromoting] = useState(false);
@@ -189,19 +188,6 @@ export function PipelinePanel({ caseId, onRefresh }: PipelinePanelProps) {
     }
   };
 
-  // Toggle selection
-  const toggleSelection = (candidateId: number) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(candidateId)) {
-        next.delete(candidateId);
-      } else {
-        next.add(candidateId);
-      }
-      return next;
-    });
-  };
-
   // Get confidence color
   const getConfidenceColor = (score: number) => {
     if (score >= 0.8) return 'text-green-600';
@@ -211,7 +197,6 @@ export function PipelinePanel({ caseId, onRefresh }: PipelinePanelProps) {
 
   // Stats summary
   const acceptedCount = candidates.filter((c) => c.status === 'ACCEPTED').length;
-  const pendingCount = candidates.filter((c) => c.status === 'CANDIDATE').length;
 
   if (isLoading) {
     return (

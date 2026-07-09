@@ -10,7 +10,7 @@
  */
 
 import Link from 'next/link';
-import { Twitter, Linkedin, Github } from 'lucide-react';
+import { Twitter } from 'lucide-react';
 import { BRAND } from '@/config/brand';
 
 export default function LandingFooter() {

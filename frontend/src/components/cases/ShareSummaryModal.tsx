@@ -19,7 +19,6 @@ interface ShareSummaryModalProps {
 }
 
 export default function ShareSummaryModal({
-  caseId,
   caseTitle,
   isOpen,
   onClose,

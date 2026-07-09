@@ -52,7 +52,6 @@ export function SpeakerMappingModal({
     validationErrors,
     setMappingItem,
     removeMappingItem,
-    clearMapping,
     resetMapping,
     isValid,
   } = useSpeakerMapping({

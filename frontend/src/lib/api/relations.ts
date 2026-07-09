@@ -8,9 +8,7 @@ import type {
   Party,
   Relation,
   CreatePartyRequest,
-  UpdatePartyRequest,
   CreateRelationRequest,
-  UpdateRelationRequest,
   CaseGraphData,
 } from '@/types/relations';
 

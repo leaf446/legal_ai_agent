@@ -23,7 +23,6 @@ interface MessagesPageContentProps {
 
 export function MessagesPageContent({
   portalType,
-  currentUserId,
 }: MessagesPageContentProps) {
   const router = useRouter();
   const searchParams = useSearchParams();

@@ -54,6 +54,7 @@ export const logger = {
    */
   info: (message: string, context?: LogContext): void => {
     if (isDev) {
+      // eslint-disable-next-line no-console -- logger 구현체의 의도된 console 사용
       console.info(`[DEV] ${message}`, context);
     }
   },
@@ -63,6 +64,7 @@ export const logger = {
    */
   debug: (message: string, context?: LogContext): void => {
     if (isDev) {
+      // eslint-disable-next-line no-console -- logger 구현체의 의도된 console 사용
       console.debug(`[DEV] ${message}`, context);
     }
   },

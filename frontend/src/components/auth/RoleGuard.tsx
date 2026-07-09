@@ -53,7 +53,7 @@ export function RoleGuard({
   fallback,
 }: RoleGuardProps) {
   const router = useRouter();
-  const { user, role, isAuthenticated, hasAccess, isLoading } = useRole();
+  const { role, isAuthenticated, hasAccess, isLoading } = useRole();
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {

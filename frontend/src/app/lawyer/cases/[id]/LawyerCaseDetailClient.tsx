@@ -18,7 +18,6 @@ import ExplainerCard from '@/components/cases/ExplainerCard';
 import ShareSummaryModal from '@/components/cases/ShareSummaryModal';
 import EditCaseModal from '@/components/cases/EditCaseModal';
 import { ApiCase } from '@/lib/api/cases';
-import { getCaseDetailPath, getLawyerCasePath } from '@/lib/portalPaths';
 import { PartyGraph } from '@/components/party/PartyGraph';
 // Phase A: Shared Hooks
 import { useCaseIdValidation, useEvidenceUpload } from '@/hooks';
@@ -104,9 +103,6 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
   // Phase A.2: Use useCaseIdValidation hook for ID handling with timeout
   const { caseId, isIdMissing, idWaitTimedOut } = useCaseIdValidation(paramId);
 
-  // Derived paths
-  const detailPath = caseId ? getCaseDetailPath('lawyer', caseId) : '/lawyer/cases/detail';
-  const assetsPath = caseId ? getLawyerCasePath('assets', caseId) : '/lawyer/cases/assets';
   const [caseDetail, setCaseDetail] = useState<CaseDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -308,7 +304,6 @@ export default function LawyerCaseDetailClient({ id: paramId }: LawyerCaseDetail
     handleUpload,
     uploadStatus,
     uploadFeedback,
-    isUploading,
   } = useEvidenceUpload(caseId, {
     onUploadComplete: fetchEvidence,
   });

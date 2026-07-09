@@ -13,7 +13,7 @@ import { useState } from 'react';
 import {
   RefreshCw,
   FileText,
-  Image,
+  Image as ImageIcon,
   Music,
   Video,
   File,
@@ -37,7 +37,7 @@ interface EvidenceCardProps {
 // Icon mapping for evidence types
 const typeIcons: Record<EvidenceType, React.ReactNode> = {
   text: <FileText className="w-8 h-8" />,
-  image: <Image className="w-8 h-8" />,
+  image: <ImageIcon className="w-8 h-8" />,
   audio: <Music className="w-8 h-8" />,
   video: <Video className="w-8 h-8" />,
   pdf: <File className="w-8 h-8" />,

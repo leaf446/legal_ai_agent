@@ -20,7 +20,6 @@ import {
   AlertCircle,
   TrendingUp,
   Scale,
-  Users,
 } from 'lucide-react';
 import type { CaseSummaryResponse } from '@/types/summary';
 import { formatSummaryDate, formatSummaryDateTime } from '@/types/summary';
@@ -32,7 +31,7 @@ interface CaseSummaryTabProps {
   onShare?: () => void;
 }
 
-export function CaseSummaryTab({ caseId, caseTitle, onShare }: CaseSummaryTabProps) {
+export function CaseSummaryTab({ caseId, onShare }: CaseSummaryTabProps) {
   const [summary, setSummary] = useState<CaseSummaryResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

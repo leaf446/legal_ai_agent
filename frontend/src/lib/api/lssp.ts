@@ -3,7 +3,7 @@
  * Handles keypoint extraction, legal ground mapping, and draft generation
  */
 
-import { apiRequest, ApiResponse, apiClient } from './client';
+import { ApiResponse, apiClient } from './client';
 
 // =============================================================================
 // Types: Legal Grounds

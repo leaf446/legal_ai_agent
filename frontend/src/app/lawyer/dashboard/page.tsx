@@ -36,7 +36,6 @@ const CompletedIcon = () => (
 
 // Recent Case Item
 function RecentCaseItem({
-  id,
   title,
   client_name,
   status,
@@ -188,7 +187,6 @@ export default function LawyerDashboardPage() {
                   console.error(`[Dashboard] recent_cases[${idx}] missing id:`, caseItem);
                 }
                 const targetPath = getCaseDetailPath('lawyer', caseItem.id);
-                console.log(`[Dashboard] Case "${caseItem.title}" -> ${targetPath}`);
                 return (
                   <RecentCaseItem
                     key={caseItem.id || idx}
